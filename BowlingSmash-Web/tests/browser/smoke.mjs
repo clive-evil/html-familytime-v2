@@ -14,7 +14,7 @@ import { chromium } from 'playwright';
 const root = path.resolve(new URL('../../dist', import.meta.url).pathname);
 const outDir = path.resolve(new URL('./out', import.meta.url).pathname);
 fs.mkdirSync(outDir, { recursive: true });
-const args = Object.fromEntries(process.argv.slice(2).map((a) => a.replace(/^--/, '').split('=')));
+const args = Object.fromEntries(process.argv.slice(2).map((a) => { const [k, v] = a.replace(/^--/, '').split('='); return [k, v ?? true]; }));
 const levels = args.levels ? args.levels.split(',').map(Number) : Array.from({ length: 20 }, (_, i) => i + 1);
 
 const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.woff2': 'font/woff2', '.woff': 'font/woff', '.svg': 'image/svg+xml', '.png': 'image/png' };
@@ -67,11 +67,12 @@ try {
     const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
     const errors = [];
     page.on('pageerror', (e) => errors.push(e.message));
-    await page.goto(`${base}?level=${id}&memsave&unlimitedlives`);
+    await page.goto(`${base}?level=${id}&memsave&unlimitedlives${args.shots ? '' : '&qafast'}`);
     await page.waitForFunction(() => window.__game?.sim && window.__game.level, null, { timeout: 30000 });
     await page.waitForTimeout(600);
     await page.evaluate(() => { window.__game.ui.closeModal(); });
     if (args.shots) await page.screenshot({ path: path.join(outDir, `level${String(id).padStart(2, '0')}-start.png`) });
+    await page.waitForTimeout(1600); // fps is measured over a 1 s window
     const fpsIdle = await page.evaluate(() => Math.round(window.__game.fps));
     const bodies = await page.evaluate(() => window.__game.sim.bodyCount());
     await page.evaluate(() => { window.__game.ui.closeModal(); window.__game.autoSolve(); });
@@ -85,7 +86,7 @@ try {
       if (args.shots && !midShot && Date.now() - t0 > 1800) { midShot = true; await page.screenshot({ path: path.join(outDir, `level${String(id).padStart(2, '0')}-action.png`) }); }
       if (state === 'won' || state === 'lost') break;
     }
-    check(`L${id} solution wins in browser`, state === 'won', `state=${state} idleFPS=${fpsIdle} bodies=${bodies}`);
+    check(`L${id} solution wins in browser`, state === 'won', `state=${state} idleFPS(swiftshader)=${fpsIdle} bodies=${bodies}`);
     check(`L${id} no page errors`, errors.length === 0, errors.slice(0, 2).join(' | '));
     if (args.shots) {
       await page.waitForTimeout(1600);

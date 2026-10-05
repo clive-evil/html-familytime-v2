@@ -114,3 +114,19 @@ src/debug/     debug.js (?debug=1 panel)
 tools/         solve.mjs, greedy.mjs, solve-all.mjs, forgive.mjs, shot.mjs
 tests/         sim / systems / solutions (node --test), browser/smoke.mjs (Playwright)
 ```
+
+## 7. QA status (this build)
+
+* `npm test`: **59/59** Node tests. They cover rules, all 20 levels (load, target counts, 20 s idle stability), launch, collision, fail, continue, once-only targets, determinism, boosters, hook, glass, no NaN/runaway bodies, forgiveness of L1-5, saves/migration, lives, coins, chests, daily, analytics, and the stored solution for every level plus the L20 one-ball STRIKE.
+* `npm run test:browser`: **45/45** on the production build in headless Chromium. It covers the FTUE (fresh boot into L1, hints, a real mouse drag knocking all 10 pins down), every level's solution winning in the browser (same physics steps as Node), and zero page errors. A spot re-run after the final decor/CSS changes passed 11/11.
+* Physics cost (Node, same WASM): about 0.07–0.27 ms per 60 Hz step on average and under 3 ms at peak, with up to 56 bodies plus debris.
+* Rendering: 58–240 draw calls (including the shadow pass) and 26k–95k triangles per level. The container has **no GPU** (SwiftShader software GL), so in-container FPS (0–3) says nothing about real hardware. **Measure FPS on a real phone and desktop before drawing conclusions.**
+
+## 8. Known issues / limitations
+* The FPS budget is unverified on real hardware (see above). The JS bundle is about 2.9 MB (1.0 MB gzipped), mostly the Rapier WASM inlined as base64.
+* Determinism is guaranteed for the same engine build on Chromium/V8 (tested). Firefox and Safari should behave the same for gameplay, but stored solutions may not replay bit-for-bit there.
+* Stored solutions come from a coarse solver grid. Several hard-ish levels (12, 14, 15, 17) were solved with 3–4 balls, so a human may find them harder than the curve intends. They need human playtests.
+* Hearts are deducted when the player gives up on a failed attempt (retry/restart). Closing the tab on the fail panel avoids the loss (acceptable for a prototype).
+* The Level 7 chain can be bypassed with a hook shot around the wall. That's emergent and intentional, but it means the domino spectacle isn't guaranteed.
+* Desktop landscape framing keeps the whole level in view, so pins look smaller than in portrait.
+* No real ads, IAP, accounts or remote config. The CrazyGames SDK is only wrapped, not loaded.

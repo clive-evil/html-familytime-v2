@@ -22,6 +22,7 @@ export class Game {
     this.params = params;
     this.debug = params.has('debug');
     this.playtest = params.has('playtest');
+    this.qaFast = params.has('qafast');
     this.store = new SaveStore({ memory: this.playtest || params.has('memsave') });
     this.analytics = new Analytics({ memory: this.playtest || params.has('memsave'), debug: this.debug });
     this.timeScale = 1;
@@ -33,7 +34,7 @@ export class Game {
     this.pendingBooster = null;
     this.spin = 0;
     this.lastFrame = performance.now();
-    this.fps = 60;
+    this.fps = 0;
     this.sessionStart = Date.now();
     this.handled = {};
   }
@@ -271,7 +272,10 @@ export class Game {
     requestAnimationFrame((tt) => this.frame(tt));
     const rawDt = Math.min(0.1, (t - this.lastFrame) / 1000);
     this.lastFrame = t;
-    this.fps = this.fps * 0.95 + (rawDt > 0 ? 1 / rawDt : 60) * 0.05;
+    // true frames-per-second over a rolling 1 s window
+    this._fpsFrames = (this._fpsFrames || 0) + 1;
+    if (!this._fpsT0) this._fpsT0 = t;
+    if (t - this._fpsT0 >= 1000) { this.fps = (this._fpsFrames * 1000) / (t - this._fpsT0); this._fpsFrames = 0; this._fpsT0 = t; }
     if (!this.sim) return;
     if (!document.hidden) this.save.stats.playMs += rawDt * 1000;
     audio.newFrame && audio.newFrame();
@@ -283,8 +287,11 @@ export class Game {
     else if (now < this.slowmoUntil) ts = 0.32;
     if (this.debugSlowmo) ts *= 0.25;
     this.acc += rawDt * ts;
+    // ?qafast: QA fast-forward (same fixed steps, more of them per frame)
+    const maxSteps = this.qaFast ? 40 : 4;
+    if (this.qaFast) this.acc += DT * 30;
     let steps = 0;
-    while (this.acc >= DT && steps < 4) {
+    while (this.acc >= DT && steps < maxSteps) {
       if (this.autoQueue?.length && this.sim.state === 'aim') this._autoShot();
       this.sim.step();
       this.renderer.afterStep();
@@ -292,7 +299,7 @@ export class Game {
       this.acc -= DT;
       steps++;
     }
-    if (steps === 4) this.acc = 0;
+    if (steps === maxSteps) this.acc = 0;
     const alpha = clamp(this.acc / DT, 0, 1);
     this.renderer.sync(alpha, rawDt, t / 1000);
     this.renderer.updateCamera(rawDt, this.sim.state);

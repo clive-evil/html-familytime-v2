@@ -39,25 +39,35 @@ export function buildDecor(level, theme) {
     }
     addSidePlatforms(g, f, '#4a347f');
   } else if (level.env === 'market') {
-    // shelving units with colourful products along both sides
+    // shelving units with colourful products along both sides (products are
+    // one InstancedMesh: a single draw call for hundreds of boxes)
     const prodCols = ['#e8213f', '#2b7bff', '#21b573', '#ffcc33', '#ff7a1a', '#ffffff', '#9b59ff'];
+    const prods = [];
+    const frameGeo = new RoundedBoxGeometry(1.2, 3, 3, 2, 0.03);
+    const frameMat = new THREE.MeshStandardMaterial({ color: '#dfe4ea', roughness: 0.4, metalness: 0.5 });
     for (const side of [-1, 1]) {
       for (let z = zNear - 1; z > zFar; z -= 3.2) {
-        const unit = new THREE.Group();
-        const frame = box(1.2, 3, 3, '#dfe4ea', 0.03, 0.4, 0.5);
-        frame.position.y = 1.5; unit.add(frame);
-        for (let s = 0; s < 4; s++) {
+        const ux = cx + side * (halfW + 1.2), uz = z - 1.5;
+        const frame = new THREE.Mesh(frameGeo, frameMat);
+        frame.position.set(ux, 1.3, uz); frame.receiveShadow = true;
+        g.add(frame);
+        for (let sh = 0; sh < 4; sh++) {
           for (let k = 0; k < 6; k++) {
             const w = 0.3 + rnd() * 0.15, h = 0.35 + rnd() * 0.25;
-            const p = box(0.5, h, w, prodCols[(s * 3 + k + (z | 0)) % prodCols.length], 0.04, 0.5);
-            p.position.set(-side * 0.35, 0.25 + s * 0.72 + h / 2, -1.3 + k * 0.5);
-            unit.add(p);
+            prods.push({ x: ux - side * 0.35, y: -0.2 + 0.25 + sh * 0.72 + h / 2, z: uz - 1.3 + k * 0.5, sx: 0.5, sy: h, sz: w, c: prodCols[(sh * 3 + k + (z | 0) + 70) % prodCols.length] });
           }
         }
-        unit.position.set(cx + side * (halfW + 1.2), -0.2, z - 1.5);
-        g.add(unit);
       }
     }
+    const inst = new THREE.InstancedMesh(new RoundedBoxGeometry(1, 1, 1, 1, 0.08), new THREE.MeshStandardMaterial({ roughness: 0.5 }), prods.length);
+    const m4 = new THREE.Matrix4(), col = new THREE.Color();
+    prods.forEach((p, i) => {
+      m4.makeScale(p.sx, p.sy, p.sz).setPosition(p.x, p.y, p.z);
+      inst.setMatrixAt(i, m4);
+      inst.setColorAt(i, col.set(p.c));
+    });
+    inst.receiveShadow = true;
+    g.add(inst);
     const sign = box(5, 0.9, 0.2, '#2fbf8f', 0.1, 0.5);
     sign.position.set(cx, 4.2, zFar - 1.5); g.add(sign);
     addSidePlatforms(g, f, '#cfd8d3');

@@ -31,7 +31,7 @@ export class Particles {
         uniform float scale;
         void main(){ vC=color; vA=alpha; vec4 mv=modelViewMatrix*vec4(position,1.0); gl_PointSize=size*scale/-mv.z; gl_Position=projectionMatrix*mv; }`,
       fragmentShader: `uniform sampler2D map; varying vec3 vC; varying float vA;
-        void main(){ vec4 t=texture2D(map, gl_PointCoord); gl_FragColor=vec4(vC, t.a*vA); if(gl_FragColor.a<0.01) discard; }`,
+        void main(){ vec4 t=texture2D(map, gl_PointCoord); gl_FragColor=linearToOutputTexel(vec4(vC, t.a*vA)); if(gl_FragColor.a<0.01) discard; }`,
       transparent: true, depthWrite: false,
     });
     this.points = new THREE.Points(geo, mat);

@@ -208,3 +208,9 @@ button { font-family: var(--font-display); cursor: pointer; border: 0; }
   .balls i { width: 15px; height: 15px; }
   .boost { width: 52px; height: 52px; }
 }
+
+/* landscape: keep the spin control clear of the ball (which sits bottom-centre) */
+@media (min-aspect-ratio: 1/1) {
+  #spin { left: max(16px, env(safe-area-inset-left)); transform: none; }
+  #spin .track { width: min(240px, 30vw); }
+}

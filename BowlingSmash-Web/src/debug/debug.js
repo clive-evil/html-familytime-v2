@@ -54,10 +54,13 @@ export class DebugPanel {
   update() {
     const g = this.g;
     if (!g.sim) return;
-    if ((this.t = (this.t || 0) + 1) % 10) return;
+    const now = performance.now();
+    if (now - (this.t || 0) < 250) return;
+    this.t = now;
     const s = g.sim;
     this.el.querySelector('#dbgStats').textContent =
       `FPS ${g.fps.toFixed(0)}  bodies ${s.bodyCount()}\n` +
+      `draws ${g.renderer.r.info.render.calls}  tris ${(g.renderer.r.info.render.triangles / 1000).toFixed(0)}k\n` +
       `L${g.level.id} ${s.state}  step ${s.stepCount}\n` +
       `targets ${s.targetsRemaining}/${s.targetsTotal}  balls ${s.ballsLeft}\n` +
       `debris ${s.debris.length}  sol ${SOLUTIONS[g.level.id] ? 'yes' : 'no'}\n` +
