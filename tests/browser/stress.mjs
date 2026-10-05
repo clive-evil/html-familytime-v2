@@ -50,7 +50,7 @@ for (const n of pops) {
   const avg = (k) => samples.reduce((a, s) => a + s[k], 0) / samples.length;
   const heap0 = samples[0].heap, heap1 = samples[samples.length - 1].heap;
   const row = {
-    target: n, grandmas: samples.at(-1).n, fps: avg('fps').toFixed(1), minFps: Math.min(...samples.map((s) => s.fps)).toFixed(1),
+    target: n, grandmas: samples.at(-1).n, fps: avg('fps').toFixed(1), minFps: Math.min(...samples.map((s) => s.fps).filter((f) => f > 0)).toFixed(1),
     frameMs: avg('frame').toFixed(1), simMs: avg('sim').toFixed(2), crowdMs: avg('crowd').toFixed(2), renderMs: avg('render').toFixed(1),
     drawCalls: samples.at(-1).calls, heapStartMB: heap0.toFixed(1), heapEndMB: heap1.toFixed(1), badAgents: health.bad, errors: errors.length,
   };
