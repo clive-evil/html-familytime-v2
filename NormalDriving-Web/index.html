@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Normal Driving</title>
+  <link rel="stylesheet" href="./src/ui/style.css" />
+</head>
+<body>
+  <canvas id="game"></canvas>
+  <div id="hud">
+    <div id="prompt"></div>
+    <div id="hint"></div>
+    <div id="message" style="opacity:0"><div class="t"></div><div class="s"></div></div>
+    <div id="readout"></div>
+    <canvas id="gate" width="96" height="96"></canvas>
+  </div>
+  <div id="arrived"><div class="card"><h2>YOU ARRIVED.</h2><table id="stats"></table><div class="again">Enter / A to drive it again. F1 for the lab.</div></div></div>
+  <div id="title">
+    <h1>NORMAL DRIVING</h1>
+    <p>An ordinary car. An ordinary hill. Your nan's house is at the top.</p>
+    <p id="loading">Building the town…</p>
+    <div class="keys" id="titleKeys"></div>
+    <div class="go" id="go" style="visibility:hidden">CLICK TO SIT IN THE CAR</div>
+  </div>
+  <div id="lab"></div>
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>
