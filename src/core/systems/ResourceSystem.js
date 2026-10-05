@@ -15,7 +15,7 @@ export function deposit(sim, type, n, source) {
   s.resources[type] = (s.resources[type] || 0) + n;
   s.stats.today[type] += n;
   sim.prodAcc[type] += n;
-  sim.emit('deposit', { type, n, source });
+  sim.emit('deposit', { res: type, n, source });
 }
 
 // Regrow gatherable nodes and update smoothed production rates.

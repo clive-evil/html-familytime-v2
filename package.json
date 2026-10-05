@@ -8,7 +8,7 @@
     "dev": "vite --host 0.0.0.0 --port 5173",
     "build": "vite build",
     "preview": "vite preview --host 0.0.0.0 --port 4173",
-    "test": "node --test tests/unit/",
+    "test": "node --test \"tests/unit/*.test.js\"",
     "sim": "node scripts/simulate.js",
     "test:smoke": "node tests/browser/smoke.mjs",
     "test:stress": "node tests/browser/stress.mjs",

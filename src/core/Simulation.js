@@ -5,7 +5,7 @@ import { ObstacleGrid, CrowdHash } from './world/Navigation.js';
 import { findPlacement } from './world/Placement.js';
 import { GrandmaAI } from './systems/GrandmaAI.js';
 import { updateMovement } from './systems/MovementSystem.js';
-import { updateDay, startNight, dawn } from './systems/DaySystem.js';
+import { updateDay, startNight, dawn, canSleep } from './systems/DaySystem.js';
 import { updateResources } from './systems/ResourceSystem.js';
 import { updateHunger } from './systems/NeedsSystem.js';
 import { updateIncubators, newEgg } from './systems/EggSystem.js';
@@ -50,7 +50,7 @@ export class Simulation {
   // ---- events --------------------------------------------------------------
 
   emit(type, data = {}) {
-    this.events.push({ type, ...data });
+    this.events.push({ ...data, type });
     if (this.events.length > 2000) this.events.splice(0, 1000); // headless safety valve
   }
 
@@ -139,7 +139,7 @@ export class Simulation {
 
   place(type, cx, cz, rot = 0) { return placeBuilding(this, type, cx, cz, rot); }
 
-  sleep() { return startNight(this, 'sleep'); }
+  sleep() { return canSleep(this.state) && startNight(this, 'sleep'); }
 
   objective() { return currentObjective(this); }
   status() { return getStatus(this); }

@@ -14,7 +14,7 @@ export function placeBuilding(sim, type, cx, cz, rot = 0, { free = false, instan
   s.buildings.push(b);
   sim.indexDirty = true;
   sim.navDirty = true;
-  sim.emit('placed', { id: b.id, type });
+  sim.emit('placed', { id: b.id, btype: type });
   if (instant) completeBuilding(sim, b);
   return { ok: true, id: b.id };
 }
@@ -37,7 +37,7 @@ function completeBuilding(sim, b, by) {
   sim.navDirty = true;
   sim.indexDirty = true;
   if (sim.state.stats) sim.state.stats.built = (sim.state.stats.built || 0) + 1;
-  sim.emit('built', { id: b.id, type: b.type, by });
+  sim.emit('built', { id: b.id, btype: b.type, by });
   // Anyone standing inside a newly solid building gets nudged out by movement.
 }
 

@@ -31,6 +31,7 @@ export function assignWorker(sim, b, g = null) {
     const anyHatchling = sim.state.grandmas.some((c) => !c.adult);
     return { ok: false, reason: anyHatchling ? 'No idle adults (hatchlings work after a night\'s sleep)' : 'No idle Grandmas' };
   }
+  if (!g.adult || g.job || g.state === 'emerge') return { ok: false, reason: 'That Grandma is not available' };
   const role = BUILDINGS[b.type].job.role;
   // Pick the first free work spot index.
   const used = new Set(b.workers.map((id) => sim.getGrandma(id)?.slot));

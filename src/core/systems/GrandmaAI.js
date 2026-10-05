@@ -373,7 +373,7 @@ export class GrandmaAI {
           g.carryN = J.yield;
           g.bigItem = rand(s) < 0.06;
           if (g.bigItem) g.carryN += 1; // a comically large turnip/log/rock
-          sim.emit('produced', { id: g.id, type: J.resource });
+          sim.emit('produced', { id: g.id, res: J.resource });
           this.toDeposit(g);
         }
         break;

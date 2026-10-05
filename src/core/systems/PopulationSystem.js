@@ -28,7 +28,7 @@ export function updateUnlocks(sim) {
   s.maxPop = pop;
   for (const t of BUILD_ORDER) {
     const u = BUILDINGS[t].unlockPop;
-    if (u > before && u <= pop) sim.emit('unlock', { type: t, name: BUILDINGS[t].name });
+    if (u > before && u <= pop) sim.emit('unlock', { btype: t, name: BUILDINGS[t].name });
   }
 }
 

@@ -172,7 +172,7 @@ export function interact(sim, it, press, hold, dt) {
       p.gatherCd = P.gatherCooldown;
       act('gather');
       p.rot = Math.atan2(n.x - p.x, n.z - p.z);
-      sim.emit('gather', { node: n.id, type: res, x: n.x, z: n.z });
+      sim.emit('gather', { node: n.id, res, x: n.x, z: n.z });
       return true;
     }
     case 'build':
