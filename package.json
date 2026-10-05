@@ -1,0 +1,24 @@
+{
+  "name": "too-many-grandmas",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Too Many Grandmas - 3D HTML colony prototype. They keep hatching.",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0 --port 5173",
+    "build": "vite build",
+    "preview": "vite preview --host 0.0.0.0 --port 4173",
+    "test": "node --test tests/unit/",
+    "sim": "node scripts/simulate.js",
+    "test:smoke": "node tests/browser/smoke.mjs",
+    "test:stress": "node tests/browser/stress.mjs",
+    "test:all": "npm run test && npm run sim -- --check && npm run build && npm run test:smoke && npm run test:stress"
+  },
+  "dependencies": {
+    "three": "0.170.0"
+  },
+  "devDependencies": {
+    "playwright": "1.56.1",
+    "vite": "6.4.1"
+  }
+}
