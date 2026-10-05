@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>NORMAL SKIING</title>
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+<body>
+  <canvas id="game"></canvas>
+  <div id="hud">
+    <div id="hud-speed"><span id="spd">0</span><small>km/h</small></div>
+    <div id="hud-vert"><span id="vert">0</span><small>m to go</small></div>
+    <canvas id="posture" width="84" height="84"></canvas>
+    <div id="toast"></div>
+    <div id="callout"></div>
+    <div id="hint"></div>
+  </div>
+  <div id="whiteout"></div>
+  <div id="menu">
+    <h1>NORMAL SKIING</h1>
+    <p class="sub">It's all downhill from here.</p>
+    <div class="choices">
+      <button data-mode="lab">SKI FEEL LAB</button>
+      <button data-mode="mountain">THE MOUNTAIN</button>
+    </div>
+    <div class="controls">
+      <div><b>Mouse</b> body. Back = crouch / compress. Forward = extend / pop. Sideways = shift weight.</div>
+      <div><b>A / D</b> carve &nbsp; <b>W</b> tuck &nbsp; <b>S</b> snowplough</div>
+      <div><b>Jump</b> = crouch on the approach, flick the mouse forward as the snow drops away, bend the knees again before you land.</div>
+      <div><b>R</b> restart from checkpoint &nbsp; <b>Space</b> get up after a crash &nbsp; <b>Esc</b> release mouse &nbsp; <b>M</b> mute</div>
+      <div class="small">Lab: keys 1-0 jump to a station. Add <code>?debug=1</code> for the tuning panel.</div>
+    </div>
+    <p class="click">click a mode to start (the mouse gets captured)</p>
+  </div>
+  <div id="finish"></div>
+  <div id="debug"></div>
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
