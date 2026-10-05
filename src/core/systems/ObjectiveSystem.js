@@ -53,7 +53,7 @@ function dynamicHint(sim) {
   const s = sim.state;
   const st = getStatus(sim);
   if (st.food < st.pop * 2 && st.foodRate < st.foodDemand) return 'Food is running out. Build farms and assign more Farmers.';
-  if (st.beds < st.pop) return `${st.pop - st.beds} Grandmas need beds. Build Beds, Granny Flats or a Bunk Barn.`;
+  if (st.beds < st.pop) { const n = st.pop - st.beds; return `${n} Grandma${n > 1 ? 's need beds' : ' needs a bed'}. Build Beds, Granny Flats or a Bunk Barn.`; }
   if (st.eggsStored >= st.eggCap && st.eggCap > 0) return 'The egg basket is full. Hatch some eggs, or build an Egg Crate.';
   if (st.idleAdults >= 2 && st.openSlots > 0) return `${st.idleAdults} Grandmas are standing about. Give them jobs.`;
   if (st.eggsStored > 0 && st.freeIncubators > 0) return 'Eggs are waiting. Hatch them if you can feed them.';

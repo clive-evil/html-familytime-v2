@@ -39,6 +39,7 @@ export function updateMovement(sim, dt) {
           if (g.starving) sp *= 0.8;
           if (g.rare === 'big') sp *= 0.85;
           if (g.rare === 'tiny') sp *= 1.15;
+          if (g.state === 'toBed') sp *= 1.7; // bedtime waddle
           const step = Math.min(d, sp * dt);
           mx = (dx / d) * step;
           mz = (dz / d) * step;

@@ -57,6 +57,8 @@ export class GrandmaAI {
   }
 
   periodic(g) {
+    // Food arrived? Hungry Grandmas stop sulking and try again right away.
+    if (g.eatRetryAt > this.sim.state.time && this.sim.state.resources.food >= G.mealSize) g.eatRetryAt = 0;
     if (INTERRUPTIBLE.has(g.state) && !g.carryN && this.hungry(g)) this.goEat(g);
   }
 

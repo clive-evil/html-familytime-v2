@@ -39,9 +39,9 @@ export class Renderer {
     let light = 1;
     if (state.phase === 'night') {
       const k = state.nightTime / nightLength;
-      if (k < 0.2) { c.copy(SKY.dusk).lerp(SKY.night, k / 0.2); light = 1 - (k / 0.2) * 0.6; }
-      else if (k > 0.8) { c.copy(SKY.night).lerp(SKY.dawn, (k - 0.8) / 0.2); light = 0.4 + ((k - 0.8) / 0.2) * 0.5; }
-      else { c.copy(SKY.night); light = 0.4; }
+      if (k < 0.2) { c.copy(SKY.dusk).lerp(SKY.night, k / 0.2); light = 1 - (k / 0.2) * 0.72; }
+      else if (k > 0.8) { c.copy(SKY.night).lerp(SKY.dawn, (k - 0.8) / 0.2); light = 0.28 + ((k - 0.8) / 0.2) * 0.6; }
+      else { c.copy(SKY.night); light = 0.28; }
     } else {
       const k = state.clockRunning ? state.dayTime / dayLength : 0.3;
       if (k < 0.08) c.copy(SKY.dawn).lerp(SKY.day, k / 0.08);
@@ -53,7 +53,8 @@ export class Renderer {
     this.scene.fog.color.copy(c);
     this.hemi.intensity = 1.6 * light;
     this.sun.intensity = 1.9 * light;
-    this.sun.color.setHSL(0.1, 0.6, 0.6 + light * 0.3);
+    this.sun.color.setHSL(light < 0.5 ? 0.62 : 0.1, 0.5, 0.6 + light * 0.3);
+    this.ambient.intensity = 0.25 * light;
   }
 
   render() {

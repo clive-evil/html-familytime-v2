@@ -139,12 +139,17 @@ function dialTexture() {
   return _dialTex;
 }
 
+// Round window: a dark oven interior disc with tinted glass in front.
+// Eggs are drawn just behind the glass so they read as "inside".
 function porthole(r) {
   const g = new THREE.Group();
   const ring = new THREE.Mesh(new THREE.TorusGeometry(r, 0.06, 8, 20), mat(PAL.chrome));
   g.add(ring);
-  const glass = new THREE.Mesh(new THREE.CircleGeometry(r, 20), new THREE.MeshLambertMaterial({ color: 0xffe2a8, transparent: true, opacity: 0.35, emissive: 0x000000 }));
-  glass.position.z = 0.01;
+  const inside = new THREE.Mesh(new THREE.CircleGeometry(r, 20), mat(0x4a3428));
+  inside.position.z = -0.005;
+  g.add(inside);
+  const glass = new THREE.Mesh(new THREE.CircleGeometry(r, 20), new THREE.MeshLambertMaterial({ color: 0xffe2a8, transparent: true, opacity: 0.25, emissive: 0x000000, depthWrite: false }));
+  glass.position.z = 0.09;
   g.add(glass);
   g.userData.glass = glass;
   return g;
@@ -196,7 +201,8 @@ function granulator() {
   body.add(lidPivot);
   // The egg inside (visible through the porthole and when the lid is open).
   const egg = new THREE.Mesh(eggGeometry(0.24, 0.17, 16), new THREE.MeshLambertMaterial({ vertexColors: true }));
-  egg.position.set(0, 0.42, 0.15);
+  egg.position.set(0, 0.53, 0.55);
+  egg.scale.setScalar(0.75);
   body.add(egg);
   // Crack marks on the egg (zig-zag dark slivers).
   const cracks = new THREE.Group();
@@ -231,7 +237,7 @@ function autoIncubator(slots) {
     ph.position.set(x, y + 0.05, d / 2 + 0.01);
     g.add(ph);
     glasses.push(ph.userData.glass);
-    slotPos.push(new THREE.Vector3(x, y - 0.17, d / 2 - 0.35));
+    slotPos.push(new THREE.Vector3(x, y - 0.12, d / 2 - 0.12));
   }
   const label = slots === 2 ? 'DOUBLE GRAN-ULATOR' : 'GRAN-ULATOR DELUXE';
   const plate = new THREE.Mesh(new THREE.PlaneGeometry(Math.min(w - 0.3, 2.4), 0.22), new THREE.MeshLambertMaterial({ map: textTexture(label, { w: 768, h: 96, font: 'bold 56px Georgia', bg: '#c9a14a', border: '#6a4b1f' }) }));

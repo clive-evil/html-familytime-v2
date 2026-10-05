@@ -423,7 +423,7 @@ export class WorldView {
           v.group.localToWorld(_v);
           const k = b.inc.t[e.slot] / BUILDINGS[b.type].incubator.time;
           const wob = k > 0.75 ? Math.sin(time * 18 + e.slot) * 0.3 * (k - 0.6) * 2 : 0;
-          put(_v.x, _v.y, _v.z, 0, wob);
+          put(_v.x, _v.y, _v.z, 0, wob, 0.7);
           break;
         }
       }
