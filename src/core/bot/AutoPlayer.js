@@ -17,6 +17,8 @@ import { canSleep } from '../systems/DaySystem.js';
 //   greedy   - hatch every egg as soon as possible
 //   balanced - hatch only when food and beds can absorb another Grandma
 //   never    - never hatch (control group: proves hatching is worth it)
+//   lazy     - hatch everything but never staff more than 2 farmers
+//              (proves food pressure bites and that failure is soft)
 export class AutoPlayer {
   constructor(sim, { policy = 'balanced', manualOnly = false } = {}) {
     this.sim = sim;
@@ -173,7 +175,7 @@ export class AutoPlayer {
 
   shouldHatch(st) {
     if (this.policy === 'never') return false;
-    if (this.policy === 'greedy') return true;
+    if (this.policy === 'greedy' || this.policy === 'lazy') return true;
     const s = this.sim.state;
     if (st.pop < 4) return true;
     const incoming = st.incubating;
@@ -194,7 +196,8 @@ export class AutoPlayer {
     const slots = (role) => s.buildings.filter((b) => BUILDINGS[b.type].job?.role === role).reduce((a, b) => a + jobSlots(b), 0);
     const pop = st.pop + st.incubating;
     if (s.day === 1) return countBuildings(s, 'bed') ? null : 'bed';
-    if (u('farm') && slots('farmer') < Math.max(1, Math.ceil(pop * 0.28))) return u('bigfarm') ? 'bigfarm' : 'farm';
+    const farmCap = this.policy === 'lazy' ? 2 : Math.max(1, Math.ceil(pop * 0.28));
+    if (u('farm') && slots('farmer') < farmCap) return u('bigfarm') && this.policy !== 'lazy' ? 'bigfarm' : 'farm';
     if (st.beds + this.bedsUnderConstruction() < pop + 1) return u('barn') && pop > 14 ? 'barn' : u('house') ? 'house' : 'bed';
     const eat = s.buildings.reduce((a, b) => a + (BUILDINGS[b.type].eatSlots || 0), 0);
     if (u('table') && eat < pop / 9) return 'table';
@@ -238,6 +241,7 @@ export class AutoPlayer {
       if (!job || !b.built || b.workers.length >= job.slots) continue;
       let sc = b.workers.length / job.slots;
       if (job.role === 'farmer' && st.foodRate < st.foodDemand * 1.2) sc -= 1;
+      if (job.role === 'farmer' && this.policy === 'lazy' && this.sim.state.grandmas.filter((g) => g.job === 'farmer').length >= 2) continue;
       if (job.role === 'foreman') sc -= 2;
       if (sc < bs) { bs = sc; best = b; }
     }

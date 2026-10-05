@@ -54,9 +54,9 @@ function table(r) {
 }
 
 const failures = [];
-const results = { balanced: [], greedy: [], never: [] };
+const results = { balanced: [], greedy: [], never: [], lazy: [] };
 for (let seed = 1; seed <= SEEDS; seed++) {
-  for (const policy of ['balanced', 'greedy', 'never']) {
+  for (const policy of ['balanced', 'greedy', 'never', 'lazy']) {
     if (policy !== 'balanced' && seed > 2) continue;
     const r = runOne(seed * 7919, policy);
     results[policy].push(r);
@@ -95,6 +95,12 @@ if (CHECK) {
   }
   for (const r of results.never) {
     if (at(r, DAYS).pop !== 1) failures.push(`never-hatch seed ${r.seed}: population grew without hatching`);
+  }
+  // Food pressure must bite when farming is neglected, but stay a soft failure.
+  for (const r of results.lazy) {
+    const missed = r.days.reduce((a, d) => a + d.missed, 0);
+    if (missed === 0) failures.push(`lazy seed ${r.seed}: neglecting farms never caused hunger (no food pressure)`);
+    if (at(r, DAYS).pop < 2) failures.push(`lazy seed ${r.seed}: colony collapsed`);
   }
   const bal = Math.min(...results.balanced.map((r) => at(r, DAYS).pop));
   const nev = Math.max(...results.never.map((r) => at(r, DAYS).pop));

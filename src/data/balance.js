@@ -2,7 +2,7 @@
 // browser build share exactly the same numbers. Plain data only (Luau-friendly).
 
 export const BALANCE = {
-  dayLength: 170, // seconds of daylight (Day 2 onwards; Day 1 clock is frozen)
+  dayLength: 150, // seconds of daylight (Day 2 onwards; Day 1 clock is frozen)
   nightLength: 7, // seconds of night (Grandmas walk to bed, eggs appear at dawn)
   worldHalf: 42, // playable area is [-worldHalf, worldHalf] on x and z
 
