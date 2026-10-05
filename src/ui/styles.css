@@ -56,7 +56,7 @@ hr.sep { border: none; border-top: 1.5px dashed rgba(59, 42, 32, 0.35); margin: 
 .progress > div { height: 100%; background: var(--amber); }
 
 /* --- toasts --- */
-#toasts { position: absolute; bottom: 140px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column-reverse; gap: 6px; align-items: center; }
+#toasts { position: absolute; bottom: 16px; left: 14px; display: flex; flex-direction: column; gap: 6px; align-items: flex-start; max-width: min(380px, calc(100vw - 28px)); }
 .toast { padding: 5px 12px; font-size: 14px; animation: toastIn 0.25s ease-out; transition: opacity 0.5s; }
 .toast.out { opacity: 0; }
 @keyframes toastIn { from { transform: translateY(8px); opacity: 0; } }
@@ -101,7 +101,7 @@ hr.sep { border: none; border-top: 1.5px dashed rgba(59, 42, 32, 0.35); margin: 
 
 /* --- debug --- */
 #perf { position: absolute; right: 14px; bottom: 14px; padding: 6px 10px; font: 12px/1.45 ui-monospace, Menlo, Consolas, monospace; background: rgba(244, 236, 218, 0.92); }
-#dev { position: absolute; left: 14px; bottom: 14px; padding: 8px; width: 230px; pointer-events: auto; font-size: 12px; }
+#dev { position: absolute; right: 14px; top: 110px; padding: 8px; width: 230px; pointer-events: auto; font-size: 12px; }
 #dev .t { font-weight: bold; margin-bottom: 4px; }
 #dev button { font: 12px var(--font); margin: 2px; padding: 3px 6px; border: 1.5px solid var(--ink); border-radius: 4px; background: #fff8e2; cursor: pointer; }
 

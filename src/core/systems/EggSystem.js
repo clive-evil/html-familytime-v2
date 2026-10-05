@@ -94,9 +94,11 @@ export function layEggs(sim) {
 
 // ---- incubators --------------------------------------------------------------
 
+// New Grandmas pop out beside the machine (left side, away from the dial),
+// so they don't land on the player standing at the front.
 export function hatchPoint(b) {
   const def = BUILDINGS[b.type];
-  return localToWorld(b, 0, def.size[1] / 2 + 0.9);
+  return localToWorld(b, -(def.size[0] / 2 + 0.8), 0.4);
 }
 
 export function incubatorFree(b) {
@@ -196,12 +198,12 @@ function hatch(sim, b, egg, slot) {
   if (egg) removeEgg(sim, egg);
   const [hx, hz] = hatchPoint(b);
   const off = b.inc.slots ? (slot - (b.inc.slots.length - 1) / 2) * 0.7 : 0;
-  const g = spawnGrandma(sim, hx + off * 0.3, hz, {});
+  const g = spawnGrandma(sim, hx, hz + off, {});
   g.state = 'emerge';
   g.timer = BALANCE.grandma.emergeTime;
   g.anim = 'emerge';
   g.spawnT = 0;
-  g.rot = (b.rot * Math.PI) / 2; // face out of the machine (forward = sin/cos of rot)
+  g.rot = (b.rot * Math.PI) / 2 + Math.PI / 4; // face the front-left, toward whoever is cranking the dial
   g.hunger = 0.1;
   g.hatchedFrom = b.id;
   b.inc.hatched++;

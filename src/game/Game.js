@@ -62,7 +62,8 @@ export class Game {
 
     // Render the world behind the title screen.
     this.sim = Simulation.newGame(params.seed ?? undefined);
-    if (params.stress || params.test) this.start(false);
+    if (params.test && params.cont && this.store.has()) this.start(true);
+    else if (params.stress || params.test) this.start(false);
     else this.menus.title(this.store.has());
     this.last = performance.now();
     requestAnimationFrame((t) => this.loop(t));
@@ -85,7 +86,7 @@ export class Game {
     if (!this.params.test) this.input.requestLock();
     if (this.params.autoplay) this.bot = new AutoPlayer(this.sim, { policy: 'balanced' });
     if (!fromSave && !this.params.stress) {
-      this.later(1.2, () => this.say(this.sim.state.grandmas[0]?.id, pickLine('intro')));
+      this.later(1.2, () => this.say(this.sim.state.grandmas[0]?.id, pickLine('intro'), 3.5, true));
     }
   }
 
@@ -137,14 +138,21 @@ export class Game {
     if (!this.params.test) this.input.requestLock();
     const s = this.sim.state;
     if (s.day === 2 && !s.flags.firstHatch) {
-      this.later(0.8, () => this.say(s.grandmas[0]?.id, pickLine('firstEgg'), 4));
+      this.later(0.8, () => this.say(s.grandmas[0]?.id, pickLine('firstEgg'), 4.5, true));
     }
   }
 
   later(sec, fn) { this.timers.push({ at: this.time + sec, fn }); }
 
-  say(id, text, dur = 2.8) {
+  // force=false lines are chatter: rate-limited and only near the player,
+  // so a crowd never talks over itself.
+  say(id, text, dur = 2.8, force = false) {
     if (!id || !text) return;
+    if (!force) {
+      const g0 = this.sim.getGrandma(id);
+      if (!g0 || this._near(g0.x, g0.z) < 0.35 || this.time - (this.lastSay || -9) < 1.6) return;
+      this.lastSay = this.time;
+    }
     this.speech.say(id, text, this.time, dur);
     const g = this.sim.getGrandma(id);
     if (g) this.sfx.play('grandma', { volume: this._near(g.x, g.z) * 0.8 });
@@ -191,7 +199,9 @@ export class Game {
     const rs = performance.now();
     this.r.setTime(this.sim.state, BALANCE.dayLength, BALANCE.nightLength);
     this.world.update(this.sim, this.time, dt);
+    const cs = performance.now();
     this.crowd.update(this.sim, this.time, this.r.camera);
+    const crowdMs = performance.now() - cs;
     this.effects.update(dt, this.time);
     this.updateBuildGhost();
     this.r.render();
@@ -213,6 +223,7 @@ export class Game {
     pf.frames++; pf.acc += dt;
     pf.simMs = pf.simMs * 0.9 + simMs * 0.1;
     pf.renderMs = pf.renderMs * 0.9 + renderMs * 0.1;
+    pf.crowdMs = (pf.crowdMs || 0) * 0.9 + crowdMs * 0.1;
     pf.frameMs = pf.frameMs * 0.9 + (performance.now() - t0) * 0.1;
     if (pf.acc >= 1) {
       pf.fps = pf.frames / pf.acc;
@@ -319,6 +330,7 @@ export class Game {
     const evs = this.sim.drainEvents();
     const s = this.sim.state;
     const sfx = this.sfx;
+    let unlocked = null;
     for (const e of evs) {
       switch (e.type) {
         case 'gather': {
@@ -354,14 +366,14 @@ export class Game {
         }
         case 'eggPickup':
           sfx.play('pickup');
-          if (!s.flags.firstHatch) this.say(s.grandmas[0]?.id, pickLine('eggPickup'));
+          if (!s.flags.firstHatch) this.say(s.grandmas[0]?.id, pickLine('eggPickup'), 2.8, true);
           break;
         case 'eggDrop': sfx.play('place', { volume: 0.5 }); break;
         case 'eggInserted': sfx.play('place', { pitch: 1.3 }); break;
         case 'lidClosed': sfx.play('lid'); break;
         case 'dialClick':
           sfx.play('dial', { pitch: 0.8 + e.v * 0.5 });
-          if (e.v === 1 && !s.flags.firstHatch) this.say(s.grandmas[0]?.id, 'There. Nana.');
+          if (e.v === 1 && !s.flags.firstHatch) this.say(s.grandmas[0]?.id, 'There. Nana.', 2.5, true);
           break;
         case 'heating': sfx.play('rattle'); this.rattleId = e.id; this.rattleUntil = this.time + BALANCE.incubator.heatTime + BALANCE.incubator.crackTime - 0.3; break;
         case 'cracking': sfx.play('crack'); sfx.play('wobble'); break;
@@ -379,7 +391,7 @@ export class Game {
           if (e.summary.eggsLaid) this.later(0.2, () => sfx.play('eggLaid'));
           break;
         case 'unlock':
-          this.later(0.8, () => { this.hud.toast(`New building: <b>${e.name}</b> (press B)`, 4500); sfx.play('built', { pitch: 1.3 }); });
+          (unlocked = unlocked || []).push(e.name);
           break;
         case 'assigned': {
           sfx.play('assign');
@@ -389,7 +401,7 @@ export class Game {
         }
         case 'unassigned': this.say(e.id, pickLine('unassigned')); sfx.play('ui'); break;
         case 'eat':
-          if (!s.flags.saidFirstMeal && e.id === s.grandmas[0]?.id && s.day === 1) { s.flags.saidFirstMeal = true; this.say(e.id, pickLine('firstMeal')); }
+          if (!s.flags.saidFirstMeal && e.id === s.grandmas[0]?.id && s.day === 1) { s.flags.saidFirstMeal = true; this.say(e.id, pickLine('firstMeal'), 3, true); }
           break;
         case 'noFood':
           if (this.time - (this.lastHungry || -99) > 9) { this.lastHungry = this.time; this.say(e.id, pickLine('hungry')); sfx.play('warn', { volume: 0.5 }); }
@@ -401,7 +413,7 @@ export class Game {
           const g = this.sim.getGrandma(e.id);
           this.crowd.pat(e.id, this.time);
           sfx.play('pat');
-          if (g) { this.effects.burst('heart', g.x, 1.4, g.z, 3); this.say(g.id, pickLine('pat')); }
+          if (g) { this.effects.burst('heart', g.x, 1.4, g.z, 3); this.say(g.id, pickLine('pat'), 2.5, true); }
           break;
         }
         case 'foremanRing': {
@@ -416,6 +428,10 @@ export class Game {
         case 'tutorialDone': this.later(1, () => this.hud.toast('That is the job. Keep them fed, housed and busy. They will keep hatching.', 6000)); break;
         case 'toggle': sfx.play('dial'); this.hud.toast(`Auto-hatch ${e.on ? 'ON' : 'OFF'}`, 1500); break;
       }
+    }
+    if (unlocked) {
+      const names = unlocked.map((n) => `<b>${n}</b>`).join(', ');
+      this.later(0.8, () => { this.hud.toast(`New building${unlocked.length > 1 ? 's' : ''}: ${names} (press B)`, 5000); sfx.play('built', { pitch: 1.3 }); });
     }
     // Keep the appliance rattling while it works.
     if (this.rattleUntil > this.time && (this.time - (this.lastRattle || 0)) > 1.1) {
@@ -436,9 +452,9 @@ export class Game {
     this.effects.burst('sparkle', e.x, 1.0, e.z, e.first ? 20 : 8);
     this.sfx.play('crack', { volume: this._near(e.x, e.z) });
     this.sfx.play('pop', { volume: Math.max(0.25, this._near(e.x, e.z)) });
-    this.later(1.3, () => this.say(e.id, pickLine(e.first ? 'hatch' : 'hatch')));
+    this.later(1.3, () => this.say(e.id, pickLine('hatch'), 2.8, !!e.first));
     if (e.first) {
-      this.later(3.2, () => this.say(s.grandmas[0]?.id, pickLine('firstHatch')));
+      this.later(3.4, () => this.say(s.grandmas[0]?.id, pickLine('firstHatch'), 3, true));
       this.later(0.6, () => this.hud.toast('<b>GRANDMAS: 2</b>', 3500));
     }
     if (e.rare) {

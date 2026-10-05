@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 import { PAL } from './palette.js';
 import { mat, place, wobble, textTexture, eggGeometry } from './geo.js';
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 
 // Hand-authored building models from primitives. Each builder returns a
 // THREE.Group in local space (front = +z, centred on the footprint).
@@ -381,7 +382,53 @@ function bell() {
   return g;
 }
 
+// Merge every static, untextured Lambert mesh under `root` into a single
+// vertex-coloured mesh (one draw call). Objects listed in `keep` (and their
+// descendants) stay separate because they animate or change at runtime.
+export function bake(root, keep = []) {
+  if (globalThis.__NOBAKE) return root;
+  root.updateMatrixWorld(true);
+  const inv = new THREE.Matrix4().copy(root.matrixWorld).invert();
+  const keepSet = new Set(keep.filter(Boolean));
+  const kept = (o) => { for (let p = o; p && p !== root; p = p.parent) if (keepSet.has(p)) return true; return false; };
+  const geos = [];
+  const victims = [];
+  root.traverse((o) => {
+    if (!o.isMesh || kept(o)) return;
+    const m = o.material;
+    if (!m || !m.isMeshLambertMaterial || m.map || m.transparent || m.vertexColors) return;
+    const g = o.geometry.clone();
+    g.applyMatrix4(new THREE.Matrix4().multiplyMatrices(inv, o.matrixWorld));
+    // Flat-shaded sources must be un-indexed to keep their facets; everything
+    // else keeps its index buffer (far fewer vertices).
+    const ng = m.flatShading && g.index ? g.toNonIndexed() : g;
+    for (const k of Object.keys(ng.attributes)) if (k !== 'position' && k !== 'normal') ng.deleteAttribute(k);
+    const c = m.color;
+    const n = ng.attributes.position.count;
+    const col = new Float32Array(n * 3);
+    for (let i = 0; i < n; i++) { col[i * 3] = c.r; col[i * 3 + 1] = c.g; col[i * 3 + 2] = c.b; }
+    ng.setAttribute('color', new THREE.BufferAttribute(col, 3));
+    // Flat-shaded sources keep their facets.
+    if (m.flatShading) { ng.deleteAttribute('normal'); ng.computeVertexNormals(); }
+    if (!ng.index) ng.setIndex(Array.from({ length: n }, (_, i) => i));
+    geos.push(ng);
+    victims.push(o);
+  });
+  if (geos.length < 2) return root;
+  for (const o of victims) o.parent.remove(o);
+  const merged = new THREE.Mesh(mergeGeometries(geos, false), BAKED);
+  root.add(merged);
+  return root;
+}
+const BAKED = new THREE.MeshLambertMaterial({ vertexColors: true });
+
 export function buildModel(type) {
+  const m = rawModel(type);
+  const u = m.userData || {};
+  return bake(m, [u.body, u.lidPivot, u.egg, u.knob, u.bellPivot, u.lamp, ...(u.crops || []), ...(u.glasses || [])]);
+}
+
+function rawModel(type) {
   switch (type) {
     case 'cottage': return cottage();
     case 'kitchen': return kitchen();
@@ -407,6 +454,10 @@ export function buildModel(type) {
 
 // Scaffold shown around construction sites.
 export function scaffold(w, d) {
+  return bake(rawScaffold(w, d));
+}
+
+function rawScaffold(w, d) {
   const g = new THREE.Group();
   const h = 2.0;
   for (const [x, z] of [[-w / 2, -d / 2], [w / 2, -d / 2], [-w / 2, d / 2], [w / 2, d / 2]]) g.add(box(0.1, h, 0.1, PAL.plank, x, 0, z));

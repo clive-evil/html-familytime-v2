@@ -113,7 +113,7 @@ export class HUD {
   toast(text, ms = 3200) {
     const el = $(`<div class="toast card">${text}</div>`);
     this.toasts.appendChild(el);
-    while (this.toasts.children.length > 4) this.toasts.firstChild.remove();
+    while (this.toasts.children.length > 3) this.toasts.firstChild.remove();
     setTimeout(() => el.classList.add('out'), ms);
     setTimeout(() => el.remove(), ms + 600);
   }

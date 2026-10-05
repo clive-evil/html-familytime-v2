@@ -16,14 +16,14 @@ const PRESETS = {
   dust: { colors: [0xd8c09a, 0xc9b38f], size: 0.16, speed: 1.0, up: 0.8, gravity: -0.5, life: 0.8, spin: 1, grow: 1.5 },
   stone: { colors: [0xa8a39a, 0x857f76], size: 0.09, speed: 2.4, up: 3, gravity: 14, life: 0.7, spin: 10 },
   berry: { colors: [0xc23b5a, 0x9a2a48], size: 0.07, speed: 1.4, up: 2.5, gravity: 10, life: 0.6, spin: 4 },
-  steam: { colors: [0xffffff, 0xf0f0f0], size: 0.2, speed: 0.25, up: 1.3, gravity: -0.4, life: 1.6, spin: 1, grow: 2.2, fade: true },
+  steam: { colors: [0xffffff, 0xf2f2f2], size: 0.1, speed: 0.2, up: 1.1, gravity: -0.3, life: 1.2, spin: 1, grow: 1.4 },
   sparkle: { colors: [0xffe58a, 0xffffff, 0xf2c94c], size: 0.09, speed: 2.0, up: 2.5, gravity: 2, life: 1.0, spin: 8 },
   heart: { colors: [0xe0607e, 0xf09ab0], size: 0.1, speed: 0.6, up: 1.8, gravity: -0.2, life: 1.0, spin: 2 },
 };
 
 export class Effects {
   constructor(scene) {
-    const geo = new THREE.IcosahedronGeometry(0.5, 0);
+    const geo = new THREE.IcosahedronGeometry(0.5, 1);
     this.mesh = new THREE.InstancedMesh(geo, new THREE.MeshLambertMaterial({ color: 0xffffff }), MAX);
     this.mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
     this.mesh.frustumCulled = false;

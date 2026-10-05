@@ -5,7 +5,7 @@ import { footprint } from '../core/entities/Building.js';
 import { checkPlacement } from '../core/world/Placement.js';
 import { PAL } from './palette.js';
 import { mat, wobble, hashNoise, eggGeometry } from './geo.js';
-import { buildModel, scaffold } from './BuildingModels.js';
+import { buildModel, scaffold, bake } from './BuildingModels.js';
 
 const _m = new THREE.Matrix4();
 const _q = new THREE.Quaternion();
@@ -24,7 +24,7 @@ export class WorldView {
     this._ground();
     this._decor();
     this._player();
-    this.eggGeo = eggGeometry(0.2, 0.14, 12);
+    this.eggGeo = eggGeometry(0.25, 0.18, 12);
     this.eggs = new THREE.InstancedMesh(this.eggGeo, new THREE.MeshLambertMaterial({ vertexColors: true }), 2000);
     this.eggs.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
     this.eggs.frustumCulled = false;
@@ -219,6 +219,9 @@ export class WorldView {
       g.add(parts);
       g.userData.parts = parts;
     }
+    bake(g, [g.userData.canopy, g.userData.parts, ...(g.userData.berries || [])]);
+    if (g.userData.canopy) bake(g.userData.canopy);
+    if (g.userData.parts) bake(g.userData.parts);
     g.position.set(n.x, 0, n.z);
     g.scale.setScalar(n.s);
     g.rotation.y = hashNoise(seed, 1, 1) * 6;
@@ -390,7 +393,7 @@ export class WorldView {
           let lx, ly, lz;
           if (b.type === 'basket') {
             const a = k * 2.4; const r = k === 0 ? 0 : 0.32;
-            lx = Math.cos(a) * r; lz = Math.sin(a) * r; ly = 0.15 + (k > 6 ? 0.2 : 0);
+            lx = Math.cos(a) * r; lz = Math.sin(a) * r; ly = 0.2 + (k > 6 ? 0.22 : 0);
           } else {
             lx = ((k % 4) - 1.5) * 0.36; lz = (Math.floor(k / 4) % 2 - 0.5) * 0.4; ly = 0.45 + Math.floor(k / 8) * 0.25;
           }

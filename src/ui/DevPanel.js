@@ -18,7 +18,7 @@ export class PerfPanel {
     const p = game.perf;
     this.el.innerHTML = [
       `FPS ${p.fps.toFixed(0)}  frame ${p.frameMs.toFixed(1)}ms`,
-      `sim ${p.simMs.toFixed(2)}ms  render ${p.renderMs.toFixed(1)}ms`,
+      `sim ${p.simMs.toFixed(2)}ms  crowd ${(p.crowdMs || 0).toFixed(2)}ms  render ${p.renderMs.toFixed(1)}ms`,
       `draw calls ${info.calls}  tris ${(info.triangles / 1000).toFixed(0)}k`,
       `Grandmas ${s.grandmas.length} (lod ${game.crowd.stats.lod})`,
       `workers ${st.workers}  idle ${st.idleAdults}`,
