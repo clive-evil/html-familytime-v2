@@ -62,16 +62,16 @@ Sawtooth: easy → thought → spectacle → mechanic → consolidate → **HARD
 | 8 | Glass House | Toy Arena | normal | 3 | Smash through glass panels. HEAVY BALL intro (free). |
 | 9 | Rickety Bridge | Toy Arena | normal | 3 | A plank bridge on one centre post: hit the support. |
 | **10** | **Three Camps** | Toy Arena | **HARD** | 3 | Three separated groups, one behind a wall: hook/bank shots, every ball counts. |
-| 11 | Aisle Smash | Supermarket | easy | 3 | New setting. Giant can pyramids, bottle displays, box stacks. Reset. |
+| 11 | Aisle Smash | Supermarket | easy | 4 | New setting. Two big can pyramids + box display topped with bottles: full power = everything flies. Reset. |
 | 12 | Cubicle Chaos | Office | normal | 3 | Angled desks to ricochet off, rolling chairs, dummies, box stacks. |
-| 13 | Support Beam | Construction | normal | 3 | Knock out the posts → barrels and cones come down. TRIPLE BALL intro. |
+| 13 | Support Beam | Construction | normal | 3 | A loaded slab on four central posts: knock the posts → barrels and cones come down onto the ground cones. TRIPLE BALL intro. |
 | 14 | Bank Shot | Construction | normal | 3 | The direct route is blocked: bounce off the angled wall. |
 | 15 | Checkout Rush | Supermarket | normal | 4 | Box stacks riding three conveyors: timing, still readable. |
 | 16 | The Giant | Toy Arena | easy | 4 | A giant pin topples onto 36 mini pins and crate towers. Pure spectacle. |
 | 17 | Cascade | City Plaza | normal | 3 | Ball rolls down three tiers of pins. BOMB BALL intro. |
 | 18 | Double Block | Office | normal | 3 | Two staggered desks: one controlled hook threads both. |
 | 19 | Pinball Wizard | Toy Arena | normal | 3 | Bumpers and bumper walls fire the ball around; gold bonus pin. |
-| **20** | **Grand Smash** | Construction | **SUPER HARD** | 3 | Ramp → glass → pins → domino fork → raised tables → second glass → rack. Perfect one-ball STRIKE exists. |
+| **20** | **Grand Smash** | Construction | **SUPER HARD** | 3 | Ramp → glass → pins → fork of tall dominoes that sweep two raised tables → second glass → rack + gold pin. A perfect one-ball STRIKE exists (stored and tested); the window is about ±0.5° and needs the right power. |
 
 Each level has at least one stored solution (`src/levels/solutions.js`), found with `tools/greedy.mjs` and verified by `tests/solutions.test.js` (Node) and `tests/browser/smoke.mjs` (real browser, production build).
 

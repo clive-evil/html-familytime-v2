@@ -508,7 +508,7 @@ export class Game {
       }
       this.startLevel(1);
     });
-    this.ui.btn(m, '#map', () => { this.ui.closeModal(); this.openMap(); });
+    this.ui.btn(m, '#toMap', () => { this.ui.closeModal(); this.openMap(); });
   }
 
   // ============================================================ boosters

@@ -349,7 +349,7 @@ export class UI {
         ${row('TOTAL PLAYTIME', stats.time)}
       </div>
       <button class="btn big" id="again">PLAY AGAIN</button>
-      <button class="btn grey" id="map">JOURNEY MAP</button>
+      <button class="btn grey" id="toMap">JOURNEY MAP</button>
     `);
   }
 
