@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <title>Chaos World — RNG Raid (prototype)</title>
+  <link rel="stylesheet" href="css/fonts.css" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div id="viewport">
+    <div id="stage" data-screen="menu">
+      <section id="scr-menu" class="screen"></section>
+      <section id="scr-lobby" class="screen"></section>
+      <section id="scr-battle" class="screen"></section>
+      <section id="scr-results" class="screen"></section>
+      <div id="fly-layer"></div>
+      <div id="overlay"></div>
+      <div id="toast-layer"></div>
+      <button id="dbg-btn" title="Debug / QA (`)" aria-label="Debug panel">DBG</button>
+      <aside id="debug-panel" hidden></aside>
+    </div>
+  </div>
+  <!-- Plain scripts (no modules) so this runs from file:// with zero setup. Order matters. -->
+  <script src="js/config.js"></script>
+  <script src="js/rng.js"></script>
+  <script src="js/save.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/art.js"></script>
+  <script src="js/lobby-core.js"></script>
+  <script src="js/battle-core.js"></script>
+  <script src="js/ui-common.js"></script>
+  <script src="js/lobby-ui.js"></script>
+  <script src="js/battle-ui.js"></script>
+  <script src="js/screens.js"></script>
+  <script src="js/debug.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,15 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="../css/fonts.css"><style>body{background:#2a2030;margin:0}canvas{display:block}</style></head><body>
+<canvas id="c" width="1000" height="760"></canvas>
+<script src="../js/config.js"></script><script src="../js/art.js"></script>
+<script>
+const c=document.getElementById('c'),x=c.getContext('2d');
+const R=CW.BOT_ROSTER; const hats=Object.values(CW.CLASSES).map(c=>c.hat);
+const ems=[null,'cheer','shock','angry','laugh','panic','sad','taunt'];
+R.forEach((b,i)=>CW.Art.drawOverlord(x,70+i*120,130,1.2,b.look,{t:1,emote:ems[i],emoteT:.3,weaponKind:'axe',weaponRarity:'epic'}));
+const cls=CW.CLASS_IDS; cls.forEach((id,i)=>CW.Art.drawOverlord(x,60+i*115,300,1.1,CW.HUMAN_PROFILE.look,{t:2,hat:CW.CLASSES[id].hat,heroRarity:'legendary',weaponKind:CW.WEAPONS[id].legendary[0].kind,weaponRarity:'legendary',gearKind:'plate',gearRarity:'rare'}));
+const kinds=['sword','greatsword','club','axe','cleaver','hammer','bow','sling','crossbow','wand','stick','staff','skullstaff','orb','tome','dagger','sickle','shield','shovel','lantern','scythe','candle','mace','bell','bottle','knuckles','tunic','sandals','helm','plate','boots','cloak','robe','crown'];
+const rs=CW.RARITY_ORDER;
+kinds.forEach((k,i)=>{const r=rs[i%5]; x.save(); x.translate(40+(i%17)*56,380+Math.floor(i/17)*70); x.scale(0.7,0.7); CW.Art.drawItem(x,k,r); x.restore();});
+const bios=CW.BIOMES; let j=0; for(const b of bios){ for(const k of [...b.enemies,b.elite,b.boss]){ const d=CW.ENEMIES[k]; CW.Art.drawEnemy(x,{x:60+j*82,y:740,hx:j,size:d.size*0.55,shape:d.shape,color:d.color,boss:d.boss,elite:d.elite,anim:{}},1); j++; } }
+cls.forEach((id,i)=>{const im=new Image(); im.src=CW.Art.heroIcon(id,'epic',72); im.onload=()=>x.drawImage(im,20+i*80,530);});
+</script></body></html>

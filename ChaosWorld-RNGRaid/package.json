@@ -1,0 +1,18 @@
+{
+  "name": "chaosworld-rngraid",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Chaos World — RNG Raid: standalone HTML prototype of a pre-match RNG loadout lobby (reroll / shuffle / steal / grief / raid-pot boost) feeding an 8-player dungeon battle.",
+  "scripts": {
+    "start": "npx --yes http-server -p 8080 -c-1 .",
+    "test": "npm run test:unit && npm run test:isolation && npm run test:browser",
+    "test:unit": "node --test tests/unit.test.js",
+    "test:isolation": "node --test tests/isolation.test.js",
+    "test:browser": "node tests/browser.test.mjs",
+    "sim:balance": "node tools/balance-sim.js 200",
+    "sim:lobby": "node tools/lobby-sim.js 200"
+  },
+  "devDependencies": {
+    "playwright": "^1.56.1"
+  }
+}
