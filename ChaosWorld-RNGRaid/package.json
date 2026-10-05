@@ -4,6 +4,7 @@
   "private": true,
   "description": "Chaos World — RNG Raid: standalone HTML prototype of a pre-match RNG loadout lobby (reroll / shuffle / steal / grief / raid-pot boost) feeding an 8-player dungeon battle.",
   "scripts": {
+    "build": "node tools/build-single.js",
     "start": "npx --yes http-server -p 8080 -c-1 .",
     "test": "npm run test:unit && npm run test:isolation && npm run test:browser",
     "test:unit": "node --test tests/unit.test.js",

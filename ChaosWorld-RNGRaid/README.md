@@ -19,6 +19,8 @@ Two rulesets, selectable from the front menu so they can be compared:
 
 ## Run it
 
+**Single file:** `dist/ChaosWorld-RNGRaid.html` is the whole game in one self-contained HTML file (CSS, fonts, art, audio, JS all inlined). Rebuild it after edits with `npm run build`.
+
 No build, no server, no network. Everything (fonts, art, audio) is generated or inlined locally.
 
 * **Double-click `index.html`** (works from `file://`), or
