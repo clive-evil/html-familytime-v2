@@ -76,9 +76,9 @@ export const CATALOG = {
   miniPin: () => pinDef(0.4, 0.35, 'miniPin'),
   goldPin: () => pinDef(0.76, 1.0, 'goldPin', { target: false, bonus: true }),
 
-  crate: (s) => box(s.size || [0.6, 0.6, 0.6], s.mass || 3, 'wood', 'crate', { target: true }),
-  box: (s) => box(s.size || [0.5, 0.4, 0.5], s.mass || 0.9, 'card', 'box', { target: true }),
-  can: (s) => cyl(s.r || 0.11, s.h || 0.3, s.mass || 0.35, 'can', 'can', { target: true, tilt: 55, drop: 0.25 }),
+  crate: (s) => box(s.size || [0.6, 0.6, 0.6], s.mass || 3, 'wood', 'crate', { target: true, moveOut: 1.0 }),
+  box: (s) => box(s.size || [0.5, 0.4, 0.5], s.mass || 0.9, 'card', 'box', { target: true, moveOut: 0.9 }),
+  can: (s) => cyl(s.r || 0.11, s.h || 0.3, s.mass || 0.35, 'can', 'can', { target: true, tilt: 55, drop: 0.25, moveOut: 0.7 }),
   barrel: (s) => cyl(s.r || 0.3, s.h || 0.85, s.mass || 5, 'metal', 'barrel', { target: true, tilt: 45 }),
   bottle: (s) => {
     const h = s.h || 0.5, r = s.r || 0.1;
@@ -136,7 +136,7 @@ export const CATALOG = {
   chair: () => {
     const h = 1.15;
     return {
-      mass: 6, mat: 'plastic', look: 'chair', h, target: true, tilt: 50, drop: 0.3,
+      mass: 6, mat: 'plastic', look: 'chair', h, target: true, tilt: 50, drop: 0.3, moveOut: 1.3,
       friction: 0.15, // rolling casters
       parts: [
         { shape: 'cyl', r: 0.32, h: 0.08, off: [0, -h / 2 + 0.04, 0] },

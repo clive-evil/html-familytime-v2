@@ -133,3 +133,45 @@ export function lineOf(t, x0, z0, x1, z1, n, opts = {}) {
   }
   return out;
 }
+
+/**
+ * Objects (default dominoes) evenly spaced along a smooth Catmull-Rom path
+ * through `pts` [[x,z],...], each turned to face along the path.
+ */
+export function alongPath(pts, spacing = 0.5, opts = {}) {
+  const t = opts.t || 'domino';
+  // dense sample
+  const dense = [];
+  for (let i = 0; i < pts.length - 1; i++) {
+    const p0 = pts[Math.max(0, i - 1)], p1 = pts[i], p2 = pts[i + 1], p3 = pts[Math.min(pts.length - 1, i + 2)];
+    for (let k = 0; k < 40; k++) {
+      const u = k / 40, u2 = u * u, u3 = u2 * u;
+      const f = (a, b, c, d) => 0.5 * (2 * b + (-a + c) * u + (2 * a - 5 * b + 4 * c - d) * u2 + (-a + 3 * b - 3 * c + d) * u3);
+      dense.push([f(p0[0], p1[0], p2[0], p3[0]), f(p0[1], p1[1], p2[1], p3[1])]);
+    }
+  }
+  dense.push(pts[pts.length - 1]);
+  const out = [];
+  let acc = spacing; // place first at start
+  for (let i = 1; i < dense.length; i++) {
+    const [ax, az] = dense[i - 1], [bx, bz] = dense[i];
+    const seg = Math.hypot(bx - ax, bz - az);
+    acc += seg;
+    if (acc >= spacing) {
+      acc = 0;
+      const ry = (Math.atan2(bx - ax, bz - az) * 180) / Math.PI;
+      out.push({ t, at: [ax, opts.y || 0, az], ...(t === 'domino' ? { ry } : {}), ...(opts.extra || {}) });
+    }
+  }
+  return out;
+}
+
+/** Pin triangle whose head pin is at (x,z) and whose rows extend along direction (dx,dz). */
+export function pinTriangleDir(x, z, rows, dx, dz, opts = {}) {
+  const l = Math.hypot(dx, dz); dx /= l; dz /= l;
+  const sx = -dz, sz = dx; // side vector
+  return pinTriangle(0, 0, rows, opts).map((p) => {
+    const a = p.at[0], b = -p.at[2];
+    return { ...p, at: [x + sx * a + dx * b, p.at[1], z + sz * a + dz * b] };
+  });
+}

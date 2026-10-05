@@ -111,14 +111,16 @@ export function buildEntityMesh(ent, theme) {
     }
     case 'barrel': {
       const p = def.parts[0];
-      const color = ent.color || '#e8413a';
-      grp.add(mesh(g(`barrel:${p.r}:${p.h}`, () => new THREE.CylinderGeometry(p.r, p.r, p.h, 22)), std(color, 0.4, 0.4)));
-      for (const y of [-0.3, 0, 0.3]) {
-        const ring = mesh(g(`bring:${p.r}`, () => new THREE.TorusGeometry(p.r * 1.01, 0.022, 6, 24)), std('#3a3a3a', 0.4, 0.7));
+      const color = ent.color || ['#2f7dd1', '#21a36b', '#e8413a'][ent.id % 3];
+      grp.add(mesh(g(`barrel:${p.r}:${p.h}`, () => new THREE.CylinderGeometry(p.r, p.r, p.h, 22)), std(color, 0.35, 0.45)));
+      for (const y of [-0.42, -0.14, 0.14, 0.42]) {
+        const ring = mesh(g(`bring:${p.r}`, () => new THREE.TorusGeometry(p.r * 1.0, 0.018, 6, 24)), std('#d9dde3', 0.3, 0.8), false);
         ring.rotation.x = Math.PI / 2; ring.position.y = y * p.h; grp.add(ring);
       }
-      const band = mesh(g(`bband:${p.r}:${p.h}`, () => new THREE.CylinderGeometry(p.r * 1.005, p.r * 1.005, p.h * 0.16, 22, 1, true)), mat('hazardband', () => new THREE.MeshStandardMaterial({ map: TX.hazardTexture(), roughness: 0.5 })));
-      band.position.y = p.h * 0.15; grp.add(band);
+      const lid = mesh(g(`blid:${p.r}`, () => new THREE.CylinderGeometry(p.r * 0.92, p.r * 0.92, 0.02, 22)), std('#d9dde3', 0.3, 0.8), false);
+      lid.position.y = p.h / 2; grp.add(lid);
+      const cap = mesh(g('bcap', () => new THREE.CylinderGeometry(0.045, 0.045, 0.03, 10)), std('#ffcc33', 0.4, 0.5), false);
+      cap.position.set(p.r * 0.5, p.h / 2 + 0.015, 0); grp.add(cap);
       return grp;
     }
     case 'cone': {

@@ -54,7 +54,7 @@
 - Uptodown says levels rise "from relaxing knockdowns to skill tests". The first 10 are probably simple single-structure knockdowns with generous ball counts. Given the about 6-7 level super-hard cadence, there is possibly a first "hard" spike around level 6-10.
 
 **OUR ADAPTATION**
-- See DESIGN notes
+- 20 hand-authored levels (no procedural stacks). L1-3 are near-unfailable "instant satisfaction" racks (classic ten-pin, 15-pin, a 3-storey weak-point tower); L4-6 add one idea each (domino fork, launch ramp, hook). See `src/levels/levels.js` and DESIGN.md level table.
 
 ## 2. Tutorial
 **CONFIRMED IN REFERENCE**
@@ -65,7 +65,7 @@
 - Likely a hand/finger prompt showing the one-tap angle + power flow on level 1, with no text-heavy tutorial (typical for this genre; not verified).
 
 **OUR ADAPTATION**
-- See DESIGN notes
+- Zero-text-wall tutorial: fresh save boots straight into Level 1 with a looping hand animation and **DRAG TO AIM** → while dragging **RELEASE TO BOWL**. Spin is taught on Level 6 (glowing SPIN slider + 2-line hint). Each booster gets a one-time modal + one FREE forced use on its intro level (8, 13, 17).
 
 ## 3. Number of shots/balls
 **CONFIRMED IN REFERENCE**
@@ -77,7 +77,7 @@
 - Ball counts are relatively high (double digits) compared with games like Angry Birds, which fits a "many shots, chip away at the structure" design. Counts are likely tuned per level and per difficulty tier and adjusted live (the 22 to 18 change).
 
 **OUR ADAPTATION**
-- See DESIGN notes. Leftover-ball bonus is a clear player-requested improvement.
+- Small, readable bowling-sized budgets instead of 15-25 cannonballs: 3-4 balls per level (shown as ball pips). Easy levels generous (4 on L5/L15/L16), HARD/SUPER HARD tight (3). Leftover balls pay +5 coins each on first clear (fixes reference complaint).
 
 ## 4. Aiming
 **CONFIRMED IN REFERENCE**
@@ -88,7 +88,7 @@
 - The exact gesture (drag to aim vs. an oscillating auto-aim with a tap to lock) is not confirmed. "One tap to set your shot" plus "charge the power" and "perfect timing" suggests a timing-based meter (tap to lock the angle/power as it oscillates) or a press-and-hold to charge. Unverified.
 
 **OUR ADAPTATION**
-- See DESIGN notes
+- Drag anywhere → pull back (slingshot) to set direction, with a dotted predicted path + arrow. Pushing forward also works (forgiving). Early levels (1-3, 5, 11, 16) have a gentle first-ball aim assist. Desktop: mouse; mobile: same single-finger drag (pointer events).
 
 ## 5. Power
 **CONFIRMED IN REFERENCE**
@@ -98,7 +98,7 @@
 - A charge meter, probably hold-to-charge or a timed tap. Not confirmed.
 
 **OUR ADAPTATION**
-- See DESIGN notes
+- Power = drag length (same gesture as aim), colour-coded green→red on the path and ball ring. No timing meter: mass-market, one gesture. Ramp levels cap max speed so full power isn't punished.
 
 ## 6. Projectile physics
 **CONFIRMED IN REFERENCE**
@@ -109,7 +109,7 @@
 - Ballistic trajectory under gravity; ball mass is high relative to blocks. A trajectory preview is not confirmed.
 
 **OUR ADAPTATION**
-- See DESIGN notes. Lesson: wait for the physics to settle (or give a grace period) before declaring failure; this is a top complaint.
+- A rolled 9 kg-equivalent bowling ball (Rapier dynamic sphere, CCD on, rolling angular velocity at launch) instead of a ballistic cannonball. Optional HOOK: a constant-curvature lateral force (speed-independent, so the preview is honest). Taught at L6, never required before.
 
 ## 7. Destruction physics
 **CONFIRMED IN REFERENCE**
@@ -121,7 +121,7 @@
 - Rigid-body blocks (stacking/toppling) plus breakable "jars" (shatter). At least two material classes: fragile vs. heavy.
 
 **OUR ADAPTATION**
-- See DESIGN notes
+- Real rigid-body destruction (Rapier): pins, cans, crates, boxes, barrels, cones, gnomes, statues, office chairs, dummies, dominoes, planks/posts/slabs; breakable glass panels, bottles and vases shatter into physical shards; bumpers kick; kinematic conveyors move. No canned animations. A small arcade "smash" impulse on first ball contact makes pins scatter into each other (still physics).
 
 ## 8. Win conditions
 **CONFIRMED IN REFERENCE**
@@ -131,7 +131,7 @@
 - Win = every target object knocked off the platform (or destroyed) before balls run out. Whether partial/star ratings exist: not confirmed (no star system seen in any source).
 
 **OUR ADAPTATION**
-- See DESIGN notes
+- Required targets are clearly marked (floating marker + HUD counter TARGETS 14 → 13 → …). Down = tilted past a per-type angle, dropped off its support, knocked well off its spot (boxes/cans/chairs) or fell off the world. Non-target props (posts, dominoes, crates on L11) don't count.
 
 ## 9. Failure
 **CONFIRMED IN REFERENCE**
@@ -143,7 +143,7 @@
 - Failing costs one life (standard 5-lives model; see 11).
 
 **OUR ADAPTATION**
-- See DESIGN notes
+- **OUT OF BALLS** only after the shot fully resolves (balls stopped AND world quiet AND no target fell in the last 0.5 s, 13 s hard cap). This directly fixes the reference's #1 complaint (offer shown while the last ball is still knocking blocks).
 
 ## 10. Retries
 **CONFIRMED IN REFERENCE**
@@ -153,7 +153,7 @@
 - Retry consumes a life; probably the same fixed layout on each retry (fixed puzzles, "find the one perfect angle").
 
 **OUR ADAPTATION**
-- See DESIGN notes
+- Fail panel: **+5 BALLS** (simulated rewarded ad, or 150 coins) or **RETRY**. Retry rebuilds the identical deterministic level instantly. Mid-level restart from the HUD is free on L1-5 and costs a heart otherwise (with confirmation).
 
 ## 11. Lives
 **CONFIRMED IN REFERENCE**
@@ -164,7 +164,7 @@
 - A life is lost on failure (not on win). Unlimited-lives timers are probably granted from events, packs or rewards.
 
 **OUR ADAPTATION**
-- See DESIGN notes. Lesson: let players choose when to activate unlimited-life timers.
+- 5 hearts. A heart is lost only when you give up on a failed attempt (retry/restart), not when the fail panel appears, so taking a continue never costs a heart. Hearts are hidden until Level 4 and levels 1-5 never cost one (first-session protection). DEV toggle: Unlimited Lives (`?debug=1` or `?unlimitedlives`).
 
 ## 12. Life regeneration
 **CONFIRMED IN REFERENCE**
@@ -174,7 +174,7 @@
 - Genre norm is about 20-30 min per life (Royal Match uses 30 min, but that is a different game and is not evidence for this one).
 
 **OUR ADAPTATION**
-- See DESIGN notes
+- 1 heart / 20 minutes, persisted in localStorage with timestamp maths (works across reloads). Out-of-hearts panel: simulated ad for +1, 200-coin full refill, or wait (live countdown).
 
 ## 13. Coins/currency
 **CONFIRMED IN REFERENCE**
@@ -186,7 +186,7 @@
 - Probably also spent on boosters and life refills (not confirmed). The economy is tight: 900 / 15 = 60 average levels to afford one continue. The reviewers' complaints confirm it is designed to push IAP.
 
 **OUR ADAPTATION**
-- See DESIGN notes
+- Single soft currency: coins. Earn: 20 per first clear (50 HARD, 100 SUPER HARD), STRIKE BONUS +30, SPARE +10, +5 per unused ball, +15 per gold bonus pin, chests, daily track. Spend: +5 balls (150), boosters (90/120/150), heart refill (200). Deliberately far less punishing than 900-coin continues.
 
 ## 14. Rewards
 **CONFIRMED IN REFERENCE**
@@ -197,7 +197,7 @@
 - Event rewards are likely coins, boosters and unlimited-life timers. Not itemised in sources.
 
 **OUR ADAPTATION**
-- See DESIGN notes
+- Bowling-language grades: **STRIKE!** (1 ball), **SPARE!** (2), **CLEAR!** (within allowance). Replays pay only the skill bonus (no duplicate first-clear rewards). Best result per level stored and shown on the map.
 
 ## 15. Boosters
 **CONFIRMED IN REFERENCE**
@@ -208,7 +208,7 @@
 - Likely pre-level or in-level power balls (e.g. bigger/explosive ball). A snippet mentioning "powerful special balls and useful boosters" may belong to a different same-name clone (com.hitscale.royal.smash), so it is not attributed here.
 
 **OUR ADAPTATION**
-- See DESIGN notes
+- Three original boosters: HEAVY BALL (×3.2 mass, ×1.4 radius), TRIPLE BALL (3 balls, ±6° spread, one ball spent), BOMB BALL (radial impulse on first major impact). Unlocked one at a time at L8 / L13 / L17 with one free forced use each, then buy with coins or a simulated ad.
 
 ## 16. Hard levels
 **CONFIRMED IN REFERENCE**
@@ -219,7 +219,7 @@
 - A separate "hard" tier between normal and super-hard is not confirmed. It possibly exists, as in Royal Match-style games (Hard/Super Hard labels).
 
 **OUR ADAPTATION**
-- See DESIGN notes
+- Level 10 is the single HARD level of the prototype (red HARD tag in HUD, intro and map; bigger red map node; 50 coins). Three separated groups, one hidden behind a wall → needs a hook or a bank shot.
 
 ## 17. Super-hard levels
 **CONFIRMED IN REFERENCE**
@@ -229,7 +229,7 @@
 - Probably flagged pre-level with a special label/colour. Not confirmed.
 
 **OUR ADAPTATION**
-- See DESIGN notes
+- Level 20 SUPER HARD showcase (purple/pink glowing tag + largest map node; 100 coins). Ramp + glass + domino fork + two raised tables + pin rack + gold pin; a stored perfect one-ball STRIKE solution is verified by tests.
 
 ## 18. Reward cadence
 **CONFIRMED IN REFERENCE**
@@ -239,7 +239,7 @@
 - Milestone rewards are likely every N levels along the Journey. The interval is not confirmed.
 
 **OUR ADAPTATION**
-- See DESIGN notes
+- Coins every clear, spikes on HARD/SUPER HARD and STRIKE, chest every 5 levels (5/10/15/20), daily 7-day track, gold bonus pins on L19/L20. Sawtooth: hard spike → easy spectacle reset (L10 → L11, L15 → L16).
 
 ## 19. Progression/map/journey structure
 **CONFIRMED IN REFERENCE**
@@ -250,7 +250,7 @@
 - A linear level sequence with themed areas/kingdoms. Journey acts as a meta layer (possibly building/decoration) gated by milestones.
 
 **OUR ADAPTATION**
-- See DESIGN notes
+- Vertical JOURNEY map (1 at the bottom, scrolls to current), environment labels where the setting changes, chest icons at milestones, HARD/SUPER HARD nodes visually distinct, result badges (STRIKE/SPARE/CLEAR) on cleared nodes. It is reachable from the HUD and never forced on the player.
 
 ## 20. Ads
 **CONFIRMED IN REFERENCE**
@@ -262,7 +262,7 @@
 - Interstitial frequency is likely remote-configured and differs by cohort (which explains contradictory reviews).
 
 **OUR ADAPTATION**
-- See DESIGN notes
+- **No ads in the prototype.** Interstitial integration point exists (`Platform` class, CrazyGames `gameplayStart/Stop/happytime/loadingStop` calls made at the right moments), but no interstitials are scheduled. Recommendation: none before level 10, then a remote-configured cadence.
 
 ## 21. Rewarded ads
 **CONFIRMED IN REFERENCE**
@@ -272,7 +272,7 @@
 - Rewarded video for lives or a small ball top-up is likely but unverified.
 
 **OUR ADAPTATION**
-- See DESIGN notes
+- SIMULATED rewarded placements, clearly labelled: +5 balls on fail, +1 heart when out of hearts, 1 free booster. Each shows a 1-second fake "SIMULATED AD" overlay and is tracked (`sim_rewarded_ad`). There are no real ads.
 
 ## 22. Continue mechanics
 **CONFIRMED IN REFERENCE**
@@ -283,7 +283,7 @@
 - Possibly an escalating price on repeated continues, and/or a "Level End Offer" IAP ($3.99) shown at this moment if coins are insufficient. The name suggests it, but this is not confirmed.
 
 **OUR ADAPTATION**
-- See DESIGN notes
+- +5 balls continue for a simulated ad or 150 coins, offered only after the physics settle. Level state is preserved (balls are added and the same physics continues). There is no escalating price yet, and the panel says it is a simulation.
 
 ## 23. IAP hooks
 **CONFIRMED IN REFERENCE** (App Store in-app purchase list, via search summary; full list not viewable)
@@ -299,7 +299,7 @@
 - "Level End Offer" = a contextual fail-state offer. "Special Offer" = a pop-up/starter-style deal. The packs likely bundle coins + boosters + unlimited-life time.
 
 **OUR ADAPTATION**
-- See DESIGN notes
+- None implemented (no real money). Hook points are listed in DESIGN.md: the fail-panel continue (a "Level End Offer" analogue), out-of-hearts refill, booster purchase panel and coin shortage.
 
 ## 24. Daily/return systems
 **CONFIRMED IN REFERENCE**
@@ -310,7 +310,7 @@
 - "Daily Gains" is probably a daily login/reward feature. Its mechanics are unknown. Another same-name game (different developer) lists daily/weekly tasks, win-streak tower and daily boss levels; **not attributable** to Cypher's game.
 
 **OUR ADAPTATION**
-- See DESIGN notes
+- A lightweight 7-day DAILY REWARD track (coins / single boosters / a big day-7 bundle) is persisted. It appears only from the second session and only after 3 cleared levels, so it never interrupts the first session. Missing a day resets the streak to day 1. There is also a gift button on the map.
 
 ## 25. Level-complete celebration
 **CONFIRMED IN REFERENCE**
@@ -320,7 +320,7 @@
 - Coin award screen (15/50) followed by Journey progress and possibly an interstitial ad.
 
 **OUR ADAPTATION**
-- See DESIGN notes
+- On the last target: about 0.75 s slow-motion, camera shake, sparkles and confetti, a rising chain-pop sound per target, then a slammed **STRIKE!/SPARE!/CLEAR!** banner with a fanfare. The panel counts targets up rapidly, coins fly to the counter, and a large **NEXT LEVEL** button appears. The next level is playable about 2-3 s after the final pin if the player taps quickly.
 
 ## 26. Difficulty curve
 **CONFIRMED IN REFERENCE**
@@ -330,7 +330,7 @@
 - A saw-tooth curve (normal, normal, ..., super-hard spike) with live tuning. The developer appears to be responding to fairness complaints.
 
 **OUR ADAPTATION**
-- See DESIGN notes
+- Explicit sawtooth: 1-3 near-unfailable, 4-6 minor thought, 7-9 moderate, **10 HARD**, 11 easy spectacle in a new setting, 12-15 moderate, 16 easy spectacle, 17-19 rising, **20 SUPER HARD**.
 
 ## 27. FTUE
 **CONFIRMED IN REFERENCE**
@@ -340,7 +340,7 @@
 - Short guided first level, then immediate play. The early game probably has light ads/monetization (GameCompass: "starts simple but quickly pushes players towards in-app purchases").
 
 **OUR ADAPTATION**
-- See DESIGN notes
+- No menu wall: a fresh save loads directly into Level 1. Only aiming is explained; coins appear after the first win, hearts from L4, spin at L6, boosters at L8+, daily only from session 2. `?playtest=1` gives a fresh temporary save every time.
 
 ## 28. Session pacing
 **CONFIRMED IN REFERENCE**
@@ -350,7 +350,7 @@
 - Levels likely last under 1-2 minutes. A natural session ends when lives run out (about 5 fails) or a super-hard wall is hit.
 
 **OUR ADAPTATION**
-- See DESIGN notes
+- Levels take about 20-90 s and downtime between levels is about 2-3 s. Hearts gate long fail streaks only after L5. A 20-level run takes roughly 20-35 minutes for a first-time player.
 
 ---
 

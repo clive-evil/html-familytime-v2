@@ -99,6 +99,7 @@ export class Game {
     this.slowmoUntil = 0;
     this.handled = {};
     this.pendingBooster = null;
+    this.autoQueue = null;
     this.aim = null;
     this.renderer.setAim(null);
     this.firstHitThisShot = false;
@@ -146,7 +147,7 @@ export class Game {
   }
 
   boosterIntro(kind) {
-    if (this.level.id !== BOOSTER_UNLOCK[kind] || this.sim.state !== 'aim') return;
+    if (this.level.id !== BOOSTER_UNLOCK[kind] || this.sim.state !== 'aim' || this.autoQueue || this.sim.shotsTaken > 0) return;
     this.platform.gameplayStop();
     const m = this.ui.boosterIntroPanel(kind);
     this.ui.btn(m, '#ok', () => {
@@ -284,6 +285,7 @@ export class Game {
     this.acc += rawDt * ts;
     let steps = 0;
     while (this.acc >= DT && steps < 4) {
+      if (this.autoQueue?.length && this.sim.state === 'aim') this._autoShot();
       this.sim.step();
       this.renderer.afterStep();
       this._events(this.sim.events);
@@ -573,18 +575,27 @@ export class Game {
   }
 
   // ============================================================ QA hooks
-  /** Plays the stored solution for the current level (debug / automated QA). */
+  /**
+   * Plays the stored solution for the current level (debug / automated QA).
+   * Restarts the level so shots are fired on exactly the same physics steps as
+   * the headless solver (runShots) - the browser then reproduces the result.
+   */
   async autoSolve() {
     const sol = SOLUTIONS[this.level.id];
     if (!sol) return false;
-    for (const shot of sol.shots) {
-      while (this.sim.state !== 'aim') { if (this.sim.state === 'won' || this.sim.state === 'lost') return this.sim.state === 'won'; await wait(50); }
-      if (shot.booster) this.save.boosters[shot.booster] = Math.max(1, this.save.boosters[shot.booster] || 0);
-      this.pendingBooster = shot.booster || null;
-      this.ui.setSpin(shot.spin || 0);
-      this.shoot({ angle: shot.angle, power: shot.power, spin: shot.spin || 0 });
-    }
+    await this.startLevel(this.level.id, { skipLives: true });
+    this.ui.closeModal();
+    this.tutorial = 'auto';
+    this.autoQueue = sol.shots.map((s) => ({ ...s }));
     return true;
+  }
+
+  _autoShot() {
+    const shot = this.autoQueue.shift();
+    if (shot.booster) this.save.boosters[shot.booster] = Math.max(1, this.save.boosters[shot.booster] || 0);
+    this.pendingBooster = shot.booster || null;
+    this.ui.setSpin(shot.spin || 0);
+    this.shoot({ angle: shot.angle, power: shot.power, spin: shot.spin || 0 });
   }
 
   winInstantly() {

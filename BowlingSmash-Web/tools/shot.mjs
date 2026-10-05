@@ -21,6 +21,11 @@ try {
     await page.evaluate(() => window.__game.autoSolve());
     await page.waitForTimeout(+(flags.after || 2500));
   }
+  if (flags.shoot) {
+    const [angle, power, spin] = flags.shoot.split(',').map(Number);
+    await page.evaluate((a) => window.__game.shoot(a), { angle, power, spin: spin || 0 });
+    await page.waitForTimeout(+(flags.after || 4000));
+  }
   if (flags.drag) {
     const [x0, y0, x1, y1] = flags.drag.split(',').map(Number);
     await page.mouse.move(x0, y0); await page.mouse.down(); await page.mouse.move(x1, y1, { steps: 8 });

@@ -157,7 +157,7 @@ export class Renderer {
     }
     for (const rec of this.ballMeshes.values()) {
       rec.prevP.copy(rec.curP); rec.prevQ.copy(rec.curQ);
-      if (rec.ball.active) {
+      if (rec.ball.active && !rec.ball.removed) {
         const t = rec.ball.body.translation(), q = rec.ball.body.rotation();
         rec.curP.set(t.x, t.y, t.z); rec.curQ.set(q.x, q.y, q.z, q.w);
       }
@@ -228,7 +228,7 @@ export class Renderer {
   _syncBalls(alpha) {
     const sim = this.sim;
     const want = [];
-    if (sim.aimBall) want.push({ key: 'aim', body: sim.aimBall.body, radius: sim.aimBall.radius, kind: this.pendingBooster || 'normal', aim: true });
+    if (sim.aimBall) want.push({ key: `aim${sim.shotsTaken}`, ball: sim.aimBall, body: sim.aimBall.body, radius: sim.aimBall.radius, kind: this.pendingBooster || 'normal', aim: true });
     for (const b of sim.balls) if (b.active) want.push({ key: `b${b.id}`, ball: b, body: b.body, radius: b.radius, kind: b.booster || 'normal' });
     const keys = new Set(want.map((w) => w.key));
     for (const [k, rec] of this.ballMeshes) {
@@ -243,7 +243,7 @@ export class Renderer {
         const obj = buildBallMesh(w.aim && w.kind === 'heavy' ? w.radius * 1.4 : w.radius, w.kind);
         this.levelGroup.add(obj);
         const t = w.body.translation(), q = w.body.rotation();
-        rec = { obj, kind: w.kind, ball: w.ball || { active: true, body: w.body, radius: w.radius }, prevP: new THREE.Vector3(t.x, t.y, t.z), curP: new THREE.Vector3(t.x, t.y, t.z), prevQ: new THREE.Quaternion(q.x, q.y, q.z, q.w), curQ: new THREE.Quaternion(q.x, q.y, q.z, q.w) };
+        rec = { obj, kind: w.kind, ball: w.ball, prevP: new THREE.Vector3(t.x, t.y, t.z), curP: new THREE.Vector3(t.x, t.y, t.z), prevQ: new THREE.Quaternion(q.x, q.y, q.z, q.w), curQ: new THREE.Quaternion(q.x, q.y, q.z, q.w) };
         if (w.aim && w.kind === 'heavy') { rec.curP.y += w.radius * 0.4; rec.prevP.y = rec.curP.y; }
         this.ballMeshes.set(w.key, rec);
       }
@@ -313,8 +313,6 @@ export class Renderer {
   // --------------------------------------------------------------- camera
   _bounds() {
     const b = new THREE.Box3();
-    const s = this.level.start || [0, 0, 0];
-    b.expandByPoint(new THREE.Vector3(s[0], s[1] || 0, s[2] + 1.2));
     for (const e of this.sim.entities) {
       if (e.look === 'rail' || e.look === 'backstop') continue;
       if (!e.target && !e.dynamic && !e.panel && !e.kick && e.look !== 'barrier' && e.look !== 'ramp') continue;
@@ -331,11 +329,13 @@ export class Renderer {
     const center = b.getCenter(new THREE.Vector3());
     const cam = this.level.camera || {};
     const pitch = (cam.pitch || 33) * (Math.PI / 180);
-    const target = new THREE.Vector3(center.x * 0.85, Math.min(1.2, b.max.y * 0.25), center.z - 1.2);
+    const st = this.level.start || [0, 0, 0];
+    const target = new THREE.Vector3((center.x + st[0]) / 2, Math.min(1.2, b.max.y * 0.25), (center.z * 0.75 + st[2] * 0.25));
     if (cam.target) target.set(...cam.target);
     const dir = new THREE.Vector3(0, Math.sin(pitch), Math.cos(pitch));
     const corners = [];
     for (const x of [b.min.x, b.max.x]) for (const y of [b.min.y, b.max.y]) for (const z of [b.min.z, b.max.z]) corners.push(new THREE.Vector3(x, y, z));
+    const ballPt = new THREE.Vector3(st[0], (st[1] || 0) + 0.4, st[2]);
     const cam2 = this.camera.clone();
     let d = 6;
     const margin = this.camera.aspect < 0.8 ? 0.84 : 0.9;
@@ -344,7 +344,9 @@ export class Renderer {
       cam2.lookAt(target);
       cam2.updateMatrixWorld();
       let ok = true;
-      for (const c of corners) {
+      const bp = ballPt.clone().project(cam2);
+      if (bp.z > 1 || bp.y < -0.86 || Math.abs(bp.x) > 0.9) ok = false;
+      for (const c of ok ? corners : []) {
         const p = c.clone().project(cam2);
         if (Math.abs(p.x) > margin || p.y > margin - 0.12 || p.y < -0.97) { ok = false; break; }
       }
@@ -445,7 +447,7 @@ export class Renderer {
     const q = new THREE.Quaternion().setFromEuler(new THREE.Euler(-Math.PI / 2, 0, 0));
     const col = new THREE.Color();
     let dist = 0;
-    const kappa = SHOT.hookCurvature * 0.72 * aim.spin; // effective rolling curvature
+    const kappa = SHOT.hookCurvature * 0.74 * aim.spin; // effective rolling curvature
     for (let i = 0; i < a.N; i++) {
       const ramp = clamp((dist - SHOT.hookStartDist) / SHOT.hookRampDist, 0, 1);
       heading += kappa * ramp * ds;

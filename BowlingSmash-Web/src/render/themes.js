@@ -10,8 +10,8 @@ export const THEMES = {
   market: {
     name: 'Supermarket',
     sky: ['#ffe7b8', '#fff8ea'], fog: '#fff1d6', fogNear: 28, fogFar: 65,
-    floor: 'tiles', floorColor: '#f3efe6', edge: '#2f8f6f', void: '#24524a',
-    hemi: ['#ffffff', '#c9b28a', 1.25], sun: ['#ffffff', 2.4], accent: '#2fbf8f',
+    floor: 'tiles', floorColor: '#e4ddd0', edge: '#2f8f6f', void: '#24524a',
+    hemi: ['#ffffff', '#c9b28a', 0.95], sun: ['#fff6e8', 2.1], accent: '#2fbf8f',
     wall: '#e8e2d4', block: '#35a37c', ramp: '#ffcf4d', rail: '#2f8f6f', backstop: '#2f8f6f',
   },
   office: {

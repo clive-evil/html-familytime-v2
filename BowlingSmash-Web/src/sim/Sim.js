@@ -106,12 +106,18 @@ export class Sim {
     let pos;
     if (spec.c) pos = { x: spec.c[0], y: spec.c[1], z: spec.c[2] };
     else pos = { x: spec.at[0], y: spec.at[1] + def.h / 2, z: spec.at[2] };
+    const start = { ...pos };
+    if (spec.move) {
+      // spawn movers where they are at t=0 (riders are authored relative to that)
+      const k = spec.move.amp * Math.sin(spec.move.phase || 0);
+      start.x += spec.move.axis[0] * k; start.y += spec.move.axis[1] * k; start.z += spec.move.axis[2] * k;
+    }
 
     let desc;
     if (def.fixed) desc = RAPIER.RigidBodyDesc.fixed();
     else if (def.kinematic || spec.move || spec.spin) desc = RAPIER.RigidBodyDesc.kinematicPositionBased();
     else desc = RAPIER.RigidBodyDesc.dynamic().setLinearDamping(0.05).setAngularDamping(0.35).setCcdEnabled(def.mass < 1 && false);
-    desc.setTranslation(pos.x, pos.y, pos.z).setRotation(q);
+    desc.setTranslation(start.x, start.y, start.z).setRotation(q);
     const body = this.world.createRigidBody(desc);
     const mat = MATS[spec.mat || def.mat] || MATS.wood;
     const isDyn = body.isDynamic();
@@ -133,7 +139,7 @@ export class Sim {
       let cd = colliderDesc(p);
       if (!cd) return;
       if (p.off) cd.setTranslation(p.off[0], p.off[1], p.off[2]);
-      cd.setFriction(def.friction ?? mat.friction).setRestitution(mat.restitution);
+      cd.setFriction(spec.friction ?? def.friction ?? mat.friction).setRestitution(mat.restitution);
       if (isDyn) cd.setMass((spec.mass || def.mass) * (vols[i] / totalVol));
       cd.setCollisionGroups(isDyn ? CG_DYN : CG_STATIC);
       cd.setActiveEvents(RAPIER.ActiveEvents.CONTACT_FORCE_EVENTS);
@@ -180,6 +186,7 @@ export class Sim {
   _removeAimBall() {
     if (this.aimBall) {
       this.world.removeRigidBody(this.aimBall.body);
+      this.aimBall.removed = true;
       this.aimBall = null;
     }
   }
@@ -301,7 +308,13 @@ export class Sim {
     this.world.step(this.queue);
     this.stepCount++;
 
+    // Removals are deferred until the drain finishes: later events in the same
+    // batch may still reference a body we want to delete.
+    this._deferred = [];
     this.queue.drainContactForceEvents((ev) => this._onForce(ev));
+    const pending = this._deferred;
+    this._deferred = null;
+    for (const [e, v, sp] of pending) this._shatter(e, v, sp);
     this.queue.drainCollisionEvents(() => {});
 
     this._updateTargets();
@@ -337,7 +350,7 @@ export class Sim {
   _onForce(ev) {
     const h1 = ev.collider1(), h2 = ev.collider2();
     const A = this.byCollider.get(h1), B = this.byCollider.get(h2);
-    if (!A || !B) return;
+    if (!A || !B || A.removed || B.removed || (A.ball && A.ball.removed) || (B.ball && B.ball.removed)) return;
     const force = ev.totalForceMagnitude();
     const impulse = force * DT;
     const ba = bodyOf(A), bb = bodyOf(B);
@@ -439,13 +452,15 @@ export class Sim {
   }
 
   _shatter(e, vel, speed) {
-    if (e.removed) return;
+    if (e.removed || e.shatterQueued && this._deferred) return;
+    if (this._deferred) { e.shatterQueued = true; this._deferred.push([e, { ...vel }, speed]); return; }
     const p = e.body.translation();
     const q = e.body.rotation();
     const ev = e.dynamic ? e.body.linvel() : { x: 0, y: 0, z: 0 };
     this.world.removeRigidBody(e.body);
     e.removed = true;
     e.shattered = true;
+    for (const c of e.colliders) this.byCollider.delete(c.handle);
     this.events.push({ t: 'shatter', id: e.id, x: p.x, y: p.y, z: p.z, mat: e.mat, look: e.look });
     // shards: deterministic pseudo-random pieces
     const n = Math.min(e.shardCount, 140 - this.debris.length);
@@ -519,8 +534,10 @@ export class Sim {
       const cosT = dot3(up, e.initUp);
       const tilted = cosT < Math.cos(e.def.tilt * DEG);
       const dropped = e.initPos.y - p.y > e.h * e.def.drop + 0.05;
-      if (tilted || dropped) {
-        if (e.target) this._markDown(e, tilted ? 'tilt' : 'drop');
+      // stacked goods / rolling chairs: knocked well off their spot counts too
+      const moved = !e.ride && e.def.moveOut && Math.hypot(p.x - e.initPos.x, p.z - e.initPos.z) > e.def.moveOut;
+      if (tilted || dropped || moved) {
+        if (e.target) this._markDown(e, tilted ? 'tilt' : dropped ? 'drop' : 'moved');
         else this._bonus(e);
       }
     }
