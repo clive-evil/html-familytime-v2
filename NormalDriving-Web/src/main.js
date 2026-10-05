@@ -56,7 +56,13 @@ scene.add(ped);
 // ------------------------------------------------------------------ simulation objects
 let world, town, car, driver, traffic, route;
 function buildWorld() {
-  if (town) scene.remove(town.root);
+  if (town) {
+    scene.remove(town.root);
+    town.root.traverse((o) => {
+      if (o.geometry) o.geometry.dispose();
+      if (o.material) (Array.isArray(o.material) ? o.material : [o.material]).forEach((m) => { if (m.map) m.map.dispose(); m.dispose(); });
+    });
+  }
   world = new World({ hillSteepness: settings.hillSteepness });
   town = buildTown(world, renderer);
   scene.add(town.root);
@@ -139,6 +145,9 @@ function hintFor(step) {
     case IDS.START: return pad ? 'Clutch down (LT), neutral, hold A.' : `Clutch down (${keyName(K.clutch)}), neutral, hold ${keyName(K.ignition)}.`;
     case IDS.FIRST: return h ? (pad ? 'Clutch down. R3 for the gearstick, then left and up.' : 'Clutch down. Arrows: left, then up. (or right-drag the mouse)') : (pad ? 'Clutch down, then Y.' : `Clutch down, then 1 (or ${keyName(K.gearUp)}).`);
     case IDS.MOVE: return pad ? 'Handbrake off (RB). A little throttle. Find the bite.' : `Handbrake off (${keyName(K.handbrake)}). A little throttle (${keyName(K.throttle)}). Find the bite.`;
+    case IDS.PARALLEL: return 'The gap between the cream car and the blue one. Where the man is waiting.';
+    case IDS.NAN: return 'The one with the yellow door. On the drive.';
+    case IDS.SHUTDOWN: return pad ? 'RB for the handbrake. A to switch off.' : `${keyName(K.handbrake)} for the handbrake. ${keyName(K.ignition)} to switch off.`;
     default: return '';
   }
 }
@@ -191,7 +200,8 @@ const titleEl = $('title');
   $('titleKeys').innerHTML = [
     `${keyName(K.throttle)} &nbsp; accelerator`, `${keyName(K.brake)} &nbsp; brake`, `${keyName(K.left)}/${keyName(K.right)} &nbsp; steering wheel`,
     `${keyName(K.clutch)} &nbsp; clutch (hold)`, `${keyName(K.handbrake)} &nbsp; handbrake`, `${keyName(K.ignition)} &nbsp; ignition (hold)`,
-    `1–5 R N, ${keyName(K.gearDown)}/${keyName(K.gearUp)} &nbsp; gears`, 'Arrows / RMB &nbsp; H-pattern lever', 'Mouse &nbsp; look', 'C &nbsp; camera', 'F1 &nbsp; lab', 'Controller &nbsp; see README',
+    `1–5 R N, ${keyName(K.gearDown)}/${keyName(K.gearUp)} &nbsp; gears`, 'Arrows / RMB &nbsp; H-pattern lever', 'Mouse &nbsp; look', 'C &nbsp; camera', 'F1 &nbsp; lab',
+    'Pad &nbsp; RT gas · LT clutch · LB brake', 'Pad &nbsp; RB handbrake · A ignition · Y/X gears',
   ].join('<br>');
 }
 let started = false;
@@ -203,6 +213,8 @@ function begin() {
   try { canvas.requestPointerLock(); } catch { /* ignore */ }
 }
 titleEl.addEventListener('click', begin);
+// browsers only allow audio after a gesture; resume on any key/click if a pad started the game
+for (const ev of ['keydown', 'mousedown']) window.addEventListener(ev, () => { if (started) audio.start(); });
 
 input.onUiKey = (code) => {
   if (!started && (code === 'Enter' || code === 'Space')) begin();
@@ -228,7 +240,13 @@ function frame(now) {
   if (input.padConnected && !started && I.ignition) begin();
   if (route.step === IDS.ARRIVED && I.ignition && !padPrevA && input.lastDevice === 'gamepad') actions.resetRoute();
   padPrevA = I.ignition;
-  if (!started && !window.__ND_AUTOSTART) { renderer.render(scene, view.camera); return; }
+  if (!started && !window.__ND_AUTOSTART) {
+    // title screen: show the view from the driver's seat, nothing simulated yet
+    view.sync(car, driver, settings, dt);
+    view.updateCamera(dt, car, { lookDX: 0, lookDY: 0 }, settings, input);
+    if (!window.__ND_NORENDER) renderer.render(scene, view.camera);
+    return;
+  }
 
   // driver controls → car physics (fixed step)
   const controls = driver.update(dt, I, car);

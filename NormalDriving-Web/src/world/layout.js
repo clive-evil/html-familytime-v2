@@ -305,8 +305,8 @@ export class World {
     // ------------------------------------------------------------ parked cars
     const COLS = [0x7d8a8f, 0x8c2f2b, 0x2e4a6b, 0xc9c3b4, 0x3d5c45, 0x5a5550, 0xb59a52, 0x1f2a33, 0x9aa3a6, 0x6b3f5e];
     this.parked = [];
-    const park = (x, z, rot, tag = 'parked') => {
-      const c = { x, z, rot, color: COLS[Math.floor(R() * COLS.length)], tag };
+    const park = (x, z, rot, tag = 'parked', color) => {
+      const c = { x, z, rot, color: color ?? COLS[Math.floor(R() * COLS.length)], tag };
       this.parked.push(c);
       statics.push({ kind: 'box', cx: x, cz: z, hx: 0.84, hz: 1.95, rot, tag: 'car' });
       return c;
@@ -322,15 +322,13 @@ export class World {
     // hill: give-way narrowing on our (east) side
     this.giveWayCars = [];
     for (const z of [156, 162.6, 169.2, 175.8, 182.4]) this.giveWayCars.push(park(ROAD.hillXTop + mk, z, 0));
-    // a couple further down on the west side (out of the oncoming lane path? they narrow it)
-    park(ROAD.hillXBottom - mk, 40, Math.PI);
     // top road: parallel parking space on the north side
     const tk = ROAD.topZ + kerbOff(ROAD.topHW);
     const spaceGap = 6.8;
     const aX = 47.0;
     const bX = aX - 1.95 - spaceGap - 1.95;
-    this.spaceCarA = park(aX, tk, -Math.PI / 2, 'spaceA');
-    this.spaceCarB = park(bX, tk, -Math.PI / 2, 'spaceB');
+    this.spaceCarA = park(aX, tk, -Math.PI / 2, 'spaceA', 0xc9c3b4);
+    this.spaceCarB = park(bX, tk, -Math.PI / 2, 'spaceB', 0x2e4a6b);
     for (const x of [57.0, 26.5, -12, -19.5, -33]) park(x, tk, -Math.PI / 2);
     const ts = ROAD.topZ - kerbOff(ROAD.topHW);
     for (const x of [21, -1, -27]) park(x, ts, Math.PI / 2);

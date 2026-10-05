@@ -18,8 +18,8 @@ canvas#game { display: block; width: 100vw; height: 100vh; }
   white-space: nowrap;
 }
 #message {
-  position: absolute; bottom: 21%; left: 50%; transform: translateX(-50%); text-align: center;
-  transition: opacity 0.25s; text-shadow: 0 1px 4px rgba(0,0,0,0.7);
+  position: absolute; top: 31%; left: 50%; transform: translateX(-50%); text-align: center;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.75), 0 0 18px rgba(0,0,0,0.35); white-space: nowrap;
 }
 #message .t { font-size: 22px; letter-spacing: 0.22em; font-weight: 600; }
 #message .s { font-size: 13px; color: var(--ink-dim); margin-top: 6px; letter-spacing: 0.04em; }

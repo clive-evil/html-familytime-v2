@@ -305,3 +305,34 @@ test('auto clutch (preset D) pulls away and does not stall', () => {
   assert.equal(r.car.running, true);
   assert.ok(r.car.fwdSpeed > 3, `v ${r.car.fwdSpeed}`);
 });
+
+test('mounting a kerb is an event, costs speed, and does not reset anything', () => {
+  const r = rig();
+  // Mill Road, angled towards the north kerb (z = +3.8) at walking pace
+  r.place(-30, 1.0, Math.PI / 2 - 0.5);
+  r.car.vx = Math.sin(r.car.psi) * 2.2; r.car.vz = Math.cos(r.car.psi) * 2.2;
+  r.raw(2.0, ctl({ clutch: 1 }));
+  assert.ok(r.events.some((e) => e.type === 'kerb' && e.up), 'kerb event');
+  assert.ok(r.car.speed < 2.1, 'lost some speed');
+  // a stationary car pushing at the kerb needs more than idle creep
+  const r2 = rig();
+  r2.place(-30, 2.6, 0); // facing +z, front wheels ~0.3 m short of the kerb
+  const c = startEngine(r2);
+  r2.car.setGear(1);
+  r2.raw(3, c, (t, c) => { c.clutch = Math.max(0, 0.62 - t * 0.12); c.throttle = 0.0; });
+  const climbedIdle = r2.car.kerbState[0] || r2.car.kerbState[1];
+  assert.ok(!climbedIdle || !r2.car.running, 'idle creep alone does not hop the kerb cleanly');
+});
+
+test('reversing into a parked car: THUNK, the car stops, nothing resets', () => {
+  const r = rig();
+  const p = r.world.spaceCarA;
+  r.place(p.x - 4.4, p.z, -Math.PI / 2); // facing west, parked car right behind us
+  const c = startEngine(r);
+  r.car.setGear(-1);
+  r.raw(3, c, (t, c) => { c.throttle = 0.3; c.clutch = Math.max(0, 0.7 - t * 0.4); });
+  const hits = r.events.filter((e) => e.type === 'collision');
+  assert.ok(hits.length >= 1, 'collision event');
+  assert.ok(r.car.x < p.x - 1.95 - 1.7, 'did not pass through the other car');
+  assert.ok(Number.isFinite(r.car.x) && r.count('safetyReset') === 0, 'no reset');
+});

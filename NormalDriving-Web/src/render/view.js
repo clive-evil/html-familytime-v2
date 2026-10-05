@@ -40,20 +40,22 @@ export class View {
     const I = new THREE.Group();
     this.interior = I;
     const b = new Batch();
-    const DASH = 0x2b2c2e, LINER = 0xb8b2a2, CARD = 0x4a4b4d, SEAT = 0x3b3a39;
+    const DASH = 0x353638, LINER = 0xd4cebf, CARD = 0x55565a, SEAT = 0x3b3a39;
     // dashboard: top slab + lower face
     b.add(hexa(
       [[-0.78, 0.78, 0.38], [0.78, 0.78, 0.38], [0.78, 0.78, 0.75], [-0.78, 0.78, 0.75]],
       [[-0.78, 0.95, 0.42], [0.78, 0.95, 0.42], [0.78, 0.9, 0.86], [-0.78, 0.9, 0.86]]), DASH);
     // binnacle hood in front of the driver
-    b.box(0.46, 0.06, 0.2, DASH, [-0.37, 1.0, 0.5], [-0.15, 0, 0]);
-    b.box(0.46, 0.12, 0.04, DASH, [-0.37, 0.96, 0.6]);
+    b.box(0.5, 0.03, 0.18, DASH, [-0.37, 1.095, 0.56]);
+    b.box(0.03, 0.2, 0.18, DASH, [-0.13, 1.0, 0.56]);
+    b.box(0.03, 0.2, 0.18, DASH, [-0.61, 1.0, 0.56]);
+    b.box(0.48, 0.2, 0.03, 0x111213, [-0.37, 0.99, 0.65]);
     // centre console
     b.box(0.28, 0.32, 0.5, DASH, [0.0, 0.55, 0.42]);
     b.box(0.2, 0.18, 0.75, 0x333436, [0.0, 0.4, -0.15]);
     // A-pillars (from dash corners up to the roof front)
     for (const sx of [-1, 1]) {
-      const p0 = new THREE.Vector3(sx * 0.74, 0.93, 0.84), p1 = new THREE.Vector3(sx * 0.66, 1.4, 0.06);
+      const p0 = new THREE.Vector3(sx * 0.76, 0.93, 0.86), p1 = new THREE.Vector3(sx * 0.68, 1.4, 0.06);
       const mid = p0.clone().add(p1).multiplyScalar(0.5);
       const len = p0.distanceTo(p1);
       const pitch = Math.atan2(p1.z - p0.z, p1.y - p0.y);
@@ -84,13 +86,13 @@ export class View {
     this.clusterTex = new THREE.CanvasTexture(this.cluster.cv);
     this.clusterTex.colorSpace = THREE.SRGBColorSpace;
     const cl = new THREE.Mesh(new THREE.PlaneGeometry(0.4, 0.156), new THREE.MeshBasicMaterial({ map: this.clusterTex }));
-    cl.position.set(-0.37, 0.955, 0.585);
-    cl.rotation.set(-0.35, Math.PI, 0);
+    cl.position.set(-0.37, 0.975, 0.63);
+    cl.rotation.set(0.25, Math.PI, 0, 'YXZ');
     I.add(cl);
 
     // steering wheel on a tilted column
     this.columnPivot = new THREE.Group();
-    this.columnPivot.position.set(-0.37, 0.86, 0.3);
+    this.columnPivot.position.set(-0.37, 0.8, 0.3);
     this.columnPivot.rotation.x = 0.45; // column runs forward and down into the dash
     I.add(this.columnPivot);
     this.wheel = new THREE.Group();
@@ -146,7 +148,7 @@ export class View {
       [[-0.79, 0.62, 0.7], [0.79, 0.62, 0.7], [0.79, 0.62, 1.84], [-0.79, 0.62, 1.84]],
       [[-0.78, 0.9, 0.72], [0.78, 0.9, 0.72], [0.76, 0.86, 1.76], [-0.76, 0.86, 1.76]]), PC);
     for (const sx of [-1, 1]) {
-      sh.box(0.05, 0.05, 0.12, PC, [sx * 0.84, 0.96, 0.52]); // mirror arms
+      sh.box(0.03, 0.03, 0.08, 0x1c1c1c, [sx * 0.86, 0.97, 0.53]); // mirror arms
     }
     sh.box(1.5, 0.04, 0.05, 0x1c1c1c, [0, 0.9, 0.73]); // scuttle / wiper line
     this.fpShell = sh.build(mat);
