@@ -140,7 +140,8 @@ export class Game {
     let steps = 0;
     const inp = this.input.state();
     while (this.acc >= DT && steps < 40) {
-      this.session.step(DT, inp);
+      // optional per-step controller (automated tests / demos)
+      this.session.step(DT, this.autopilot ? this.autopilot(this.session, DT) : inp);
       this.acc -= DT;
       steps++;
     }
@@ -276,6 +277,19 @@ export class Game {
           const r = { x: -left.x, z: -left.z };
           const side = Math.sign(sk.edge || 1);
           this.fx.emit(f.x, f.y, f.z, sk.v.x * 0.35 + r.x * side * 3, 1.2, sk.v.z * 0.35 + r.z * side * 3, 1.5, n, 0.7);
+        }
+      }
+    }
+    // avalanche proximity: powder dust blowing past from behind
+    const av = this.world.avalanche;
+    if (av && av.state === 'running' && this.state === 'skiing') {
+      const behind = sk.p.z - av.front;
+      if (behind > 0 && behind < 160) {
+        const k = 1 - behind / 160;
+        const n = Math.floor(k * k * 14 * Math.min(1, dt * 60));
+        for (let i = 0; i < n; i++) {
+          this.fx.emit(sk.p.x + (Math.random() - 0.5) * 30, sk.p.y + Math.random() * 6, sk.p.z - 6 - Math.random() * 10,
+            sk.v.x, 1, sk.v.z + 8 + k * 10, 6, 1, 1.4);
         }
       }
     }

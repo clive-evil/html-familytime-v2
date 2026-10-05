@@ -204,10 +204,19 @@ export class Skier {
     const p = this.p;
     const v = this.v;
     const s = world.sample(p.x, p.z);
-    const n = s.n;
+    let n = s.n;
+    // On a lip edge the sampled normal can belong to the face below. If the
+    // skis are clearly above that face, measure vertically instead (so the
+    // snow simply drops away) rather than "standing" on the cliff face.
+    const clear = p.y - s.h;
+    let Lg = clear * n.y;
+    if (n.y < 0.6 && clear > this.L * 0.9) {
+      const back = world.normal(p.x - this.v.x * 0.02, p.z - this.v.z * 0.02, 0.15);
+      if (back.y > n.y) n = back;
+      Lg = clear * Math.max(n.y, 0.6);
+    }
     this.n = n;
     this.surf = s.surf;
-    let Lg = (p.y - s.h) * n.y;
     const Lair = this.airLeg(py);
 
     // hard stop: legs fully compressed (bottom out)
@@ -499,6 +508,9 @@ export class Skier {
   }
 
   _takeoff(world) {
+    if (this.landing && !this.landing.done && this.time - this.landing.t > 0.12) {
+      this._finishLanding(this._landingQuality(this.time - this.landing.t < 0.5));
+    }
     this.grounded = false;
     this.airTime = 0;
     const T = this.T;
@@ -628,7 +640,9 @@ export class Skier {
     this.L = clamp((this.p.y - s.h) * n.y, T.legMin, T.legMax);
 
     const significant = airTime > 0.25;
-    if (significant) {
+    if (!significant && this.landing && !this.landing.done) {
+      // a small bounce during the landing: part of the same landing
+    } else if (significant) {
       this.landing = {
         t: this.time,
         airTime,
@@ -640,7 +654,10 @@ export class Skier {
         readiness: readiness(py),
         frac,
         done: false,
+        jump: null,
+        takeoffT: this.time - airTime,
       };
+      if (this.lastJump && Math.abs(this.lastJump.tTakeoff - this.landing.takeoffT) < 0.3) this.landing.jump = this.lastJump;
       this.emit('touchdown', { vn, dPitch, airTime });
     } else if (vn < -2.5) {
       this.emit('thud', { vn });
@@ -768,6 +785,7 @@ export class Skier {
           this.takeoff = null;
         } else {
           this.lastJump = this._classifyTakeoff(to);
+          if (this.landing && !this.landing.done && Math.abs(this.landing.takeoffT - to.t) < 0.3) this.landing.jump = this.lastJump;
           this.emit('jump', { report: this.lastJump });
         }
       }
@@ -775,13 +793,7 @@ export class Skier {
     const ld = this.landing;
     if (ld && !ld.done && this.grounded) {
       const age = this.time - ld.t;
-      if (age > 0.7) {
-        const bal = this.maxBal;
-        let q = 'perfect';
-        if (bal > 0.55 || this.bottomDV > 2.2 || Math.abs(ld.dPitch) > 0.45) q = 'sketchy';
-        else if (bal > 0.3 || this.impactG > 6 || Math.abs(ld.dPitch) > 0.22 || this.bottomDV > 0.8) q = 'good';
-        this._finishLanding(q);
-      }
+      if (age > 0.7) this._finishLanding(this._landingQuality());
     }
   }
 
@@ -822,6 +834,15 @@ export class Skier {
     };
   }
 
+  _landingQuality(bounced = false) {
+    const ld = this.landing;
+    const bal = this.maxBal;
+    let q = 'perfect';
+    if (bal > 0.55 || this.bottomDV > 2.2 || Math.abs(ld.dPitch) > 0.45) q = 'sketchy';
+    else if (bal > 0.3 || this.impactG > 6 || Math.abs(ld.dPitch) > 0.22 || this.bottomDV > 0.8 || bounced) q = 'good';
+    return q;
+  }
+
   _finishLanding(q) {
     const ld = this.landing;
     if (!ld || ld.done) return;
@@ -839,9 +860,8 @@ export class Skier {
       readiness: +ld.readiness.toFixed(2),
       speedKeep: +(this.speed / Math.max(ld.speedIn, 0.1)).toFixed(2),
     };
-    if (this.lastJump && !this.lastJump.landing && Math.abs(this.lastJump.tTakeoff - (ld.t - ld.airTime)) < 0.3) {
-      this.lastJump.landing = res;
-    }
+    const j = ld.jump || (this.lastJump && Math.abs(this.lastJump.tTakeoff - ld.takeoffT) < 0.3 ? this.lastJump : null);
+    if (j && !j.landing) j.landing = res;
     this.lastLanding = res;
     this.emit('landed', { report: res });
   }

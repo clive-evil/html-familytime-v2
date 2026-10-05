@@ -73,7 +73,7 @@ export class Audio {
   }
 
   set(layer, value, time = 0.05) {
-    if (!this.ctx) return;
+    if (!this.ctx || !Number.isFinite(value)) return;
     layer.g.gain.setTargetAtTime(value, this.ctx.currentTime, time);
   }
 
@@ -96,6 +96,7 @@ export class Audio {
   }
 
   env(node, t0, a, peak, decay) {
+    peak = Math.max(0.0002, Number.isFinite(peak) ? peak : 0.0002);
     node.gain.setValueAtTime(0.0001, t0);
     node.gain.exponentialRampToValueAtTime(peak, t0 + a);
     node.gain.exponentialRampToValueAtTime(0.0001, t0 + a + decay);
@@ -123,6 +124,7 @@ export class Audio {
 
   tone(type, f0, f1, peak, decay, delay = 0) {
     if (!this.ctx) return;
+    f0 = Math.max(20, f0);
     const ctx = this.ctx;
     const t0 = ctx.currentTime + delay;
     const o = ctx.createOscillator();

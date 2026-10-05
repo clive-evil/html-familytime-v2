@@ -7,7 +7,7 @@ export const LAB_STATIONS = [
   { z: 10, name: '1. Open slope', tip: 'Let it run. A/D carve, W tuck, S brake.' },
   { z: 150, name: '2. Turns', tip: 'Carve around the tree islands. Mouse X adds edge.' },
   { z: 312, name: '3. Rollers', tip: 'Mouse back to soak up the crests, forward into the backsides.' },
-  { z: 395, name: '4. Small lip', tip: 'Crouch on the approach, flick the mouse forward AT the lip.' },
+  { z: 395, name: '4. Small lip', tip: 'Crouch on the approach. Flick forward a beat before the lip so the push ends as the snow drops away.' },
   { z: 520, name: '5. Big lip', tip: 'Same rhythm with speed. Bend the knees (mouse back a bit) before landing.' },
   { z: 720, name: '6. Ledge drop', tip: 'Off the shelf onto the steep. Nose down (mouse forward) to match it.' },
   { z: 845, name: '7. Ice', tip: 'Small inputs. Big steering just slides.' },

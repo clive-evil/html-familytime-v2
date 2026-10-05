@@ -71,7 +71,7 @@ export const TUNE = {
   takeoffBalToPitch: 2.2,
   lipRotation: 0.35, // fraction of the terrain's rotation rate the lip gives you
   lipEarly: 0.16, // s: popped off the ramp this long before the lip = early
-  perfectEarly: 0.1, // s: left the snow this long after the push window ended = early
+  perfectEarly: 0.16, // s: left the snow this long after the push window ended = early
   perfectLate: -0.06, // s: flick finished more than this after = late
   pushDur: 0.22, // s: typical full push (reporting only) // leaning back at takeoff -> tips-up rotation
 

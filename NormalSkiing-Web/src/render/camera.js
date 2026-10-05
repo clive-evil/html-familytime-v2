@@ -27,10 +27,29 @@ export class ChaseCam {
     this.snapNext = true;
   }
 
+  // Short cinematic shot: camera placed at `pos`, looking at `look` (both
+  // functions of time so they can follow the skier), for `dur` seconds.
+  cut(shot) {
+    this.shot = { ...shot, t: 0 };
+  }
+
   // target: {x,y,z}, vel {x,y,z}, heading, grounded, world, landingPoint|null
   update(dt, s) {
     const T = this.T;
     this.t += dt;
+    if (this.shot) {
+      const sh = this.shot;
+      sh.t += dt;
+      if (sh.t < sh.dur) {
+        const p = sh.pos(sh.t);
+        const l = sh.look(sh.t);
+        this.cam.position.set(p.x, p.y, p.z);
+        this.cam.lookAt(l.x, l.y, l.z);
+        return;
+      }
+      this.shot = null;
+      this.snapNext = true;
+    }
     const v = s.vel;
     const hs = Math.hypot(v.x, v.z);
     const speed = Math.hypot(v.x, v.y, v.z);
@@ -48,11 +67,16 @@ export class ChaseCam {
     let dist = T.camDist + sp * 3.2;
     let height = T.camHeight + sp * 0.8;
     const target = new THREE.Vector3(s.x, s.y, s.z);
-    // look ahead down the slope
-    let lookAhead = 5 + speed * 0.35;
+    // look ahead down the slope; over a roll-over, look down it and lift the
+    // camera a little so the drop is readable before you are on it
+    const lookAhead = 7 + speed * 0.45;
     const ahead = target.clone().addScaledVector(this.dir, lookAhead);
     const gAhead = s.world.height(ahead.x, ahead.z);
-    ahead.y = lerp(target.y - 0.5, gAhead + 1, 0.55);
+    const far = target.clone().addScaledVector(this.dir, 22 + speed * 0.6);
+    const gFar = s.world.height(far.x, far.z);
+    ahead.y = lerp(target.y - 0.5, Math.min(gAhead + 1, gFar + 4), 0.6);
+    const drop = clamp((target.y - gFar) / (22 + speed * 0.6), 0, 1.2); // tan of the slope ahead
+    height += drop * 2.2;
     let lookT = ahead;
 
     if (!s.grounded && s.landing && !s.ragdoll) {

@@ -80,8 +80,29 @@ export class EventViews {
       const m4 = new THREE.Matrix4();
       const q = new THREE.Quaternion();
       let t = 0;
+      let lastState = ev.state;
       return (dt) => {
         t += dt;
+        if (ev.state !== lastState) {
+          // the slab releases: cut to a look back up the bowl
+          if (ev.state === 'cracking' && this.game.cam && this.game.state === 'skiing') {
+            const game = this.game;
+            this.game.cam.cut({
+              dur: 1.9,
+              pos: () => {
+                const p = game.skier.p;
+                return { x: p.x + 6, y: p.y + 5, z: p.z + 16 };
+              },
+              look: (tt) => {
+                const p = game.skier.p;
+                const z = ev.state === 'running' ? ev.front : ev.crackZ;
+                const k = Math.min(1, tt / 1.2);
+                return { x: p.x, y: p.y + 4 + 20 * k, z: p.z + (z - p.z) * k };
+              },
+            });
+          }
+          lastState = ev.state;
+        }
         const active = ev.state === 'running' || ev.state === 'cracking' || ev.state === 'stopped';
         mesh.visible = ev.state === 'running' || ev.state === 'stopped';
         cloud.visible = ev.state === 'running';

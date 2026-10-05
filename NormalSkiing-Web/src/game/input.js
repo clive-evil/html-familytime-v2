@@ -28,7 +28,7 @@ export class Input {
       this.locked = document.pointerLockElement === canvas;
     });
     document.addEventListener('mousemove', (e) => {
-      if (this.locked) {
+      if (this.locked && !this.absolute) {
         // screen up = forward/extend
         this.px = clamp(this.px + e.movementX * this.T.mouseSensX, -1, 1);
         this.py = clamp(this.py - e.movementY * this.T.mouseSensY, -1, 1);
@@ -43,6 +43,7 @@ export class Input {
   }
 
   lock() {
+    if (this.absolute) return;
     if (!this.locked && this.canvas.requestPointerLock) {
       try {
         const p = this.canvas.requestPointerLock();

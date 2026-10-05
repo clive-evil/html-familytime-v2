@@ -125,7 +125,7 @@ export class Avalanche {
     this.t += dt;
     if (this.state === 'cracking') {
       if (game) game.rumble = 0.25;
-      if (this.t > 1.4) {
+      if (this.t > 1.2) {
         this.state = 'running';
         game && game.cam.addTrauma(0.5);
       }
@@ -158,7 +158,7 @@ export class Avalanche {
       if (game) {
         const d = Math.abs(this.front - p.z);
         game.rumble = clamp(1.2 - d / 220, 0.15, 1.2);
-        game.whiteout = clamp(1 - (p.z - this.front) / 35, 0, 0.85) * (this.front < p.z + 25 ? 1 : 0.3);
+        game.whiteout = clamp(1 - (p.z - this.front) / 70, 0, 0.85) * (this.front < p.z + 25 ? 1 : 0.3);
         this.distance = p.z - this.front;
       }
     } else if (this.state === 'stopped' && game) {
