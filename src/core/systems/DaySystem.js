@@ -51,6 +51,9 @@ export function dawn(sim) {
   const summary = {
     day: s.day,
     ...s.stats.today,
+    foodIn: s.stats.today.food,
+    woodIn: s.stats.today.wood,
+    stoneIn: s.stats.today.stone,
     eggsLaid: laid,
     eggsLost: lost,
     grown,

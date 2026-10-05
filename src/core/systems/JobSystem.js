@@ -42,7 +42,7 @@ export function assignWorker(sim, b, g = null) {
   g.wp = b.id;
   g.slot = slot;
   sim.ai.onAssigned(g);
-  sim.emit('assigned', { id: g.id, building: b.id, role });
+  sim.emit('assigned', { id: g.id, building: b.id, role, by: sim.assignBy || 'player' });
   return { ok: true, id: g.id };
 }
 
@@ -109,7 +109,9 @@ export function updateForeman(sim, dt) {
     const open = wps.filter((b) => b.workers.length < jobSlots(b));
     if (!open.length) break;
     open.sort((a, b) => score(a) - score(b));
+    sim.assignBy = 'foreman';
     const r = assignWorker(sim, open[0]);
+    sim.assignBy = '';
     if (!r.ok) break;
     sim.emit('foremanRing', { id: active[0].id, grandma: r.id });
   }
