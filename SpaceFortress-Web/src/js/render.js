@@ -6,6 +6,7 @@
     hover: null, view: { x0: 0, y0: 60, x1: 1000, y1: 800 }, fortPts: {}, fortState: {}, planetScreen: {}, fleetScreen: {}, instScreen: {},
   });
   const SQ = 0.42; // orbit ellipse squash
+  const RZ = (v, d) => (isFinite(v) && v >= 0 ? v : (d || 0.001));
   let cv, c, bg;
 
   R.init = function (canvas) { cv = canvas; c = cv.getContext('2d'); R.resize(); };
@@ -31,7 +32,7 @@
     // nebula wisps
     const neb = [['rgba(60,30,90,0.22)', 0.2, 0.3, 0.6], ['rgba(20,60,90,0.2)', 0.8, 0.7, 0.55], ['rgba(110,40,20,0.12)', 0.65, 0.15, 0.4]];
     for (const [col, px, py, r] of neb) {
-      const g = x.createRadialGradient(px * R.W, py * R.H, 0, px * R.W, py * R.H, r * Math.max(R.W, R.H));
+      const g = x.createRadialGradient(px * R.W, py * R.H, 0, px * R.W, py * R.H, RZ(r * Math.max(R.W, R.H), 10));
       g.addColorStop(0, col); g.addColorStop(1, 'rgba(0,0,0,0)');
       x.fillStyle = g; x.fillRect(0, 0, R.W, R.H);
     }
@@ -57,7 +58,7 @@
     return [x, y];
   };
   R.toScreen = (wx, wy) => [(wx - R.cam.x) * R.cam.z + (R.view.x0 + R.view.x1) / 2, (wy - R.cam.y) * R.cam.z + (R.view.y0 + R.view.y1) / 2];
-  R.planetRadius = (p) => p.size * R.cam.z * 1.15;
+  R.planetRadius = (p) => { const v = p.size * R.cam.z * 1.15; return isFinite(v) && v > 0 ? v : 1; };
   R.systemZoom = function (g) {
     const sys = SF.curSys(g);
     let maxR = 0;
@@ -97,6 +98,8 @@
     R.t += dt;
     const k = 1 - Math.pow(0.002, dt);
     R.cam.x += (R.camT.x - R.cam.x) * k; R.cam.y += (R.camT.y - R.cam.y) * k; R.cam.z += (R.camT.z - R.cam.z) * k;
+    if (!isFinite(R.cam.x) || !isFinite(R.cam.y) || !isFinite(R.cam.z) || R.cam.z <= 0) R.cam = { x: 0, y: 0, z: R.systemZoom(g) || 0.6 };
+    if (!isFinite(R.camT.x) || !isFinite(R.camT.y) || !isFinite(R.camT.z) || R.camT.z <= 0) R.camT = { x: 0, y: 0, z: R.systemZoom(g) || 0.6 };
     if (R.camT.pid && g) { const p = SF.planet(g, R.camT.pid); if (p) { const [x, y] = R.planetWorld(g, p, R.t); R.camT.x = x; R.camT.y = y - 6; } }
     c.setTransform(R.dpr, 0, 0, R.dpr, 0, 0);
     if (!bg) bg = makeBackground();
@@ -122,7 +125,7 @@
     // star
     const [stx, sty] = R.toScreen(0, 0);
     const sr = 38 * R.cam.z + 14;
-    const sg = c.createRadialGradient(stx, sty, 0, stx, sty, sr * 6);
+    const sg = c.createRadialGradient(stx, sty, 0, stx, sty, RZ(sr * 6, 10));
     sg.addColorStop(0, def.star); sg.addColorStop(0.12, def.star); sg.addColorStop(0.2, hexA(def.star, 0.35)); sg.addColorStop(1, 'rgba(0,0,0,0)');
     c.fillStyle = sg; c.beginPath(); c.arc(stx, sty, sr * 6, 0, Math.PI * 2); c.fill();
     c.fillStyle = '#fffaf0'; c.beginPath(); c.arc(stx, sty, sr * 0.8, 0, Math.PI * 2); c.fill();
@@ -132,7 +135,7 @@
       if (p.parent) continue;
       c.strokeStyle = p.owner === 'player' ? 'rgba(109,255,156,0.22)' : p.owner === 'enemy' ? 'rgba(255,110,80,0.18)' : 'rgba(95,212,255,0.16)';
       c.setLineDash([6, 8]);
-      c.beginPath(); c.ellipse(stx, sty, p.orbit * R.cam.z, p.orbit * SQ * R.cam.z, 0, 0, Math.PI * 2); c.stroke();
+      c.beginPath(); c.ellipse(stx, sty, Math.max(0.01, p.orbit * R.cam.z), Math.max(0.01, p.orbit * SQ * R.cam.z), 0, 0, Math.PI * 2); c.stroke();
     }
     c.setLineDash([]);
     // decorative dust belt
@@ -165,7 +168,7 @@
 
     // atmosphere glow
     if (!['moon', 'asteroid', 'rocky'].includes(p.type)) {
-      const ag = c.createRadialGradient(x, y, r * 0.9, x, y, r * 1.25);
+      const ag = c.createRadialGradient(x, y, RZ(r * 0.9), x, y, RZ(r * 1.25, 1));
       const ac = p.type === 'exotic' ? '190,120,255' : p.type === 'lava' ? '255,120,60' : p.type === 'gas' || p.type === 'desert' || p.type === 'arid' ? '255,200,140' : '120,190,255';
       ag.addColorStop(0, `rgba(${ac},0.35)`); ag.addColorStop(1, `rgba(${ac},0)`);
       c.fillStyle = ag; c.beginPath(); c.arc(x, y, r * 1.25, 0, Math.PI * 2); c.fill();
@@ -274,7 +277,7 @@
 
   function drawDebris(p, x, y, r) {
     c.save();
-    const glow = c.createRadialGradient(x, y, 0, x, y, r * 1.6);
+    const glow = c.createRadialGradient(x, y, 0, x, y, RZ(r * 1.6, 1));
     glow.addColorStop(0, 'rgba(255,120,60,0.25)'); glow.addColorStop(1, 'rgba(255,60,20,0)');
     c.fillStyle = glow; c.beginPath(); c.arc(x, y, r * 1.6, 0, Math.PI * 2); c.fill();
     for (let i = 0; i < 70; i++) {

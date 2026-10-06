@@ -3,7 +3,7 @@
   const SF = globalThis.SF;
   const FX = (SF.fx = { parts: [], effects: [], shakeT: 0, shakeA: 0, flashA: 0, flashC: '#fff', time: 0 });
   const rnd = (a, b) => a + Math.random() * (b - a);
-  const P = (x) => (typeof x === 'function' ? x() : x);
+  const P = (x) => { const v = (typeof x === 'function' ? x() : x); return v && isFinite(v[0]) && isFinite(v[1]) ? v : [SF.render.W / 2, SF.render.H / 2]; };
 
   FX.shake = function (a, dur) { FX.shakeA = Math.max(FX.shakeA, a); FX.shakeT = Math.max(FX.shakeT, dur || 0.4); };
   FX.flash = function (c, a) { FX.flashC = c || '#fff'; FX.flashA = Math.max(FX.flashA, a || 0.6); };
@@ -12,6 +12,7 @@
     const k = FX.shakeA * Math.min(1, FX.shakeT * 3);
     return [rnd(-k, k), rnd(-k, k)];
   };
+  const R0 = (v, d) => (isFinite(v) && v >= 0 ? v : (d || 0));
   FX.part = function (o) { FX.parts.push(Object.assign({ vx: 0, vy: 0, life: 1, max: 1, size: 2, color: '#fff', drag: 0.98, grav: 0, type: 'spark' }, o)); };
 
   FX.explosion = function (at, size, color) {
@@ -20,12 +21,12 @@
       const k = e.t / e.dur;
       c.save(); c.globalCompositeOperation = 'lighter';
       const r = 10 + size * 70 * Math.pow(k, 0.5);
-      const g = c.createRadialGradient(x, y, 0, x, y, r);
+      const g = c.createRadialGradient(x, y, 0, x, y, R0(r, 1));
       g.addColorStop(0, `rgba(255,255,230,${(1 - k) * 0.95})`); g.addColorStop(0.35, `rgba(255,${color === 'emp' ? 200 : 150},${color === 'emp' ? 255 : 50},${(1 - k) * 0.7})`); g.addColorStop(1, 'rgba(255,60,0,0)');
       c.fillStyle = g; c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2); c.fill();
       c.strokeStyle = color === 'emp' ? `rgba(140,220,255,${1 - k})` : `rgba(255,220,180,${(1 - k) * 0.8})`;
       c.lineWidth = 3 * (1 - k) + 1;
-      c.beginPath(); c.ellipse(x, y, size * 140 * k, size * 70 * k, 0, 0, Math.PI * 2); c.stroke();
+      c.beginPath(); c.ellipse(x, y, Math.max(0.01, size * 140 * k), Math.max(0.01, size * 70 * k), 0, 0, Math.PI * 2); c.stroke();
       c.restore();
     } });
     for (let i = 0; i < 26 * size; i++) { const a = rnd(0, 6.283), s = rnd(60, 380) * Math.sqrt(size); FX.part({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s * 0.7 - 40, life: rnd(0.4, 1.1), max: 1.1, size: rnd(1, 3), color: color === 'emp' ? '#9fe8ff' : '#ffc070', drag: 0.94, grav: 120 }); }
@@ -41,11 +42,11 @@
       const k = e.t / e.dur;
       c.save(); c.globalCompositeOperation = 'lighter';
       const r = 30 + 260 * Math.pow(k, 0.4);
-      const g = c.createRadialGradient(x, y, 0, x, y, r);
+      const g = c.createRadialGradient(x, y, 0, x, y, R0(r, 1));
       g.addColorStop(0, `rgba(255,255,240,${1 - k})`); g.addColorStop(0.3, `rgba(255,190,90,${(1 - k) * 0.8})`); g.addColorStop(1, 'rgba(255,60,0,0)');
       c.fillStyle = g; c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2); c.fill();
       c.strokeStyle = `rgba(255,240,220,${(1 - k) * 0.9})`; c.lineWidth = 4;
-      c.beginPath(); c.ellipse(x, y, 420 * k, 210 * k, 0, 0, Math.PI * 2); c.stroke();
+      c.beginPath(); c.ellipse(x, y, Math.max(0.01, 420 * k), Math.max(0.01, 210 * k), 0, 0, Math.PI * 2); c.stroke();
       c.restore();
     } });
     for (let i = 0; i < 60; i++) FX.part({ x: x + rnd(-30, 30), y: y + rnd(-30, 30), vx: rnd(-50, 50), vy: rnd(-90, -10), life: rnd(2.5, 5), max: 5, size: rnd(14, 34), color: 'smoke', type: 'smoke', drag: 0.99 });
@@ -74,7 +75,7 @@
       const k = e.t / e.dur;
       c.save(); c.globalCompositeOperation = 'lighter';
       const r = 80 * s * (0.4 + k);
-      const g = c.createRadialGradient(x, y, 0, x, y, r);
+      const g = c.createRadialGradient(x, y, 0, x, y, R0(r, 1));
       g.addColorStop(0, `rgba(255,255,255,${1 - k})`); g.addColorStop(0.4, `rgba(140,220,255,${(1 - k) * 0.6})`); g.addColorStop(1, 'rgba(0,100,255,0)');
       c.fillStyle = g; c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2); c.fill(); c.restore();
     } });
@@ -90,7 +91,7 @@
       c.strokeStyle = `rgba(255,90,40,${0.35 * ramp})`; c.lineWidth = 26 * ramp * fl; c.beginPath(); c.moveTo(x0, y0); c.lineTo(x1, y1); c.stroke();
       c.strokeStyle = `rgba(255,170,90,${0.8 * ramp})`; c.lineWidth = 9 * ramp * fl; c.stroke();
       c.strokeStyle = `rgba(255,255,230,${ramp})`; c.lineWidth = 3 * ramp; c.stroke();
-      const g = c.createRadialGradient(x1, y1, 0, x1, y1, 60 * ramp);
+      const g = c.createRadialGradient(x1, y1, 0, x1, y1, R0(60 * ramp, 1));
       g.addColorStop(0, `rgba(255,240,200,${ramp})`); g.addColorStop(1, 'rgba(255,80,0,0)');
       c.fillStyle = g; c.beginPath(); c.arc(x1, y1, 60 * ramp, 0, Math.PI * 2); c.fill();
       c.restore();

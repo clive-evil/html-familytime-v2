@@ -2081,7 +2081,7 @@ input[type=range] { width: 100%; accent-color: var(--warn); }
   const SF = globalThis.SF;
   const FX = (SF.fx = { parts: [], effects: [], shakeT: 0, shakeA: 0, flashA: 0, flashC: '#fff', time: 0 });
   const rnd = (a, b) => a + Math.random() * (b - a);
-  const P = (x) => (typeof x === 'function' ? x() : x);
+  const P = (x) => { const v = (typeof x === 'function' ? x() : x); return v && isFinite(v[0]) && isFinite(v[1]) ? v : [SF.render.W / 2, SF.render.H / 2]; };
 
   FX.shake = function (a, dur) { FX.shakeA = Math.max(FX.shakeA, a); FX.shakeT = Math.max(FX.shakeT, dur || 0.4); };
   FX.flash = function (c, a) { FX.flashC = c || '#fff'; FX.flashA = Math.max(FX.flashA, a || 0.6); };
@@ -2090,6 +2090,7 @@ input[type=range] { width: 100%; accent-color: var(--warn); }
     const k = FX.shakeA * Math.min(1, FX.shakeT * 3);
     return [rnd(-k, k), rnd(-k, k)];
   };
+  const R0 = (v, d) => (isFinite(v) && v >= 0 ? v : (d || 0));
   FX.part = function (o) { FX.parts.push(Object.assign({ vx: 0, vy: 0, life: 1, max: 1, size: 2, color: '#fff', drag: 0.98, grav: 0, type: 'spark' }, o)); };
 
   FX.explosion = function (at, size, color) {
@@ -2098,12 +2099,12 @@ input[type=range] { width: 100%; accent-color: var(--warn); }
       const k = e.t / e.dur;
       c.save(); c.globalCompositeOperation = 'lighter';
       const r = 10 + size * 70 * Math.pow(k, 0.5);
-      const g = c.createRadialGradient(x, y, 0, x, y, r);
+      const g = c.createRadialGradient(x, y, 0, x, y, R0(r, 1));
       g.addColorStop(0, `rgba(255,255,230,${(1 - k) * 0.95})`); g.addColorStop(0.35, `rgba(255,${color === 'emp' ? 200 : 150},${color === 'emp' ? 255 : 50},${(1 - k) * 0.7})`); g.addColorStop(1, 'rgba(255,60,0,0)');
       c.fillStyle = g; c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2); c.fill();
       c.strokeStyle = color === 'emp' ? `rgba(140,220,255,${1 - k})` : `rgba(255,220,180,${(1 - k) * 0.8})`;
       c.lineWidth = 3 * (1 - k) + 1;
-      c.beginPath(); c.ellipse(x, y, size * 140 * k, size * 70 * k, 0, 0, Math.PI * 2); c.stroke();
+      c.beginPath(); c.ellipse(x, y, Math.max(0.01, size * 140 * k), Math.max(0.01, size * 70 * k), 0, 0, Math.PI * 2); c.stroke();
       c.restore();
     } });
     for (let i = 0; i < 26 * size; i++) { const a = rnd(0, 6.283), s = rnd(60, 380) * Math.sqrt(size); FX.part({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s * 0.7 - 40, life: rnd(0.4, 1.1), max: 1.1, size: rnd(1, 3), color: color === 'emp' ? '#9fe8ff' : '#ffc070', drag: 0.94, grav: 120 }); }
@@ -2119,11 +2120,11 @@ input[type=range] { width: 100%; accent-color: var(--warn); }
       const k = e.t / e.dur;
       c.save(); c.globalCompositeOperation = 'lighter';
       const r = 30 + 260 * Math.pow(k, 0.4);
-      const g = c.createRadialGradient(x, y, 0, x, y, r);
+      const g = c.createRadialGradient(x, y, 0, x, y, R0(r, 1));
       g.addColorStop(0, `rgba(255,255,240,${1 - k})`); g.addColorStop(0.3, `rgba(255,190,90,${(1 - k) * 0.8})`); g.addColorStop(1, 'rgba(255,60,0,0)');
       c.fillStyle = g; c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2); c.fill();
       c.strokeStyle = `rgba(255,240,220,${(1 - k) * 0.9})`; c.lineWidth = 4;
-      c.beginPath(); c.ellipse(x, y, 420 * k, 210 * k, 0, 0, Math.PI * 2); c.stroke();
+      c.beginPath(); c.ellipse(x, y, Math.max(0.01, 420 * k), Math.max(0.01, 210 * k), 0, 0, Math.PI * 2); c.stroke();
       c.restore();
     } });
     for (let i = 0; i < 60; i++) FX.part({ x: x + rnd(-30, 30), y: y + rnd(-30, 30), vx: rnd(-50, 50), vy: rnd(-90, -10), life: rnd(2.5, 5), max: 5, size: rnd(14, 34), color: 'smoke', type: 'smoke', drag: 0.99 });
@@ -2152,7 +2153,7 @@ input[type=range] { width: 100%; accent-color: var(--warn); }
       const k = e.t / e.dur;
       c.save(); c.globalCompositeOperation = 'lighter';
       const r = 80 * s * (0.4 + k);
-      const g = c.createRadialGradient(x, y, 0, x, y, r);
+      const g = c.createRadialGradient(x, y, 0, x, y, R0(r, 1));
       g.addColorStop(0, `rgba(255,255,255,${1 - k})`); g.addColorStop(0.4, `rgba(140,220,255,${(1 - k) * 0.6})`); g.addColorStop(1, 'rgba(0,100,255,0)');
       c.fillStyle = g; c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2); c.fill(); c.restore();
     } });
@@ -2168,7 +2169,7 @@ input[type=range] { width: 100%; accent-color: var(--warn); }
       c.strokeStyle = `rgba(255,90,40,${0.35 * ramp})`; c.lineWidth = 26 * ramp * fl; c.beginPath(); c.moveTo(x0, y0); c.lineTo(x1, y1); c.stroke();
       c.strokeStyle = `rgba(255,170,90,${0.8 * ramp})`; c.lineWidth = 9 * ramp * fl; c.stroke();
       c.strokeStyle = `rgba(255,255,230,${ramp})`; c.lineWidth = 3 * ramp; c.stroke();
-      const g = c.createRadialGradient(x1, y1, 0, x1, y1, 60 * ramp);
+      const g = c.createRadialGradient(x1, y1, 0, x1, y1, R0(60 * ramp, 1));
       g.addColorStop(0, `rgba(255,240,200,${ramp})`); g.addColorStop(1, 'rgba(255,80,0,0)');
       c.fillStyle = g; c.beginPath(); c.arc(x1, y1, 60 * ramp, 0, Math.PI * 2); c.fill();
       c.restore();
@@ -2292,6 +2293,7 @@ input[type=range] { width: 100%; accent-color: var(--warn); }
     hover: null, view: { x0: 0, y0: 60, x1: 1000, y1: 800 }, fortPts: {}, fortState: {}, planetScreen: {}, fleetScreen: {}, instScreen: {},
   });
   const SQ = 0.42; // orbit ellipse squash
+  const RZ = (v, d) => (isFinite(v) && v >= 0 ? v : (d || 0.001));
   let cv, c, bg;
 
   R.init = function (canvas) { cv = canvas; c = cv.getContext('2d'); R.resize(); };
@@ -2317,7 +2319,7 @@ input[type=range] { width: 100%; accent-color: var(--warn); }
     // nebula wisps
     const neb = [['rgba(60,30,90,0.22)', 0.2, 0.3, 0.6], ['rgba(20,60,90,0.2)', 0.8, 0.7, 0.55], ['rgba(110,40,20,0.12)', 0.65, 0.15, 0.4]];
     for (const [col, px, py, r] of neb) {
-      const g = x.createRadialGradient(px * R.W, py * R.H, 0, px * R.W, py * R.H, r * Math.max(R.W, R.H));
+      const g = x.createRadialGradient(px * R.W, py * R.H, 0, px * R.W, py * R.H, RZ(r * Math.max(R.W, R.H), 10));
       g.addColorStop(0, col); g.addColorStop(1, 'rgba(0,0,0,0)');
       x.fillStyle = g; x.fillRect(0, 0, R.W, R.H);
     }
@@ -2343,7 +2345,7 @@ input[type=range] { width: 100%; accent-color: var(--warn); }
     return [x, y];
   };
   R.toScreen = (wx, wy) => [(wx - R.cam.x) * R.cam.z + (R.view.x0 + R.view.x1) / 2, (wy - R.cam.y) * R.cam.z + (R.view.y0 + R.view.y1) / 2];
-  R.planetRadius = (p) => p.size * R.cam.z * 1.15;
+  R.planetRadius = (p) => { const v = p.size * R.cam.z * 1.15; return isFinite(v) && v > 0 ? v : 1; };
   R.systemZoom = function (g) {
     const sys = SF.curSys(g);
     let maxR = 0;
@@ -2383,6 +2385,8 @@ input[type=range] { width: 100%; accent-color: var(--warn); }
     R.t += dt;
     const k = 1 - Math.pow(0.002, dt);
     R.cam.x += (R.camT.x - R.cam.x) * k; R.cam.y += (R.camT.y - R.cam.y) * k; R.cam.z += (R.camT.z - R.cam.z) * k;
+    if (!isFinite(R.cam.x) || !isFinite(R.cam.y) || !isFinite(R.cam.z) || R.cam.z <= 0) R.cam = { x: 0, y: 0, z: R.systemZoom(g) || 0.6 };
+    if (!isFinite(R.camT.x) || !isFinite(R.camT.y) || !isFinite(R.camT.z) || R.camT.z <= 0) R.camT = { x: 0, y: 0, z: R.systemZoom(g) || 0.6 };
     if (R.camT.pid && g) { const p = SF.planet(g, R.camT.pid); if (p) { const [x, y] = R.planetWorld(g, p, R.t); R.camT.x = x; R.camT.y = y - 6; } }
     c.setTransform(R.dpr, 0, 0, R.dpr, 0, 0);
     if (!bg) bg = makeBackground();
@@ -2408,7 +2412,7 @@ input[type=range] { width: 100%; accent-color: var(--warn); }
     // star
     const [stx, sty] = R.toScreen(0, 0);
     const sr = 38 * R.cam.z + 14;
-    const sg = c.createRadialGradient(stx, sty, 0, stx, sty, sr * 6);
+    const sg = c.createRadialGradient(stx, sty, 0, stx, sty, RZ(sr * 6, 10));
     sg.addColorStop(0, def.star); sg.addColorStop(0.12, def.star); sg.addColorStop(0.2, hexA(def.star, 0.35)); sg.addColorStop(1, 'rgba(0,0,0,0)');
     c.fillStyle = sg; c.beginPath(); c.arc(stx, sty, sr * 6, 0, Math.PI * 2); c.fill();
     c.fillStyle = '#fffaf0'; c.beginPath(); c.arc(stx, sty, sr * 0.8, 0, Math.PI * 2); c.fill();
@@ -2418,7 +2422,7 @@ input[type=range] { width: 100%; accent-color: var(--warn); }
       if (p.parent) continue;
       c.strokeStyle = p.owner === 'player' ? 'rgba(109,255,156,0.22)' : p.owner === 'enemy' ? 'rgba(255,110,80,0.18)' : 'rgba(95,212,255,0.16)';
       c.setLineDash([6, 8]);
-      c.beginPath(); c.ellipse(stx, sty, p.orbit * R.cam.z, p.orbit * SQ * R.cam.z, 0, 0, Math.PI * 2); c.stroke();
+      c.beginPath(); c.ellipse(stx, sty, Math.max(0.01, p.orbit * R.cam.z), Math.max(0.01, p.orbit * SQ * R.cam.z), 0, 0, Math.PI * 2); c.stroke();
     }
     c.setLineDash([]);
     // decorative dust belt
@@ -2451,7 +2455,7 @@ input[type=range] { width: 100%; accent-color: var(--warn); }
 
     // atmosphere glow
     if (!['moon', 'asteroid', 'rocky'].includes(p.type)) {
-      const ag = c.createRadialGradient(x, y, r * 0.9, x, y, r * 1.25);
+      const ag = c.createRadialGradient(x, y, RZ(r * 0.9), x, y, RZ(r * 1.25, 1));
       const ac = p.type === 'exotic' ? '190,120,255' : p.type === 'lava' ? '255,120,60' : p.type === 'gas' || p.type === 'desert' || p.type === 'arid' ? '255,200,140' : '120,190,255';
       ag.addColorStop(0, `rgba(${ac},0.35)`); ag.addColorStop(1, `rgba(${ac},0)`);
       c.fillStyle = ag; c.beginPath(); c.arc(x, y, r * 1.25, 0, Math.PI * 2); c.fill();
@@ -2560,7 +2564,7 @@ input[type=range] { width: 100%; accent-color: var(--warn); }
 
   function drawDebris(p, x, y, r) {
     c.save();
-    const glow = c.createRadialGradient(x, y, 0, x, y, r * 1.6);
+    const glow = c.createRadialGradient(x, y, 0, x, y, RZ(r * 1.6, 1));
     glow.addColorStop(0, 'rgba(255,120,60,0.25)'); glow.addColorStop(1, 'rgba(255,60,20,0)');
     c.fillStyle = glow; c.beginPath(); c.arc(x, y, r * 1.6, 0, Math.PI * 2); c.fill();
     for (let i = 0; i < 70; i++) {
@@ -3965,9 +3969,7 @@ input[type=range] { width: 100%; accent-color: var(--warn); }
   function loop(now) {
     if (!S) return;
     const dt = Math.min(0.05, (now - last) / 1000); last = now;
-    update(dt);
-    if (!S) return;
-    draw();
+    try { update(dt); if (!S) return; draw(); } catch (e) { console.error('console frame error:', e && e.message); }
     raf = requestAnimationFrame(loop);
   }
 
@@ -4297,9 +4299,7 @@ input[type=range] { width: 100%; accent-color: var(--warn); }
   function loop(now) {
     if (!S) return;
     const dt = Math.min(0.05, (now - last) / 1000); last = now;
-    update(dt);
-    if (!S) return;
-    draw();
+    try { update(dt); if (!S) return; draw(); } catch (e) { console.error('console frame error:', e && e.message); }
     raf = requestAnimationFrame(loop);
   }
 
@@ -4500,13 +4500,19 @@ input[type=range] { width: 100%; accent-color: var(--warn); }
   }
 
   // ------------------------------------------------------------------ loop
+  let errCount = 0;
   function loop(now) {
     const dt = Math.min(0.05, (now - last) / 1000 || 0); last = now;
-    if (SF.render.fortState.recoil > 0) SF.render.fortState.recoil = Math.max(0, SF.render.fortState.recoil - dt * 3);
-    if (!SF.manual.isOpen && !SF.pkMode.active) {
-      SF.fx.update(dt);
-      SF.render.frame(dt, SF.game, UI);
-      SF.tutorialUI.frame();
+    try {
+      if (SF.render.fortState.recoil > 0) SF.render.fortState.recoil = Math.max(0, SF.render.fortState.recoil - dt * 3);
+      if (!SF.manual.isOpen && !SF.pkMode.active) {
+        SF.fx.update(dt);
+        SF.render.frame(dt, SF.game, UI);
+        SF.tutorialUI.frame();
+      }
+    } catch (e) {
+      // One bad frame must never freeze the game; log sparingly and keep rendering.
+      if (errCount++ < 5) console.error('frame error:', e && e.message);
     }
     requestAnimationFrame(loop);
   }

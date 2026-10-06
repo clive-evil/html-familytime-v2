@@ -186,13 +186,19 @@
   }
 
   // ------------------------------------------------------------------ loop
+  let errCount = 0;
   function loop(now) {
     const dt = Math.min(0.05, (now - last) / 1000 || 0); last = now;
-    if (SF.render.fortState.recoil > 0) SF.render.fortState.recoil = Math.max(0, SF.render.fortState.recoil - dt * 3);
-    if (!SF.manual.isOpen && !SF.pkMode.active) {
-      SF.fx.update(dt);
-      SF.render.frame(dt, SF.game, UI);
-      SF.tutorialUI.frame();
+    try {
+      if (SF.render.fortState.recoil > 0) SF.render.fortState.recoil = Math.max(0, SF.render.fortState.recoil - dt * 3);
+      if (!SF.manual.isOpen && !SF.pkMode.active) {
+        SF.fx.update(dt);
+        SF.render.frame(dt, SF.game, UI);
+        SF.tutorialUI.frame();
+      }
+    } catch (e) {
+      // One bad frame must never freeze the game; log sparingly and keep rendering.
+      if (errCount++ < 5) console.error('frame error:', e && e.message);
     }
     requestAnimationFrame(loop);
   }

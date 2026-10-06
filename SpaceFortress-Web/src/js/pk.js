@@ -317,9 +317,7 @@
   function loop(now) {
     if (!S) return;
     const dt = Math.min(0.05, (now - last) / 1000); last = now;
-    update(dt);
-    if (!S) return;
-    draw();
+    try { update(dt); if (!S) return; draw(); } catch (e) { console.error('console frame error:', e && e.message); }
     raf = requestAnimationFrame(loop);
   }
 
