@@ -132,7 +132,7 @@ h2, h3 { margin: 0; font-weight: 600; letter-spacing: 0.12em; }
 #log .e.sys { color: var(--holo); border-color: var(--holo); }
 
 /* ---------- planet command panel ---------- */
-#panel { top: 4.4em; right: 1em; width: 24em; bottom: 13.6em; overflow-y: auto; padding: 0.9em 1em 1em; scrollbar-width: thin; scrollbar-color: var(--holo-dim) transparent; }
+#panel { top: 4.4em; right: 1em; width: 24em; bottom: 14.8em; overflow-y: auto; padding: 0.9em 1em 1em; scrollbar-width: thin; scrollbar-color: var(--holo-dim) transparent; }
 .p-head { display: flex; justify-content: space-between; align-items: baseline; gap: 0.5em; }
 .p-name { font-size: 1.5em; font-weight: 700; letter-spacing: 0.12em; }
 .p-owner { font-size: 0.75em; padding: 0.2em 0.6em; letter-spacing: 0.15em; border: 1px solid; white-space: nowrap; }
@@ -179,38 +179,58 @@ input[type=range] { width: 100%; accent-color: var(--warn); }
 .hint { font-size: 0.8em; color: var(--text-dim); line-height: 1.35; margin-top: 0.4em; }
 .verdict { font-size: 0.85em; line-height: 1.4; padding: 0.5em 0.6em; background: rgba(255, 138, 42, 0.08); border-left: 3px solid var(--warn); margin-top: 0.6em; }
 
-/* ---------- weapon dock ---------- */
-#dock { left: 30em; right: 26em; bottom: 0.8em; display: flex; gap: 0.5em; align-items: stretch; height: 12em; }
-.wcard {
-  flex: 1 1 0; min-width: 0; position: relative; padding: 0.6em 0.7em; cursor: pointer; display: flex; flex-direction: column; gap: 0.3em;
-  background: linear-gradient(180deg, rgba(20, 30, 40, 0.95), rgba(8, 14, 20, 0.95)); border: 1px solid #34424f;
-  clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 0 100%);
+/* ---------- weapon dock: fortress module rail ---------- */
+#dock {
+  left: 30em; right: 26em; bottom: 0.8em; display: flex; gap: 0.6em; align-items: stretch; height: 12em;
+  background: linear-gradient(180deg, #11161b, #0a0e12); border: 1px solid #000; border-top: 2px solid #2a333b;
+  box-shadow: 0 -4px 18px rgba(0,0,0,0.6), inset 0 2px 0 rgba(255,255,255,0.04); padding: 0.5em; clip-path: none;
 }
-.wcard:hover { border-color: #5a6c7c; }
-.wcard.sel { border-color: var(--warn); box-shadow: inset 0 0 24px rgba(255, 138, 42, 0.18); }
-.wcard.locked { opacity: 0.5; }
-.wcard .wn { font-weight: 700; letter-spacing: 0.14em; font-size: 0.95em; }
-.wcard .ws { font-size: 0.72em; color: var(--text-dim); letter-spacing: 0.08em; }
-.wcard .wstat { font-size: 0.74em; font-family: var(--mono); color: var(--text-dim); }
-.wcard .ready { color: var(--ok); }
-.wcard .notready { color: #ff9c74; }
+#dock::before { content: 'WEAPON SYSTEMS'; position: absolute; top: -1.35em; left: 0.4em; font-size: 0.64em; letter-spacing: 0.3em; color: var(--text-dim); }
+.wrail { flex: 1 1 auto; display: flex; gap: 0.5em; align-items: stretch; min-width: 0; }
+.wtile {
+  flex: 1 1 0; min-width: 0; position: relative; cursor: pointer; display: flex; flex-direction: column; gap: 0.25em; padding: 0.5em 0.5em 0.4em; overflow: hidden;
+  background: linear-gradient(180deg, #2b333b 0%, #1b222a 12%, #12181e 100%); border: 1px solid #39444e;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), inset 0 0 20px rgba(0,0,0,0.5), 0 2px 4px rgba(0,0,0,0.5);
+  border-radius: 2px;
+}
+.wtile::before, .wtile::after { content: ''; position: absolute; width: 5px; height: 5px; border-radius: 50%; background: radial-gradient(circle at 30% 30%, #8a929a, #20262c); bottom: 4px; }
+.wtile::before { left: 4px; } .wtile::after { right: 4px; }
+.wtile:hover { border-color: #5f6e7a; background: linear-gradient(180deg, #333c45 0%, #1e2630 12%, #141b22 100%); }
+.wtile.sel { flex: 2 1 0; border-color: var(--warn); box-shadow: inset 0 0 26px rgba(255,138,42,0.22), 0 0 10px rgba(255,138,42,0.2); gap: 0.2em; }
+.wtile.sel .wt-sil { height: 1.7em; }
+.wtile.locked { cursor: default; filter: saturate(0.5) brightness(0.8); }
+.wt-lamp { position: absolute; top: 6px; right: 7px; width: 11px; height: 11px; border-radius: 50%; background: var(--lc); box-shadow: 0 0 0 2px #0a0d10, inset 0 -1px 2px rgba(0,0,0,0.6), 0 0 8px var(--lc); }
+.wtile.sel .wt-lamp, .wtile.armed .wt-lamp { animation: lamppulse2 1.3s infinite; }
+@keyframes lamppulse2 { 50% { box-shadow: 0 0 0 2px #0a0d10, inset 0 -1px 2px rgba(0,0,0,0.6), 0 0 16px var(--lc); } }
+.wt-sil { height: 3.1em; display: flex; align-items: center; justify-content: center; opacity: 0.85; }
+.wt-sil img { max-width: 100%; max-height: 100%; filter: drop-shadow(0 0 4px rgba(0,0,0,0.6)); }
+.wt-head { display: flex; flex-direction: column; gap: 0.05em; }
+.wt-name { font-weight: 700; letter-spacing: 0.1em; font-size: 0.82em; line-height: 1.05; }
+.wt-stat { font-size: 0.66em; font-family: var(--mono); letter-spacing: 0.06em; color: var(--text-dim); }
+.wt-stat.ready { color: var(--ok); } .wt-stat.notready { color: #ff9c74; }
+.wt-sub { font-size: 0.62em; color: var(--text-dim); line-height: 1.2; }
+.wt-load { display: flex; align-items: center; gap: 3px; }
+.wt-load i { width: 10px; height: 6px; background: rgba(255,255,255,0.08); border: 1px solid #000; }
+.wt-load i.on { background: #6dff9c; box-shadow: 0 0 4px #6dff9c; }
+.wt-load span { margin-left: auto; font-size: 0.62em; font-family: var(--mono); color: #ffd27a; }
+.wt-build { display: flex; gap: 3px; }
+.wt-build i { flex: 1; height: 5px; background: rgba(255,255,255,0.08); } .wt-build i.on { background: #ff4bd8; }
+.wt-detail { margin-top: 0.2em; display: flex; flex-direction: column; gap: 0.3em; }
 .ammo { display: flex; gap: 0.25em; flex-wrap: wrap; }
-.chip { font-size: 0.7em; padding: 0.2em 0.45em; border: 1px solid #3f4e5b; background: rgba(255, 255, 255, 0.03); cursor: pointer; letter-spacing: 0.05em; white-space: nowrap; }
-.chip.on { border-color: var(--warn); color: #ffd2a8; background: rgba(255, 138, 42, 0.14); }
+.chip { font-size: 0.66em; padding: 0.18em 0.42em; border: 1px solid #3f4e5b; background: rgba(0,0,0,0.3); cursor: pointer; letter-spacing: 0.04em; white-space: nowrap; border-radius: 2px; }
+.chip.on { border-color: var(--warn); color: #ffd2a8; background: rgba(255, 138, 42, 0.16); box-shadow: inset 0 0 6px rgba(255,138,42,0.2); }
 .chip.lock { opacity: 0.4; cursor: not-allowed; }
-.preview { font-size: 0.74em; line-height: 1.3; margin-top: auto; }
+.preview { font-size: 0.72em; line-height: 1.3; }
 .rating { font-weight: 700; letter-spacing: 0.1em; }
 .r-DECISIVE { color: #7dffb0; } .r-STRONG { color: #c8ff7a; } .r-MODERATE { color: #ffd27a; } .r-POOR { color: #ff8a7a; }
-.fire-row { display: flex; gap: 0.3em; }
-.fire-row .btn { flex: 1; padding: 0.45em 0.3em; font-size: 0.82em; }
-.heat { height: 0.5em; background: rgba(255, 255, 255, 0.08); position: relative; }
-.heat > i { position: absolute; left: 0; top: 0; bottom: 0; background: linear-gradient(90deg, #ffd25a, #ff5a2a, #ff1a1a); }
-.wcard.pk { flex: 1.15 1 0; background: linear-gradient(180deg, rgba(40, 10, 30, 0.95), rgba(12, 4, 10, 0.95)); border-color: #6a2a55; }
-.wcard.pk .wn { color: #e9a6ff; }
-.wcard.pk.armed { border-color: #ff4bd8; box-shadow: inset 0 0 30px rgba(255, 75, 216, 0.25); animation: pkpulse 2s infinite; }
-@keyframes pkpulse { 50% { box-shadow: inset 0 0 50px rgba(255, 75, 216, 0.45); } }
-.req { font-size: 0.7em; color: var(--text-dim); line-height: 1.35; }
-.req .ok { color: var(--ok); } .req .no { color: #ff8a7a; }
+.fire-row { display: flex; gap: 0.3em; margin-top: auto; }
+.fire-row .btn { flex: 1; padding: 0.45em 0.3em; font-size: 0.8em; }
+.heat { height: 0.55em; background: rgba(0,0,0,0.4); position: relative; border: 1px solid #000; }
+.heat > i { position: absolute; left: 0; top: 0; bottom: 0; background: linear-gradient(90deg, #ffd25a, #ff5a2a, #ff1a1a); box-shadow: 0 0 6px rgba(255,90,40,0.6); }
+.wtile.pk { flex: 1.2 1 0; background: linear-gradient(180deg, #38142e 0%, #220a1a 14%, #140610 100%); border-color: #6a2a55; max-width: 13em; }
+.wtile.pk .wt-name { color: #e9a6ff; }
+.wtile.pk.armed { border-color: #ff4bd8; box-shadow: inset 0 0 30px rgba(255, 75, 216, 0.28); animation: pkpulse 2s infinite; }
+@keyframes pkpulse { 50% { box-shadow: inset 0 0 50px rgba(255, 75, 216, 0.5); } }
 
 /* ---------- toasts / tooltip / tutorial ---------- */
 #toasts { position: absolute; top: 4.6em; left: 50%; transform: translateX(-50%); z-index: 30; display: flex; flex-direction: column; align-items: center; gap: 0.4em; pointer-events: none; }

@@ -287,56 +287,66 @@
     const G = g();
     const t = targetRef();
     let h = '';
+    h += '<div class="wrail">';
     for (const w of SF.WEAPON_ORDER) {
       const W = SF.WEAPONS[w];
       const st = SF.weaponState(G, w);
       const sel = UI.weapon === w;
       const ws = G.weapons[w];
       const locked = st.locked;
+      const lampCol = locked ? '#555' : st.ok ? '#6dff9c' : '#ff8a2a';
+      const sil = SF.art.moduleSilhouette(w, locked ? '#5a6672' : W.color);
       let status;
-      if (locked) status = `<span class="notready">NOT INSTALLED · ${esc(SF.UPGRADES[W.req].name)}</span>`;
-      else status = (st.ok ? '<span class="ready">● READY</span>' : `<span class="notready">● ${esc(st.reason)}</span>`) + ` · ${SF.weaponPower(G, w)}⚡` + (w !== 'laser' ? ` · ${SF.perCycle(G, w) - ws.shots}/${SF.perCycle(G, w)}` : '');
-      let ammo = '';
-      if (!locked) {
-        ammo = '<div class="ammo">';
-        for (const a of Object.keys(W.ammo)) {
-          const A = W.ammo[a]; const un = SF.ammoUnlocked(G, a === undefined ? '' : w, a);
-          ammo += `<span class="chip ${UI.ammo[w] === a ? 'on' : ''} ${un ? '' : 'lock'}" data-w="${w}" data-a="${a}" data-tip="ammo:${w}:${a}">${esc(A.name)}${un ? ' · ' + SF.costText(A.cost) : ' 🔒'}</span>`;
-        }
-        ammo += '</div>';
-      }
-      let heat = '';
-      if (w === 'laser' && !locked) heat = `<div class="heat" data-tip="heat"><i style="width:${Math.min(100, ws.heat)}%"></i></div>`;
-      let preview = '';
-      if (!locked && t) {
-        const chk = SF.canFire(G, w, UI.ammo[w], t.pid, t.iid);
-        const pv = SF.attackPreview(G, w, UI.ammo[w], t.pid, t.iid, null);
-        if (pv && chk.reason !== 'CANNOT REACH ORBIT' && chk.reason !== 'CANNOT ENGAGE SHIPS' && chk.reason !== 'NOT HOSTILE') {
-          const notes = [];
-          if (pv.shielded) notes.push('<span style="color:#9fb8ff">shielded</span>');
-          if (pv.intercept > 0.01) notes.push(`<span style="color:#ff9c74">${SF.pct(pv.intercept)} intercept</span>`);
-          if (pv.nuke) notes.push('<span style="color:#b8ff6a">devastates world</span>');
-          else if (pv.collat >= 0.3) notes.push('<span style="color:#ff9c74">heavy collateral</span>');
-          else if (pv.collat <= 0.12) notes.push('<span style="color:#7dffb0">precise</span>');
-          if (pv.emp) notes.push('<span style="color:#9fe8ff">disables 2c</span>');
-          preview = `<div class="preview"><span class="rating r-${pv.rating}">${pv.rating}</span> · ${Math.round(Math.min(pv.frac, 9.99) * 100)}% hull · ${SF.pct(pv.killChance)} kill<br>${notes.join(' · ')}</div>`;
-        } else preview = `<div class="preview"><span class="r-POOR">${esc(chk.reason || 'NO EFFECT')}</span></div>`;
-      } else if (!locked) preview = `<div class="preview" style="color:#7f98a8">${esc(W.blurb)}</div>`;
-      let fire = '';
+      if (locked) status = `<span class="notready">OFFLINE</span>`;
+      else status = (st.ok ? '<span class="ready">READY</span>' : `<span class="notready">${esc(st.reason)}</span>`);
+      // charge/ammo micro-indicator
+      let gauge = '';
+      if (locked) gauge = `<div class="wt-sub">${esc(SF.UPGRADES[W.req].name)}</div>`;
+      else if (w === 'laser') gauge = `<div class="heat" data-tip="heat"><i style="width:${Math.min(100, ws.heat)}%"></i></div>`;
+      else { const rem = SF.perCycle(G, w) - ws.shots; gauge = `<div class="wt-load">${[...Array(SF.perCycle(G, w))].map((_, i) => `<i class="${i < rem ? 'on' : ''}"></i>`).join('')}<span>${SF.weaponPower(G, w)}⚡</span></div>`; }
+      // selected weapon expands with ammo + preview + fire
+      let detail = '';
       if (sel && !locked) {
+        let ammo = '';
+        for (const a of Object.keys(W.ammo)) {
+          const A = W.ammo[a]; const un = SF.ammoUnlocked(G, w, a);
+          ammo += `<span class="chip ${UI.ammo[w] === a ? 'on' : ''} ${un ? '' : 'lock'}" data-w="${w}" data-a="${a}" data-tip="ammo:${w}:${a}">${esc(A.name.split(' ')[0])}${un ? '' : ' 🔒'}</span>`;
+        }
+        let preview = `<div class="preview" style="color:#7f98a8">${esc(W.blurb)}</div>`;
+        if (t) {
+          const chk = SF.canFire(G, w, UI.ammo[w], t.pid, t.iid);
+          const pv = SF.attackPreview(G, w, UI.ammo[w], t.pid, t.iid, null);
+          if (pv && !['CANNOT REACH ORBIT', 'CANNOT ENGAGE SHIPS', 'NOT HOSTILE'].includes(chk.reason)) {
+            const notes = [];
+            if (pv.shielded) notes.push('<span style="color:#9fb8ff">shielded</span>');
+            if (pv.intercept > 0.01) notes.push(`<span style="color:#ff9c74">${SF.pct(pv.intercept)} intercept</span>`);
+            if (pv.nuke) notes.push('<span style="color:#b8ff6a">devastates world</span>');
+            else if (pv.collat >= 0.3) notes.push('<span style="color:#ff9c74">heavy collateral</span>');
+            else if (pv.collat <= 0.12) notes.push('<span style="color:#7dffb0">precise</span>');
+            if (pv.emp) notes.push('<span style="color:#9fe8ff">disables 2c</span>');
+            preview = `<div class="preview"><span class="rating r-${pv.rating}">${pv.rating}</span> · ${Math.round(Math.min(pv.frac, 9.99) * 100)}% hull · ${SF.pct(pv.killChance)} kill<br>${notes.join(' · ') || '&nbsp;'}</div>`;
+          } else preview = `<div class="preview"><span class="r-POOR">${esc(chk.reason || 'NO EFFECT')}</span></div>`;
+        }
         const ok = t && SF.canFire(G, w, UI.ammo[w], t.pid, t.iid).ok && !UI.busy;
-        fire = `<div class="fire-row"><button class="btn btn-warn" id="fire-auto" ${ok ? '' : 'disabled'}>AUTO FIRE</button>${w === 'railgun' ? `<button class="btn btn-alert" id="fire-manual" ${ok ? '' : 'disabled'}>MANUAL</button>` : ''}</div>`;
+        const fire = `<div class="fire-row"><button class="btn btn-warn" id="fire-auto" ${ok ? '' : 'disabled'}>AUTO FIRE</button>${w === 'railgun' ? `<button class="btn btn-alert" id="fire-manual" ${ok ? '' : 'disabled'}>MANUAL</button>` : ''}</div>`;
+        detail = `<div class="wt-detail"><div class="ammo">${ammo}</div>${preview}${fire}</div>`;
       }
-      h += `<div class="wcard ${sel ? 'sel' : ''} ${locked ? 'locked' : ''}" id="w-${w}" data-wsel="${w}"><div class="wn" style="color:${W.color}">${W.name}</div><div class="wstat">${status}</div>${heat}${ammo}${sel ? '' : preview}${sel ? preview + fire : ''}</div>`;
+      h += `<div class="wtile ${sel ? 'sel' : ''} ${locked ? 'locked' : ''}" id="w-${w}" data-wsel="${w}" data-tip="${locked ? '' : ''}">` +
+        `<span class="wt-lamp" style="--lc:${lampCol}"></span>` +
+        `<div class="wt-sil"><img src="${sil}" alt=""></div>` +
+        `<div class="wt-head"><span class="wt-name" style="color:${locked ? '#667' : W.color}">${W.name.replace(' ARRAY', '').replace('HEAVY ', '').replace('ORBITAL ', '')}</span><span class="wt-stat">${status}</span></div>` +
+        gauge + detail + `</div>`;
     }
-    // planet killer card
+    h += '</div>';
+    // planet killer module
     const pk = SF.pkState(G);
     if (pk.locked) {
       const chain = ['fort_reactor', 'fort_modules', 'fort_pk'];
-      h += `<div class="wcard pk" id="w-pk" data-tip="pk"><div class="wn">✦ PLANET KILLER</div><div class="ws">ANNIHILATION CHAMBER · LOCKED</div><div class="req">${chain.map((u) => `<div class="${G.upgrades[u] ? 'ok' : 'no'}">${G.upgrades[u] ? '✔' : '○'} ${esc(SF.UPGRADES[u].name)}</div>`).join('')}<div>Each firing: <span style="color:#c77dff">40 EXO</span> + 30 FIS</div></div></div>`;
+      const steps = chain.map((u) => `<i class="${G.upgrades[u] ? 'on' : ''}" title="${esc(SF.UPGRADES[u].name)}"></i>`).join('');
+      h += `<div class="wtile pk locked" id="w-pk" data-tip="pk"><span class="wt-lamp" style="--lc:#6a2a55"></span><div class="wt-sil"><img src="${SF.art.moduleSilhouette('pk', '#6a4a70')}" alt=""></div><div class="wt-head"><span class="wt-name">PLANET KILLER</span><span class="wt-stat notready">LOCKED</span></div><div class="wt-build">${steps}</div><div class="wt-sub">Authorization denied</div></div>`;
     } else {
       const canT = UI.selected && SF.canPlanetKill(G, UI.selected).ok;
-      h += `<div class="wcard pk ${pk.ok ? 'armed' : ''}" id="w-pk"><div class="wn">✦ PLANET KILLER</div><div class="wstat">${pk.ok ? '<span class="ready">● CHAMBER READY</span>' : '<span class="notready">● ' + esc(pk.reason) + '</span>'}</div><div class="req">Cost: <span style="color:#c77dff">40 EXO</span> · 30 FIS · ALL POWER<br>Erases a world and all its value.</div><div class="fire-row" style="margin-top:auto"><button class="btn btn-alert" id="fire-pk" ${canT ? '' : 'disabled'}>${canT ? 'OPEN CHAMBER' : UI.selected ? 'INVALID TARGET' : 'SELECT A WORLD'}</button></div></div>`;
+      h += `<div class="wtile pk ${pk.ok ? 'armed' : ''}" id="w-pk"><span class="wt-lamp" style="--lc:${pk.ok ? '#ff4bd8' : '#8a3a6a'}"></span><div class="wt-sil"><img src="${SF.art.moduleSilhouette('pk', '#e070ff')}" alt=""></div><div class="wt-head"><span class="wt-name">PLANET KILLER</span><span class="wt-stat ${pk.ok ? 'ready' : 'notready'}">${pk.ok ? 'CHAMBER READY' : esc(pk.reason)}</span></div><div class="fire-row"><button class="btn btn-alert" id="fire-pk" ${canT ? '' : 'disabled'}>${canT ? 'OPEN CHAMBER' : UI.selected ? 'INVALID TARGET' : 'SELECT WORLD'}</button></div></div>`;
     }
     $('dock').innerHTML = h;
     $('dock').querySelectorAll('[data-wsel]').forEach((card) => (card.onclick = (e) => {

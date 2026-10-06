@@ -205,6 +205,48 @@
     glyphUrl.set(k, u);
     return u;
   };
+  // Schematic silhouette of a weapon module, drawn as a blueprint-style line art, for the dock tiles.
+  const moduleCache = new Map();
+  ART.moduleSilhouette = function (wid, col) {
+    const key = wid + (col || '');
+    if (moduleCache.has(key)) return moduleCache.get(key);
+    const W = 140, H = 72;
+    const cv = document.createElement('canvas'); cv.width = W * 2; cv.height = H * 2;
+    const c = cv.getContext('2d'); c.scale(2, 2);
+    c.strokeStyle = col || '#7fd0ff'; c.fillStyle = col || '#7fd0ff'; c.lineWidth = 1.6; c.lineJoin = 'round'; c.globalAlpha = 0.9;
+    c.translate(0, 4);
+    const fill = (a) => { c.save(); c.globalAlpha = (a || 0.18); c.fill(); c.restore(); c.stroke(); };
+    if (wid === 'railgun') {
+      // long spinal barrel with coil rings on a mount
+      c.fillStyle = col || '#7fd0ff';
+      c.beginPath(); c.rect(10, 30, 26, 22); fill(0.2);
+      c.beginPath(); c.rect(34, 34, 92, 12); fill(0.15);
+      for (let x = 42; x < 120; x += 12) { c.beginPath(); c.rect(x, 31, 4, 18); fill(0.3); }
+      c.beginPath(); c.rect(124, 30, 8, 20); fill(0.25);
+    } else if (wid === 'laser') {
+      // dome turret + emitter barrel + heat fins
+      c.beginPath(); c.arc(44, 46, 26, Math.PI, 0); fill(0.18);
+      c.beginPath(); c.rect(60, 38, 66, 14); fill(0.15);
+      for (let x = 66; x < 120; x += 10) { c.beginPath(); c.moveTo(x, 34); c.lineTo(x + 4, 28); c.stroke(); }
+      c.beginPath(); c.arc(126, 45, 5, 0, Math.PI * 2); fill(0.5);
+    } else if (wid === 'missile') {
+      // rack of tubes with warheads
+      c.beginPath(); c.rect(16, 40, 108, 16); fill(0.15);
+      for (let i = 0; i < 6; i++) { const x = 24 + i * 17; c.beginPath(); c.rect(x, 18, 11, 24); fill(0.2); c.beginPath(); c.moveTo(x, 18); c.lineTo(x + 5.5, 8); c.lineTo(x + 11, 18); fill(0.35); }
+    } else if (wid === 'bombard') {
+      // cluster of stubby mass-driver pods
+      for (let i = 0; i < 4; i++) { const x = 22 + i * 26; c.beginPath(); c.rect(x, 26, 20, 30); fill(0.18); c.beginPath(); c.rect(x + 5, 52, 10, 10); fill(0.3); }
+    } else { // planet killer: focusing ring + core
+      c.beginPath(); c.ellipse(70, 40, 46, 30, 0, 0, Math.PI * 2); c.stroke();
+      c.beginPath(); c.ellipse(70, 40, 30, 19, 0, 0, Math.PI * 2); c.stroke();
+      c.beginPath(); c.arc(70, 40, 9, 0, Math.PI * 2); fill(0.6);
+      for (let k = 0; k < 8; k++) { const a = k * Math.PI / 4; c.beginPath(); c.moveTo(70 + Math.cos(a) * 46, 40 + Math.sin(a) * 30); c.lineTo(70 + Math.cos(a) * 52, 40 + Math.sin(a) * 34); c.stroke(); }
+    }
+    const url = cv.toDataURL();
+    moduleCache.set(key, url);
+    return url;
+  };
+
   ART.instColor = function (p, i) {
     if (i.hp <= 0) return '#5a5a5a';
     if (p.owner === 'player') return '#6dff9c';
