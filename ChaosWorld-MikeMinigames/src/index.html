@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#120608">
+<title>Chaos World — Battle Experiments</title>
+<style>
+/*__CSS__*/
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="frame">
+    <canvas id="cv"></canvas>
+    <div id="ui">
+      <!-- MAIN MENU -->
+      <section id="menu" class="screen">
+        <div class="menu-title">
+          <div class="t1">CHAOS WORLD</div>
+          <div class="t2">BATTLE EXPERIMENTS</div>
+          <div class="t3">INTERNAL GAMEPLAY LAB · BUILD __BUILD__</div>
+        </div>
+        <div class="mode-card mc1" id="card1">
+          <canvas class="mc-art" id="art1" width="420" height="190"></canvas>
+          <div class="mc-tag">MODE 1 · CO-OP BOSS</div>
+          <div class="mc-name">ROPE THE<br>MONSTER</div>
+          <div class="mc-quote">“Two rope. Two smash. Try not to get roasted.”</div>
+          <div class="mc-best" id="best1"></div>
+          <button class="btn btn-play" id="play1">PLAY</button>
+        </div>
+        <div class="mode-card mc2" id="card2">
+          <canvas class="mc-art" id="art2" width="420" height="190"></canvas>
+          <div class="mc-tag">MODE 2 · CHASE SURVIVAL</div>
+          <div class="mc-name">HELL<br>CHASE</div>
+          <div class="mc-quote">“Fight forward. Keep whatever’s behind you... behind you.”</div>
+          <div class="mc-best" id="best2"></div>
+          <button class="btn btn-play" id="play2">PLAY</button>
+        </div>
+        <div class="menu-row">
+          <button class="btn btn-small" id="btnHow">HOW TO PLAY</button>
+          <button class="btn btn-small btn-dark" id="btnReset">RESET SAVE</button>
+        </div>
+      </section>
+
+      <!-- MODE 1 HUD -->
+      <section id="m1ui" class="screen hidden"></section>
+      <!-- MODE 2 HUD -->
+      <section id="m2ui" class="screen hidden"></section>
+
+      <!-- RESULTS -->
+      <section id="results" class="overlay hidden"></section>
+      <!-- HOW TO PLAY -->
+      <section id="howto" class="overlay hidden"></section>
+      <!-- LAB -->
+      <section id="lab" class="overlay hidden"></section>
+
+      <div id="callouts"></div>
+      <button id="labBtn" class="lab-btn" title="Lab settings">LAB</button>
+    </div>
+  </div>
+</div>
+<script>
+/*__JS__*/
+</script>
+</body>
+</html>
