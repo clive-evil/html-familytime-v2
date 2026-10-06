@@ -2,7 +2,7 @@
 const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
-const FILES = ['config.js', 'rng.js', 'lobby-core.js', 'battle-core.js', 'save.js'];
+const FILES = ['config.js', 'rng.js', 'vote-core.js', 'lobby-core.js', 'battle-core.js', 'battle-race.js', 'save.js'];
 module.exports = function loadCore() {
   delete globalThis.CW;
   for (const f of FILES) {

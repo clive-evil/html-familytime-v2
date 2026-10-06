@@ -3,7 +3,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { execSync } = require('child_process');
 const path = require('path');
-const sh = (c) => execSync(c, { cwd: path.join(__dirname, '..', '..'), encoding: 'utf8' }).trim();
+const sh = (c) => execSync(c, { cwd: path.join(__dirname, '..', '..'), encoding: 'utf8' }).replace(/\s+$/, ''); // keep porcelain's leading status columns
 const FOLDER = 'ChaosWorld-RNGRaid/';
 
 function changedFiles() {

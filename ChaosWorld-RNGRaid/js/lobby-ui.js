@@ -5,6 +5,7 @@
   const UI = CW.UI;
   const { $, $$, esc } = UI;
   const SLOTS = CW.SLOTS;
+  const poss = (p) => (p.isHuman ? 'YOUR' : p.name + "'s");
   const TOKEN_NAME = { jack: 'JACK TOKEN', chaos: 'CHAOS TOKEN', grief: 'GRIEF TOKEN' };
 
   const LobbyUI = {
@@ -78,7 +79,7 @@
   LobbyUI.setSlotFinal = function (el, item) {
     const cr = item.cracks ? ` crack-${Math.min(3, item.cracks)}` : '';
     const keep = ['tg-ok', 'tg-no'].filter((c) => el.classList.contains(c));
-    el.className = `slot r-${item.rarity}${cr} ${keep.join(' ')}`;
+    el.className = `slot r-${item.rarity}${cr}${item.protected ? ' warded' : ''} ${keep.join(' ')}`;
     const img = el.querySelector('img');
     img.src = UI.artFor(item, 72); img.style.visibility = 'visible';
     el.querySelector('.rtag').textContent = CW.RARITY[item.rarity].name + (item.reforgedFrom ? ' · REFORGED' : '');
@@ -113,8 +114,20 @@
       }
       case 'phase':
         if (ev.phase === 'rolling') {
-          UI.slam(this.root, `ROLL!<small>${L.mode.grief ? 'GRIEF RAID' : 'RNG RAID'} · ${L.biome.name}</small>`, '', 1600);
+          UI.slam(this.root, `ROLL!<small>EVERYONE SPINS AT ONCE · ${L.biome.name}</small>`, '', 1600);
           if (this._tutorial) this.calloutStep(0);
+        }
+        if (ev.phase === 'locked') {
+          this.cancelTarget();
+          if (UI.modalOpen && !this._humanSteal) UI.closeModal();
+          this.clearCallouts();
+          this.root.classList.add('is-locked');
+          UI.slam(this.root, 'LOADOUTS LOCKED<small>CHECK THE LOBBY. THEN CONTINUE.</small>', 'gold', 2200);
+          CW.Sfx.play('countdown', { final: true });
+        }
+        if (ev.phase === 'vote') {
+          this.root.classList.remove('is-locked');
+          this.votePanel = UI.VotePanel({ host: this.root, title: 'RAID BOON VOTE', sub: 'PICK ONE. MOST VOTES WINS. EVERYONE GETS IT.', options: L.voteOptions, lookOf: (id) => L.get(id).look, onVote: (b) => L.humanVote(b) });
         }
         if (ev.phase === 'chaos') {
           this.clearCallouts();
@@ -124,6 +137,7 @@
           if (this._tutorial) this.chaosCallouts();
         }
         if (ev.phase === 'launch') {
+          if (this.votePanel) { const vp = this.votePanel; setTimeout(() => vp.close(), 300); this.votePanel = null; }
           this.cancelTarget();
           if (UI.modalOpen && !this._humanSteal) UI.closeModal();
           this.clearCallouts();
@@ -146,7 +160,48 @@
           UI.banner(this.bannerHost, { top: 'YOU PULLED', main: `${CW.RARITY[ev.item.rarity].name} ${esc(ev.item.name)}`.toUpperCase(), sub: 'THE WHOLE LOBBY SAW THAT', color: CW.RARITY[ev.item.rarity].color, ms: 2000, priority: true });
         }
         break;
-      case 'autoPull': UI.toast('TOO SLOW — AUTO-PULLED'); break;
+      case 'autoPull': UI.toast('TOO SLOW — AUTO-SPUN'); break;
+      case 'roundStart': {
+        CW.Sfx.play('stealTry');
+        for (const c of $$('.still-spinning', this.root)) c.classList.remove('still-spinning');
+        UI.banner(this.bannerHost, { top: 'ROUND ' + (ev.round + 1) + ' / 3', main: `EVERYONE'S ${['HERO', 'WEAPON', 'GEAR'][ev.round]} IS SPINNING`, color: '#c6ff2e', ms: 1100, priority: true, key: 'round' });
+        break;
+      }
+      case 'lastSpinning':
+        for (const pid of ev.pids) { const c = this.cardEl(pid); c.classList.add('still-spinning'); }
+        CW.Sfx.play('tease');
+        this.feedSys(ev.pids.length > 1 ? `${ev.pids.length} reels still spinning…` : `${L.get(ev.pids[0]).name}'s reel is STILL spinning…`);
+        break;
+      case 'protect': {
+        const el = this.slotEl(ev.pid, ev.slot);
+        el.classList.add('warded'); UI.restartAnim(el, 'rv-legendary'); UI.burst(el, 'legendary', 14, 60);
+        CW.Sfx.play('legendary');
+        UI.banner(this.bannerHost, { top: `${esc(p.name)} WARDED`, main: `${CW.RARITY[ev.item.rarity].name} ${esc(ev.item.name)}`.toUpperCase(), sub: `SPENT ALL ${ev.spent} COINS · LOCKED IN`, color: '#ffe14d', ms: 1600, priority: human });
+        this.feedSys(`${p.name} protected ${ev.item.name} (spent ${ev.spent})`);
+        break;
+      }
+      case 'wardBroken': this.onWardBroken(ev.aid, ev.tid, ev.item, 'CURSED'); break;
+      case 'griefBlocked': {
+        const el = this.slotEl(ev.tid, ev.slot); el.classList.remove('busy'); UI.restartAnim(el, 'rv-rare');
+        UI.banner(this.bannerHost, { top: `${esc(L.get(ev.aid).name)}'S CURSE`, main: 'WARD HELD', sub: `${esc(L.get(ev.tid).name)} KEEPS THE ${esc(ev.item.name).toUpperCase()}`, color: '#ffe14d', ms: 1300, priority: L.get(ev.tid).isHuman || L.get(ev.aid).isHuman });
+        CW.Sfx.play('stealWin');
+        break;
+      }
+      case 'voteCast': {
+        const c = this.cardEl(ev.voter); if (!c) break;
+        let chip = c.querySelector('.vote-chip'); if (!chip) { chip = UI.el('<span class="vote-chip"></span>'); c.appendChild(chip); }
+        const d = CW.BOON_OPTIONS[ev.boon]; chip.innerHTML = `<img src="${CW.Art.icon(d.icon, 'legendary', 40)}">`; chip.style.setProperty('--bc', d.color); UI.restartAnim(chip, 'bump');
+        CW.Sfx.play('pop', { gap: 0.05 });
+        if (!L.get(ev.voter).isHuman && Math.random() < 0.15) L.say(L.get(ev.voter), 'vote');
+        break;
+      }
+      case 'voteTie': UI.banner(this.bannerHost, { top: 'TIED VOTE', main: 'TIE-BREAK SPIN', color: '#ffbf1a', ms: 1100, priority: true }); CW.Sfx.play('tease'); break;
+      case 'voteEnd': {
+        const d = CW.BOON_OPTIONS[ev.boon];
+        CW.Sfx.play('legendary');
+        UI.banner(this.bannerHost, { top: 'BOON SELECTED', main: d.name, sub: 'ALL RAIDERS: ' + d.desc, color: d.color, ms: 2000, priority: true });
+        break;
+      }
       case 'reroll': {
         const el = this.slotEl(ev.pid, ev.slot);
         UI.burst(el, ev.old.rarity, 10, 50);
@@ -224,7 +279,7 @@
     if (human && ev.cause === 'pull') {
       if (r.tier === 0 && ev.slot === 'gear') UI.slam(this.root, 'Welp.', 'red', 1300);
       else if (r.tier === 0 && Math.random() < 0.5) UI.toast(['UNLUCKY.', 'COMMON. COOL.', 'IT HAPPENS.'][Math.floor(Math.random() * 3)]);
-      if (this._tutorial && p.pullsDone < 3) setTimeout(() => this.lobby.canPull(p) && this.calloutStep(p.pullsDone), 300);
+      if (this._tutorial && p.pullsDone < 3) this._nextCallout = p.pullsDone;
     }
     if (ev.cause !== 'pull' && human) {
       const old = ev.cause === 'reroll' ? (L.log.slice().reverse().find((e) => e.type === 'reroll' && e.pid === p.id && e.slot === ev.slot) || {}).old : null;
@@ -267,9 +322,10 @@
       }, delay);
       if (a.isHuman || t.isHuman) CW.Sfx.play('stealWin');
       else CW.Sfx.play('coin');
-      UI.banner(this.bannerHost, { top: `${esc(a.name)} STOLE`, main: `${esc(t.name)}'S ${esc(ev.original.name)}`.toUpperCase(), sub: `${CW.RARITY[ev.original.rarity].name} · ${Math.round(ev.chance * 100)}% ODDS`, color: a.isHuman ? '#c6ff2e' : t.isHuman ? '#ff3b3b' : CW.RARITY[ev.original.rarity].color, ms: 1500, priority: a.isHuman || t.isHuman });
+      if (ev.wardBroken) this.onWardBroken(ev.aid, ev.tid, ev.original, 'STOLE');
+      else UI.banner(this.bannerHost, { top: `${esc(a.name)} STOLE`, main: `${esc(t.name)}'S ${esc(ev.original.name)}`.toUpperCase(), sub: `${CW.RARITY[ev.original.rarity].name} · ${Math.round(ev.chance * 100)}% ODDS`, color: a.isHuman ? '#c6ff2e' : t.isHuman ? '#ff3b3b' : CW.RARITY[ev.original.rarity].color, ms: 1500, priority: a.isHuman || t.isHuman });
       if (t.isHuman) { UI.restartAnim(this.cardEl(t.id), 'flash-red'); UI.quake(); }
-      this.feedSys(`${a.name} stole ${t.name}'s ${ev.original.name}`);
+      this.feedSys(`${a.name} stole ${poss(t)} ${ev.original.name}`);
     } else {
       release();
       if (a.isHuman || t.isHuman) CW.Sfx.play(a.isHuman ? 'stealFail' : 'stealWin');
@@ -278,6 +334,14 @@
       this.feedSys(`${a.name} got BUSTED stealing from ${t.name}`);
     }
     finishHuman();
+  };
+
+  LobbyUI.onWardBroken = function (aid, tid, item, verb) {
+    const L = this.lobby, a = L.get(aid), t = L.get(tid);
+    UI.slam(this.root, `WARD BROKEN!<small>${esc(a.name)} ${verb} ${t.isHuman ? 'YOUR' : esc(t.name) + "'S"} ${CW.RARITY[item.rarity].name} ${esc(item.name).toUpperCase()}</small>`, 'red', 2600);
+    UI.flash('rgba(255,191,26,0.55)'); UI.quake(); CW.Sfx.play('mythic');
+    const card = this.cardEl(tid); UI.restartAnim(card, 'flash-red');
+    this.feedSys(`WARD BROKEN — ${a.name} ${verb.toLowerCase()} ${poss(t)} ${item.name}`);
   };
 
   LobbyUI.onGrief = function (ev) {
@@ -299,7 +363,7 @@
       color: '#ff5a7a', ms: 1800, priority: a.isHuman || t.isHuman,
     });
     if (t.isHuman) { UI.restartAnim(this.cardEl(t.id), 'flash-red'); UI.quake(); UI.flash('rgba(255,40,80,0.35)'); }
-    this.feedSys(`${a.name} cursed ${t.name}'s ${nm}: ${CW.RARITY[ev.from].name} → ${CW.RARITY[ev.to].name}`);
+    this.feedSys(`${a.name} cursed ${poss(t)} ${nm}: ${CW.RARITY[ev.from].name} → ${CW.RARITY[ev.to].name}`);
   };
 
   LobbyUI.onBoost = function (ev, p) {
@@ -399,6 +463,8 @@
         break;
       case 'shuffle': this.confirmShuffle(); break;
       case 'cancel': this.cancelTarget(); break;
+      case 'protect': { const s = SLOTS.find((x) => L.protectCheck(h, x).ok); if (s) this.confirmProtect(s); break; }
+      case 'continue': if (L.continueToRaid()) { CW.Sfx.play('transition'); this._abSig = ''; } break;
     }
   };
   LobbyUI.cancelTarget = function () { this.target = null; this._abSig = ''; this._tgSig = ''; };
@@ -407,13 +473,17 @@
     const L = this.lobby;
     if (L.phase !== 'chaos') {
       const p = L.get(pid), it = p.loadout[slot];
-      if (it && L.isRevealed(p, slot)) UI.toast(`${CW.itemLabel(it)} — ${CW.itemStatLines(it).join(' · ')}`, true);
+      if (it && L.isRevealed(p, slot)) {
+        if (L.phase === 'locked') return this.inspect(p, slot);
+        UI.toast(`${CW.itemLabel(it)} — ${CW.itemStatLines(it).join(' · ')}`, true);
+      }
       return;
     }
     const me = L.human;
     if (pid === me.id) {
       if (this.target === 'steal' || this.target === 'grief') { UI.toast('PICK SOMEONE ELSE'); return; }
-      return this.confirmReroll(slot);
+      if (this.target === 'reroll') return this.confirmReroll(slot);
+      return this.ownSheet(slot);
     }
     const t = L.get(pid);
     if (this.target === 'steal') return this.confirmSteal(t, slot);
@@ -444,6 +514,60 @@
       if (b.dataset.m === 'steal') this.confirmSteal(t, slot);
       if (b.dataset.m === 'grief') this.confirmGrief(t, slot);
     };
+  };
+
+  // Your own item: reroll, or (Legendary+) PROTECT
+  LobbyUI.ownSheet = function (slot) {
+    const L = this.lobby, me = L.human, item = me.loadout[slot];
+    if (!item || !L.isRevealed(me, slot)) return;
+    const rc = L.rerollCheck(me, slot), pc = L.protectCheck(me, slot);
+    const eligible = CW.PROTECT.eligible.includes(item.rarity);
+    UI.openModal(`
+      <h2>${UI.itemTitle(item)}</h2>
+      <div class="sub">YOUR ${UI.slotLabel[slot]} · ${CW.itemStatLines(item).join(' · ')}${item.protected ? ' · <b style="color:#ffe14d">WARDED</b>' : ''}</div>
+      <div class="big-art r-${item.rarity} slot${item.protected ? ' warded' : ''}"><img src="${UI.artFor(item, 96)}"></div>
+      <div class="sheet-actions">
+        <button class="btn blue ${rc.ok ? '' : 'off'}" data-m="reroll">REROLL <small>${rc.ok ? rc.cost + ' COINS' : rc.reason}</small></button>
+        ${eligible ? `<button class="btn gold ${pc.ok ? '' : 'off'}" data-m="protect">PROTECT <small>${pc.ok ? 'ALL ' + pc.cost + ' COINS' : item.protected ? 'WARDED' : pc.reason}</small></button>` : ''}
+        <button class="btn dark" data-m="close">BACK</button>
+      </div>`);
+    $('#overlay .modal').onclick = (e) => {
+      const b = e.target.closest('[data-m]'); if (!b) return;
+      if (b.dataset.m === 'close') return UI.closeModal();
+      if (b.classList.contains('off')) { UI.restartAnim(b, 'shake'); CW.Sfx.play('deny'); return; }
+      UI.closeModal();
+      if (b.dataset.m === 'reroll') this.confirmReroll(slot);
+      if (b.dataset.m === 'protect') this.confirmProtect(slot);
+    };
+  };
+
+  LobbyUI.confirmProtect = function (slot) {
+    const L = this.lobby, me = L.human, item = me.loadout[slot];
+    const chk = L.protectCheck(me, slot);
+    if (!chk.ok) { UI.toast(chk.reason); CW.Sfx.play('deny'); return; }
+    const base = CW.STEAL_ODDS[item.rarity], warded = base * CW.PROTECTION_STEAL_MULTIPLIER;
+    UI.openModal(`
+      <h2>PROTECT ${UI.itemTitle(item)}?</h2>
+      <div class="sub">SPEND <b style="color:#ffbf1a">ALL ${chk.cost} COINS</b> TO WARD THIS ITEM.</div>
+      <div class="big-art slot r-${item.rarity} warded"><img src="${UI.artFor(item, 96)}"></div>
+      <div class="kv"><span>STEAL CHANCE</span><b>${Math.round(base * 100)}% → ${Math.round(warded * 100)}%</b></div>
+      ${L.mode.grief ? `<div class="kv"><span>CURSES BREAK THE WARD</span><b>${Math.round(CW.PROTECT.griefPassChance * 100)}% OF THE TIME</b></div>` : ''}
+      <div class="warn">YOU'RE LOCKING IN: NO MORE REROLL, SHUFFLE, STEAL, GRIEF OR BOOST.</div>
+      <div class="note">NOT ABSOLUTE. SOMEONE CAN STILL GET LUCKY.</div>
+      <div class="row"><button class="btn dark" data-m="no">KEEP GAMBLING</button><button class="btn gold" data-m="yes">PROTECT</button></div>`);
+    this.bindConfirm(() => { L.protect(me, slot); this.cancelTarget(); this.clearCallouts(); });
+  };
+
+  // LOADOUTS LOCKED: calm inspection of anyone's item
+  LobbyUI.inspect = function (p, slot) {
+    const item = p.loadout[slot];
+    UI.openModal(`
+      <h2>${UI.itemTitle(item)}</h2>
+      <div class="sub">${esc(p.name)} · ${UI.slotLabel[slot]}${item.slot === 'hero' ? ' · ' + esc(item.name).toUpperCase() : ''}${item.protected ? ' · <b style="color:#ffe14d">WARDED</b>' : ''}${item.cracks ? ' · CURSED ×' + item.cracks : ''}${item.reforgedFrom ? ' · REFORGED' : ''}</div>
+      <div class="big-art r-${item.rarity} slot${item.protected ? ' warded' : ''}"><img src="${UI.artFor(item, 96)}"></div>
+      ${CW.itemStatLines(item).map((l) => `<div class="kv"><span>${l}</span></div>`).join('')}
+      <div class="row"><button class="btn" data-m="no">OK</button></div>`);
+    $('#overlay .modal').onclick = (e) => { if (e.target.closest('[data-m]')) UI.closeModal(); };
   };
 
   LobbyUI.confirmReroll = function (slot) {
@@ -499,7 +623,7 @@
       <h2>STEAL ${UI.itemTitle(item)}?</h2>
       <div class="sub">FROM ${esc(t.name)}</div>
       <div class="big-art slot r-${item.rarity}"><img src="${UI.artFor(item, 96)}"></div>
-      <div class="kv"><span>SUCCESS CHANCE</span><b class="${chk.chance < 0.3 ? 'bad' : ''}">${Math.round(chk.chance * 100)}%</b></div>
+      <div class="kv"><span>SUCCESS CHANCE${chk.warded ? ' (WARDED)' : ''}</span><b class="${chk.chance < 0.3 ? 'bad' : ''}">${chk.warded ? `<s style="opacity:.6">${Math.round(chk.baseChance * 100)}%</s> ` : ''}${Math.round(chk.chance * 100)}%</b></div>
       <div class="chance-bar"><i style="width:${chk.chance * 100}%"></i><span>${Math.round(chk.chance * 100)}%</span></div>
       <div class="kv"><span>COST</span><b>${chk.costLabel}</b></div>
       <div class="note">IF IT WORKS, THEY GET YOUR ${esc(CW.itemLabel(mine))}${slot === 'weapon' && item.classId !== me.loadout.hero.classId ? ' · IT GETS REFORGED FOR YOUR CLASS' : ''}. IF NOT, COST IS GONE.</div>
@@ -545,6 +669,9 @@
       return;
     }
     if ((k === ' ' || k === 'enter') && L.phase === 'rolling') { e.preventDefault(); this.doAct('pull', $('.actionbar .pull', this.root)); }
+    if ((k === ' ' || k === 'enter') && L.phase === 'locked') { e.preventDefault(); this.doAct('continue'); }
+    if (L.phase === 'vote' && ['1', '2', '3'].includes(k)) L.humanVote(L.voteOptions[+k - 1]);
+    if (k === 'p' && L.phase === 'chaos') { const s = SLOTS.find((x) => L.protectCheck(L.human, x).ok); if (s) this.confirmProtect(s); }
     if (L.phase === 'chaos' || L.phase === 'rolling') if (k === 'b') this.doAct('boost', $('[data-act="boost"]', this.root));
     if (L.phase !== 'chaos') return;
     if (k === '1' || k === '2' || k === '3') this.onSlotTap(L.human.id, SLOTS[+k - 1]);
@@ -567,7 +694,7 @@
   LobbyUI.calloutStep = function (n) {
     this.clearCallouts();
     this._calloutStep = n;
-    const txt = ['ROLL YOUR HERO', 'NOW ROLL A WEAPON', 'LAST ONE — GEAR'][n];
+    const txt = ["SPIN EVERYONE'S HERO", 'NOW EVERYONE\'S WEAPON', 'LAST ONE — GEAR'][n];
     if (!txt) return;
     this.callout(`<span class="n">${n + 1}</span>${txt}`, { left: '50%', bottom: '92px', transform: 'translateX(-50%)' });
   };
@@ -651,7 +778,16 @@
       if (st.textContent !== p.status) { st.textContent = p.status; st.className = 'status s-' + p.status.replace(/[^A-Z]/g, ''); }
       card.classList.toggle('shielded', p.shieldUntil > now);
       card.classList.toggle('guarded', p.guardUntil > now);
+      card.classList.toggle('locked-in', !!p.locked);
+      if (!SLOTS.some((x) => this.disp[p.id][x].spinning)) card.classList.remove('still-spinning');
+      for (const sl of SLOTS) { const it = p.loadout[sl]; const el = this.slotEl(p.id, sl); if (it && !this.disp[p.id][sl].spinning && now >= p.revealAt[sl]) el.classList.toggle('warded', !!it.protected); }
+      if (L.phase === 'locked' || L.phase === 'vote') {
+        const pl = card.querySelector('.pl'); const txt = `LV ${p.level} · PWR ${CW.deriveStats(p.loadout).power}`;
+        if (pl && pl.textContent !== txt) pl.textContent = txt;
+      }
     }
+    if (this.votePanel && L.vote) this.votePanel.update(L.vote, L.human.id);
+    if (this._tutorial && this._nextCallout != null && L.canPull(L.human)) { this.calloutStep(this._nextCallout); this._nextCallout = null; }
     this.renderTop();
     this.renderPot();
     this.renderActionBar();
@@ -667,7 +803,7 @@
     const rs = CW.RARITY_ORDER;
     const r = rs[Math.floor(Math.random() * 4)];
     if (s === 'hero') return CW.Art.heroIcon(CW.CLASS_IDS[Math.floor(Math.random() * CW.CLASS_IDS.length)], r, 72);
-    if (s === 'weapon') { const pool = CW.WEAPONS[(p.loadout.hero && p.loadout.hero.classId) || 'brute'][r]; return CW.Art.icon(pool[Math.floor(Math.random() * pool.length)].kind, r, 72); }
+    if (s === 'weapon') { const pool = CW.WEAPONS[(p.loadout.hero && p.loadout.hero.classId) || 'scrub'][r]; return CW.Art.icon(pool[Math.floor(Math.random() * pool.length)].kind, r, 72); }
     const g = CW.GEAR[r]; return CW.Art.icon(g[Math.floor(Math.random() * g.length)].kind, r, 72);
   };
 
@@ -677,7 +813,10 @@
     const remain = L.phaseRemaining() / L.k;
     let num = '--', lbl = 'JOINING';
     if (L.phase === 'rolling') { num = Math.ceil(remain); lbl = 'ROLLING'; }
+    if (L.phase === 'rolling') { num = ['1/3', '2/3', '3/3'][Math.min(2, L.round)]; lbl = L.roundState === 'spinning' ? 'SPINNING' : 'ROUND'; }
     if (L.phase === 'chaos') { num = Math.ceil(remain); lbl = 'CHAOS'; }
+    if (L.phase === 'locked') { num = '✓'; lbl = 'LOCKED'; }
+    if (L.phase === 'vote') { num = Math.ceil(remain); lbl = 'VOTE'; }
     if (L.phase === 'launch' || L.phase === 'done') { num = 'GO'; lbl = 'ENTERING'; }
     const nEl = t.querySelector('.num'), lEl = t.querySelector('.lbl');
     if (nEl.textContent !== String(num)) nEl.textContent = num;
@@ -719,7 +858,9 @@
     const sc = CW.STEAL_COST;
     const stealPay = h.wallet.jack >= 1 ? '1 JACK' : `${sc.coinAlt}c`;
     const left = CW.GRIEF_RULES.maxPerPlayer - h.griefsUsed;
-    const sig = [L.phase, canPull, h.pullsDone, this.target, rc, stealPay, left, h.wallet.chaos, L.players.filter((p) => p.pullsDone >= 3).length].join('|');
+    const canProtect = SLOTS.some((x) => L.protectCheck(h, x).ok);
+    const ready = L.players.filter((p) => p.ready).length;
+    const sig = [L.phase, canPull, L.round, L.roundState, this.target, rc, stealPay, left, h.wallet.chaos, canProtect, h.locked, ready].join('|');
     // boost button
     const bb = $('[data-act="boost"]', this.root);
     const bok = L.boostCheck(h).ok;
@@ -729,13 +870,16 @@
     let html = '';
     if (L.phase === 'intro') html = '<div class="waiting">PLAYERS JOINING…</div>';
     else if (L.phase === 'rolling') {
-      if (h.pullsDone < 3) {
-        const what = ['HERO', 'WEAPON', 'GEAR'][h.pullsDone];
-        html = canPull ? `<button class="btn pull ready" data-act="pull">PULL ${what}!<small>TAP · SPACE</small></button>` : `<button class="btn pull off" data-act="pull">ROLLING…<small>${what}</small></button>`;
-      } else {
-        const waiting = L.players.filter((p) => p.pullsDone < 3 || !L.allRevealed(p)).length;
-        html = `<div class="waiting">${waiting ? `WATCHING ${waiting} MORE ROLL${waiting > 1 ? 'S' : ''}…` : 'CHAOS INCOMING…'}</div>`;
-      }
+      const what = ['HEROES', 'WEAPONS', 'GEAR'][Math.min(2, L.round)];
+      if (canPull) html = `<button class="btn pull ready" data-act="pull">SPIN ${what}!<small>ALL 8 REELS AT ONCE · SPACE</small></button>`;
+      else if (L.roundState === 'spinning') html = `<button class="btn pull off" data-act="pull">ROLLING…<small>WATCH THE LOBBY</small></button>`;
+      else html = `<div class="waiting">${L.round >= 2 ? 'CHAOS INCOMING…' : 'NEXT ROUND…'}</div>`;
+    } else if (L.phase === 'chaos' && h.locked) {
+      html = `<div class="waiting" style="color:#ffe14d">WARDED · LOCKED IN — WATCH THE CHAOS</div>`;
+    } else if (L.phase === 'locked') {
+      html = `<button class="btn gold pull ready" data-act="continue">CONTINUE TO RAID<small>${ready}/7 RAIDERS READY · SPACE</small></button>`;
+    } else if (L.phase === 'vote') {
+      html = `<div class="waiting">VOTE FOR A RAID BOON ↑</div>`;
     } else if (L.phase === 'chaos') {
       if (this.target) {
         const lbl = { reroll: 'TAP ONE OF YOUR SLOTS', steal: 'TAP AN ITEM TO STEAL', grief: 'TAP AN ITEM TO CURSE' }[this.target];
@@ -744,7 +888,8 @@
         html = `<button class="btn blue" data-act="reroll">REROLL<small>${rc}c · 1 SLOT</small></button>
           <button class="btn purple ${h.wallet.chaos >= 1 ? '' : 'off'}" data-act="shuffle">SHUFFLE<small>◆ ${h.wallet.chaos} TOKEN</small></button>
           <button class="btn" data-act="steal">STEAL<small>${stealPay}</small></button>
-          ${L.mode.grief ? `<button class="btn red ${left > 0 ? '' : 'off'}" data-act="grief">GRIEF<small>${left} LEFT</small></button>` : ''}`;
+          ${L.mode.grief ? `<button class="btn red ${left > 0 ? '' : 'off'}" data-act="grief">GRIEF<small>${left} LEFT</small></button>` : ''}
+          ${canProtect ? `<button class="btn gold" data-act="protect">PROTECT<small>ALL COINS</small></button>` : ''}`;
       }
     } else html = '<div class="waiting">ENTERING THE DUNGEON…</div>';
     ab.innerHTML = html;
@@ -863,7 +1008,11 @@
       const sc = a.human ? 0.78 : 0.62;
       const yScale = sc * (0.85 + ((a.y - 120) / 84) * 0.25);
       if (shown('hero') && CW.tierOf(l.hero.rarity) >= 3) { const g = ctx.createRadialGradient(a.x, a.y - 20, 4, a.x, a.y - 20, 50); g.addColorStop(0, 'rgba(255,191,26,0.45)'); g.addColorStop(1, 'rgba(255,191,26,0)'); ctx.fillStyle = g; ctx.fillRect(a.x - 50, a.y - 70, 100, 100); }
-      CW.Art.drawOverlord(ctx, a.x, a.y, yScale, p.look, pose);
+      if (pose.hat) {
+        // once the hero is revealed, the player's Overlord becomes their Chaos World archetype (accent = their colour)
+        const state = a.emote === 'cheer' ? 'cheer' : a.emote === 'sad' ? 'hurt' : 'idle';
+        CW.ArtPack.drawCharacter(ctx, l.hero.classId, a.x, a.y, yScale * 0.86, { t: t + a.seed, face: a.face, walk: pose.walk, emote: a.emote, state, accent: p.look.body, rarity: l.hero.rarity, weaponKind: pose.weaponKind, weaponRarity: pose.weaponRarity, seed: a.seed });
+      } else CW.Art.drawOverlord(ctx, a.x, a.y, yScale, p.look, pose);
       if (a.human) {
         ctx.font = '13px "CW Display", Impact'; ctx.textAlign = 'center'; ctx.lineWidth = 4; ctx.strokeStyle = '#140b17';
         const yy = a.y - 96 * yScale - 8 + Math.sin(t * 5) * 2;

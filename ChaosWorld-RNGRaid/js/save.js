@@ -12,6 +12,7 @@
       stats: {
         raidsPlayed: 0, wins: 0, losses: 0, legendaryPulls: 0, steals: 0, stealFails: 0,
         timesGriefed: 0, playersGriefed: 0, highestPotCleared: 0, boosts: 0, rerolls: 0, shuffles: 0,
+        racesWon: 0, podiums: 0, bestPlace: 0, protects: 0, wardsBroken: 0, itemsUsed: 0, rivalsHit: 0,
         byMode: { rng: { played: 0, wins: 0 }, grief: { played: 0, wins: 0 } },
       },
       settings: { sound: true, fast: false },
@@ -46,7 +47,7 @@
     fresh,
 
     // Fold a finished raid into the meta save.
-    recordRaid({ modeId, won, potX100, rewards, lobbyHuman }) {
+    recordRaid({ modeId, won, potX100, rewards, lobbyHuman, place, battleHuman }) {
       const s = this.data.stats, w = this.data.wallet;
       s.raidsPlayed++; s.byMode[modeId].played++;
       if (won) { s.wins++; s.byMode[modeId].wins++; s.highestPotCleared = Math.max(s.highestPotCleared, potX100); } else s.losses++;
@@ -55,7 +56,14 @@
         s.legendaryPulls += st.legendaries; s.steals += st.steals; s.stealFails += st.stealFails;
         s.timesGriefed += st.griefed; s.playersGriefed += st.griefsDone; s.boosts += st.boosts;
         s.rerolls += st.rerolls; s.shuffles += st.shuffles;
+        s.protects += st.protects || 0; s.wardsBroken += st.wardsBroken || 0;
       }
+      if (place) {
+        if (won && place === 1) s.racesWon++;
+        if (won && place <= 3) s.podiums++;
+        s.bestPlace = s.bestPlace ? Math.min(s.bestPlace, place) : place;
+      }
+      if (battleHuman) { s.itemsUsed += battleHuman.tally.itemsUsed; s.rivalsHit += battleHuman.tally.rivalsHit; }
       w.coins += rewards.coins;
       for (const k of Object.keys(rewards.tokens)) w[k] += rewards.tokens[k];
       this.save();

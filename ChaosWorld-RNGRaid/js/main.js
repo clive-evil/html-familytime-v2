@@ -8,7 +8,7 @@
   const params = new URLSearchParams(location.search);
   const App = {
     screen: 'menu', fast: false, lobby: null, battle: null, modeId: 'rng', raidIndex: 0, lastResult: null,
-    debugState: { forceRarity: null, forceRarityBots: false, forceSteal: null },
+    debugState: { forceRarity: null, forceRarityBots: false, forceSteal: null, forceVote: null, forceItem: null, itemInterval: null, comebackStrength: null, lightningDuration: null, ghostDuration: null },
     params,
   };
   CW.App = App;
@@ -16,6 +16,7 @@
   App.init = function () {
     this.save = CW.Save;
     this.save.load();
+    CW.ArtPack.init();
     this.fast = params.get('fast') === '1' || !!this.save.data.settings.fast;
     CW.Sfx.setEnabled(this.save.data.settings.sound && params.get('sound') !== '0');
     document.documentElement.style.setProperty('--grain', `url(${CW.Art.grain()})`);
@@ -64,7 +65,7 @@
     this.save.data.tutorial[this.modeId] = true;
     this.save.save(); // coins spent in the lobby are committed
     const mods = CW.raidMods(L.potX100);
-    this.battle = new CW.Battle({ party: L.partySpec(), seed: (L.seed + 99) >>> 0, mods, biome: L.biome, autoHuman: params.get('auto') === '1' });
+    this.battle = new CW.Battle({ party: L.partySpec(), seed: (L.seed + 99) >>> 0, mods, biome: L.biome, autoHuman: params.get('auto') === '1', boons: L.boons, firstVoteOptions: L.voteOptions, debug: this.debugState });
     CW.Sfx.play('transition');
     UI.flash('#000');
     CW.LobbyUI.unmount();
@@ -72,21 +73,19 @@
     CW.BattleUI.mount(this.battle, { humanLoadout: L.human.loadout, auto: params.get('auto') === '1', onEnd: (r) => this.finishBattle(r) });
   };
 
+  // Race finish: placement → reward % × raid pot (+ winner bonus), podium, awards.
   App.finishBattle = function (result) {
     const B = this.battle, L = this.lobby;
     if (!B || this.screen !== 'battle') return;
-    const board = [];
-    for (const u of B.units) {
-      const st = B.stats[u.id];
-      if (!st || u.summon) continue;
-      const p = L.get(st.pid);
-      board.push({ name: st.name, isHuman: st.isHuman, classId: st.classId, dmg: st.dmg, heal: st.heal, heroRarity: p.loadout.hero.rarity, rar: { hero: p.loadout.hero.rarity, weapon: p.loadout.weapon.rarity, gear: p.loadout.gear.rarity } });
-    }
-    const best = board.slice().sort((a, b) => b.dmg + b.heal - (a.dmg + a.heal))[0];
-    if (best) best.mvp = true;
-    const rewards = CW.computeRewards({ won: result.won, potX100: L.potX100, modeId: this.modeId, rng: new CW.RNG(L.seed + 7), mvp: result.won && best && best.isHuman });
-    this.save.recordRaid({ modeId: this.modeId, won: result.won, potX100: L.potX100, rewards, lobbyHuman: L.human });
-    this.lastResult = { won: result.won, potX100: L.potX100, rewards, board, modeId: this.modeId, modeName: L.mode.name, biome: L.biome.name, why: result.why };
+    const placed = CW.raceRewards({ won: result.won, standings: result.standings, potX100: L.potX100, modeId: this.modeId, seed: L.seed + 7 });
+    const rows = placed.map((s) => {
+      const u = B.get(s.uid), p = L.get(s.pid);
+      return { ...s, classId: u.classId, accent: u.accent, look: u.look, heroRarity: p.loadout.hero.rarity, rar: { hero: p.loadout.hero.rarity, weapon: p.loadout.weapon.rarity, gear: p.loadout.gear.rarity }, weaponKind: p.loadout.weapon.kind, weaponRarity: p.loadout.weapon.rarity, tally: u.tally };
+    });
+    const me = rows.find((r) => r.isHuman);
+    const awards = CW.raceAwards(B.units);
+    this.save.recordRaid({ modeId: this.modeId, won: result.won, potX100: L.potX100, rewards: me.reward, lobbyHuman: L.human, place: me.rank, battleHuman: B.human });
+    this.lastResult = { won: result.won, potX100: L.potX100, rewards: me.reward, place: me.rank, rows, awards, boons: B.boons.slice(), modeId: this.modeId, modeName: L.mode.name, biome: L.biome.name, why: result.why };
     CW.BattleUI.unmount();
     this.setScreen('results');
     CW.Screens.results(this, this.lastResult);

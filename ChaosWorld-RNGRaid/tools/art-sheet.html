@@ -1,15 +1,17 @@
-<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="../css/fonts.css"><style>body{background:#2a2030;margin:0}canvas{display:block}</style></head><body>
-<canvas id="c" width="1000" height="760"></canvas>
-<script src="../js/config.js"></script><script src="../js/art.js"></script>
+<!doctype html><html><head><meta charset="utf-8"><title>Chaos World art sheet</title><link rel="stylesheet" href="../css/fonts.css"><style>body{background:#2a2030;margin:0;font-family:'CW Bang',sans-serif;color:#f1e4c6}canvas{display:block}</style></head><body>
+<canvas id="c" width="1080" height="1240"></canvas>
+<script src="../js/config.js"></script><script src="../js/art.js"></script><script src="../js/chars.js"></script><script src="../js/boss-art.js"></script><script src="../js/art-manifest.js"></script><script src="../js/art-pack.js"></script>
 <script>
-const c=document.getElementById('c'),x=c.getContext('2d');
-const R=CW.BOT_ROSTER; const hats=Object.values(CW.CLASSES).map(c=>c.hat);
-const ems=[null,'cheer','shock','angry','laugh','panic','sad','taunt'];
-R.forEach((b,i)=>CW.Art.drawOverlord(x,70+i*120,130,1.2,b.look,{t:1,emote:ems[i],emoteT:.3,weaponKind:'axe',weaponRarity:'epic'}));
-const cls=CW.CLASS_IDS; cls.forEach((id,i)=>CW.Art.drawOverlord(x,60+i*115,300,1.1,CW.HUMAN_PROFILE.look,{t:2,hat:CW.CLASSES[id].hat,heroRarity:'legendary',weaponKind:CW.WEAPONS[id].legendary[0].kind,weaponRarity:'legendary',gearKind:'plate',gearRarity:'rare'}));
-const kinds=['sword','greatsword','club','axe','cleaver','hammer','bow','sling','crossbow','wand','stick','staff','skullstaff','orb','tome','dagger','sickle','shield','shovel','lantern','scythe','candle','mace','bell','bottle','knuckles','tunic','sandals','helm','plate','boots','cloak','robe','crown'];
-const rs=CW.RARITY_ORDER;
-kinds.forEach((k,i)=>{const r=rs[i%5]; x.save(); x.translate(40+(i%17)*56,380+Math.floor(i/17)*70); x.scale(0.7,0.7); CW.Art.drawItem(x,k,r); x.restore();});
-const bios=CW.BIOMES; let j=0; for(const b of bios){ for(const k of [...b.enemies,b.elite,b.boss]){ const d=CW.ENEMIES[k]; CW.Art.drawEnemy(x,{x:60+j*82,y:740,hx:j,size:d.size*0.55,shape:d.shape,color:d.color,boss:d.boss,elite:d.elite,anim:{}},1); j++; } }
-cls.forEach((id,i)=>{const im=new Image(); im.src=CW.Art.heroIcon(id,'epic',72); im.onload=()=>x.drawImage(im,20+i*80,530);});
+// Placeholder art sheet: every archetype in every state, rarity auras, bosses, item icons. Open in a browser to review.
+CW.ArtPack.init();
+const c=document.getElementById('c'),x=c.getContext('2d'); x.font='18px "CW Display"'; x.fillStyle='#f1e4c6';
+const ids=CW.CLASS_IDS, acc=['#8b5cf6','#3b82f6','#f97316','#db2777','#10b981','#a16207','#a3a3a3','#7bc142','#ef4444'];
+const W=['sword','shield','bow','staff','axe','dagger','mace','scythe','hammer'];
+ids.forEach((id,i)=>{ x.fillText(CW.CLASSES[id].name, 24+i*116, 30); CW.ArtPack.drawCharacter(x,id,60+i*116,175,1.05,{accent:acc[i],weaponKind:CW.WEAPONS[id].epic[0].kind,weaponRarity:'epic',t:1}); });
+const st=['attack','cast','stun','cheer','hurt','down'];
+st.forEach((s,j)=>{ x.fillText(s.toUpperCase(), 24+j*175, 230); for(let k=0;k<2;k++){const id=ids[(j*2+k)%9]; CW.ArtPack.drawCharacter(x,id,60+j*175+k*72,360,0.75,{accent:acc[(j+k)%9],state:s,attackT:.5,weaponKind:W[(j+k)%9],weaponRarity:'rare',t:2});} });
+['common','rare','epic','legendary','mythic'].forEach((r,j)=>{ x.fillText(r.toUpperCase(), 24+j*210, 410); CW.ArtPack.drawCharacter(x,['knight','paladin','archer','mage','scrub'][j],90+j*210,540,0.95,{accent:'#8b5cf6',rarity:r,weaponKind:'greatsword',weaponRarity:r,t:3}); });
+Object.keys(CW.BOSSES).forEach((k,j)=>{ const B={x:190+j*340,y:950,def:CW.BOSSES[k],key:k,pose:['idle','windup','roar'][j],flinch:0,enraged:j===2}; CW.ArtPack.drawBoss(x,B,1,{scale:0.62}); x.fillText(CW.BOSSES[k].name+' ('+B.pose+')', 40+j*340, 980); });
+const items=Object.keys(CW.BATTLE_ITEMS); items.forEach((id,j)=>{ x.save(); x.translate(50+j*84,1060); x.scale(0.8,0.8); CW.Art.drawItem(x,CW.BATTLE_ITEMS[id].icon,'epic'); x.restore(); x.font='12px "CW Bang"'; x.fillText(CW.BATTLE_ITEMS[id].name, 20+j*84, 1110); });
+ids.forEach((id,i)=>{ const im=new Image(); im.src=CW.ArtPack.heroIcon(id,['common','rare','epic','legendary','mythic'][i%5],80,acc[i]); im.onload=()=>x.drawImage(im,20+i*116,1140); });
 </script></body></html>

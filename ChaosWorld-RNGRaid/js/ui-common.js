@@ -31,7 +31,7 @@
   UI.artFor = function (item, size = 72) {
     if (!item) return '';
     if (item.slot === 'hero') return CW.Art.heroIcon(item.classId, item.rarity, size);
-    return CW.Art.icon(item.kind, item.rarity, size);
+    return CW.ArtPack ? CW.ArtPack.itemIcon(item.kind, item.rarity, size) : CW.Art.icon(item.kind, item.rarity, size);
   };
   UI.pips = (rarity) => `<span class="pips">${'<b></b>'.repeat(CW.RARITY[rarity].pips)}</span>`;
   UI.itemName = (item) => (item.slot === 'hero' ? `${item.name}` : item.name);
@@ -172,6 +172,49 @@
         { duration: 600 + i * 50, delay: i * 40, easing: 'ease-in', fill: 'both' }).onfinish = () => c.remove();
     }
   };
+
+  // ------------------------------------------------------------ BOON VOTE PANEL (lobby + mid-fight)
+  // opts: { host, title, sub, options:[boonId], lookOf(voterId) → overlord look, onVote(boonId) }
+  UI.VotePanel = function (opts) {
+    const host = opts.host;
+    const el = UI.el(`<div class="vote-panel">
+      <div class="vp-head"><div class="vp-title">${opts.title}</div><div class="vp-sub">${opts.sub}</div><div class="vp-time"><i></i><span></span></div></div>
+      <div class="vp-opts">${opts.options.map((b) => { const d = CW.BOON_OPTIONS[b]; return `<button class="boon" data-boon="${b}" style="--bc:${d.color}"><img src="${CW.Art.icon(d.icon, 'legendary', 64)}" alt=""><b>${d.name}</b><small>${d.desc}</small><div class="voters"></div><span class="count">0</span></button>`; }).join('')}</div>
+      <div class="vp-foot">TAP TO VOTE · MOST VOTES WINS · APPLIES TO ALL 8 RAIDERS</div></div>`);
+    host.appendChild(el);
+    el.addEventListener('click', (e) => { const b = e.target.closest('[data-boon]'); if (b && opts.onVote) { CW.Sfx.unlock(); opts.onVote(b.dataset.boon); CW.Sfx.play('click'); } });
+    const api = { el, _sig: '' };
+    api.update = function (vote, humanId) {
+      if (!vote) return;
+      const frac = vote.state === 'open' ? vote.remaining() / vote.duration : 0;
+      el.querySelector('.vp-time i').style.width = (frac * 100).toFixed(1) + '%';
+      const secs = vote.state === 'open' ? Math.ceil(vote.remaining() / (vote.k || 1)) : vote.state === 'tiebreak' ? 'TIE!' : '';
+      const sp = el.querySelector('.vp-time span'); if (sp.textContent !== String(secs)) sp.textContent = secs;
+      const sig = JSON.stringify(vote.votes) + vote.state + (vote.winner || '');
+      if (vote.state === 'tiebreak') { const pick = vote.tied[Math.floor(performance.now() / 140) % vote.tied.length]; for (const b of el.querySelectorAll('.boon')) b.classList.toggle('flash', b.dataset.boon === pick); }
+      if (sig === api._sig) return;
+      api._sig = sig;
+      const counts = vote.counts();
+      for (const b of el.querySelectorAll('.boon')) {
+        const id = b.dataset.boon;
+        b.querySelector('.count').textContent = counts[id];
+        b.classList.toggle('mine', vote.votes[humanId] === id);
+        b.classList.toggle('won', vote.winner === id);
+        b.classList.toggle('lost', !!vote.winner && vote.winner !== id);
+        const vs = Object.entries(vote.votes).filter(([, x]) => x === id).map(([v]) => v);
+        b.querySelector('.voters').innerHTML = vs.map((v) => `<img src="${CW.Art.bust(opts.lookOf(v), null, null, 40, '#4b3a57')}" class="${v === humanId ? 'me' : ''}">`).join('');
+      }
+      if (vote.winner) {
+        const d = CW.BOON_OPTIONS[vote.winner];
+        el.querySelector('.vp-title').textContent = 'BOON SELECTED';
+        el.querySelector('.vp-sub').innerHTML = `<b style="color:${d.color}">${d.name}</b> — ALL RAIDERS: ${d.desc}`;
+        el.classList.add('done');
+      }
+    };
+    api.close = () => el.remove();
+    return api;
+  };
+  UI.boonChip = (id) => { const d = CW.BOON_OPTIONS[id]; return `<span class="boon-chip" style="--bc:${d.color}"><img src="${CW.Art.icon(d.icon, 'legendary', 40)}" alt="">${d.name}</span>`; };
 
   CW.UI = UI;
 })(window);

@@ -68,6 +68,16 @@
     crown(c, m) { poly(c, [[-24, 16], [-24, -12], [-12, 0], [0, -22], [12, 0], [24, -12], [24, 16]]); fs(c, m.metal); rr(c, -24, 10, 48, 8, 2); fs(c, m.metalD, 2.6); for (const x of [-12, 0, 12]) { ell(c, x, 6, 3.5, 3.5); fs(c, m.gem, 2); } ell(c, 0, -22, 3, 3); fs(c, m.gem, 2); hi(c, -14, -2, 2, 4); },
   };
 
+  // Battle item icons (same style)
+  const ITEMART = {
+    bomb(c, m) { ell(c, -2, 6, 20, 20); fs(c, '#2a2230'); hi(c, -9, -2, 5, 7); rr(c, 4, -18, 10, 8, 2); fs(c, '#6d5f74', 2.6); c.beginPath(); c.moveTo(10, -18); c.quadraticCurveTo(16, -30, 26, -26); c.lineWidth = 3; c.strokeStyle = '#c2a37a'; c.stroke(); poly(c, [[26, -34], [29, -27], [36, -26], [30, -22], [32, -15], [26, -20], [20, -16], [22, -23], [17, -28], [24, -28]]); fs(c, '#ffd23f', 2); },
+    ghost(c, m) { c.beginPath(); c.moveTo(-18, 22); c.lineTo(-18, -6); c.quadraticCurveTo(-18, -28, 0, -28); c.quadraticCurveTo(18, -28, 18, -6); c.lineTo(18, 22); c.lineTo(12, 16); c.lineTo(6, 22); c.lineTo(0, 16); c.lineTo(-6, 22); c.lineTo(-12, 16); c.closePath(); fs(c, '#eef7ff'); c.fillStyle = INK; ell(c, -6, -8, 3.5, 5); c.fill(); ell(c, 7, -8, 3.5, 5); c.fill(); ell(c, 1, 5, 4, 5); c.fill(); },
+    swap(c, m) { for (const [y, dir, col] of [[-9, 1, '#c45cff'], [9, -1, '#38a6ff']]) { poly(c, [[-18 * dir, y - 4], [8 * dir, y - 4], [8 * dir, y - 11], [22 * dir, y], [8 * dir, y + 11], [8 * dir, y + 4], [-18 * dir, y + 4]]); fs(c, col, 3); } },
+    bolt(c, m) { poly(c, [[6, -30], [-14, 4], [-1, 4], [-8, 30], [16, -6], [3, -6]]); fs(c, '#fff07a', 3.2); hi(c, 2, -14, 2, 5); },
+    mimic(c, m) { rr(c, -22, -4, 44, 24, 4); fs(c, '#8a5a2b'); c.beginPath(); c.moveTo(-22, -4); c.quadraticCurveTo(0, -30, 22, -4); c.closePath(); fs(c, '#a8703a'); c.fillStyle = '#fff'; for (let i = -16; i <= 12; i += 7) { poly(c, [[i, -4], [i + 3.5, 3], [i + 7, -4]]); c.fill(); } c.fillStyle = '#ff3b3b'; ell(c, -8, -12, 3, 3); c.fill(); ell(c, 8, -12, 3, 3); c.fill(); rr(c, -4, 4, 8, 8, 2); fs(c, '#ffd23f', 2); },
+  };
+  Art.ITEMART = ITEMART;
+
   const iconCache = new Map();
   function makeCanvas(w, h) {
     if (typeof document !== 'undefined') { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; }
@@ -79,7 +89,7 @@
     const m = MAT[rarity] || MAT.common;
     ctx.lineJoin = 'round'; ctx.lineCap = 'round';
     if (m.glow) { ctx.save(); ctx.shadowColor = m.glow; ctx.shadowBlur = rarity === 'mythic' ? 16 : 10; }
-    (WEAPON[kind] || GEARART[kind] || WEAPON.stick)(ctx, m);
+    (WEAPON[kind] || GEARART[kind] || ITEMART[kind] || WEAPON.stick)(ctx, m);
     if (m.glow) ctx.restore();
     if (rarity === 'mythic' && offscreen) { ctx.save(); ctx.globalCompositeOperation = 'source-atop'; ctx.fillStyle = 'rgba(255,47,160,0.18)'; ctx.fillRect(-32, -32, 64, 64); ctx.restore(); }
   };
@@ -357,7 +367,9 @@
     const c = CW.CLASSES[classId];
     return { body: shade(c.tint, 0.25), belly: shade(c.tint, 0.65), horns: 'nub', eyes: 'big', mouth: classId === 'berserker' || classId === 'brute' ? 'fangs' : 'grin', extra: 'none' };
   };
-  Art.heroIcon = function (classId, rarity, size = 72) { return Art.bust(Art.classLook(classId), CW.CLASSES[classId].hat, rarity, size); };
+  // Hero class portraits now come from the archetype characters (chars.js), via ArtPack so real art can replace them.
+  Art.heroIcon = function (classId, rarity, size = 72, accent) { return CW.ArtPack ? CW.ArtPack.heroIcon(classId, rarity, size, accent || CW.CLASSES[classId].tint) : Art.bust(Art.classLook(classId), CW.CLASSES[classId].hat, rarity, size); };
+  Art.emoteGlyph = (...a) => drawEmoteGlyph(...a);
 
   // ------------------------------------------------------------ ENEMIES
   Art.drawEnemy = function (ctx, u, t) {

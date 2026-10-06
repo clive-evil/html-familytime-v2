@@ -5,6 +5,7 @@
   const UI = CW.UI;
   const { $, esc } = UI;
   const Screens = {};
+  const fmt = (n) => Math.round(n).toLocaleString('en-GB');
   const fmtK = (v) => (v >= 1000 ? (v / 1000).toFixed(1) + 'k' : String(Math.round(v)));
 
   // ------------------------------------------------------------ MENU
@@ -51,10 +52,11 @@
       if (app.screen !== 'menu') return;
       const t = performance.now() / 1000;
       ctx.setTransform(2, 0, 0, 2, 0, 0); ctx.clearRect(0, 0, 540, 150);
-      looks.forEach((lk, i) => {
-        const x = 40 + i * 66, y = 136 - (i % 2) * 10;
+      // Chaos World archetypes: Scrub, Knight, Archer + friends drawn in the same system
+      CW.CLASS_IDS.forEach((id, i) => {
+        const x = 34 + i * 59, y = 140 - (i % 2) * 10;
         const em = ems[(i + Math.floor(t / 2.5)) % ems.length];
-        CW.Art.drawOverlord(ctx, x, y, 0.72, lk, { t: t + i, face: i < 4 ? 1 : -1, emote: em, emoteT: (t % 2.5) / 2.5, hat: hats[i], heroRarity: CW.RARITY_ORDER[i % 5], weaponKind: Object.values(CW.WEAPONS)[i].epic[0].kind, weaponRarity: CW.RARITY_ORDER[(i + 2) % 5] });
+        CW.ArtPack.drawCharacter(ctx, id, x, y, 0.62, { t: t + i, face: i < 5 ? 1 : -1, emote: em, state: em === 'cheer' ? 'cheer' : 'idle', accent: looks[i % looks.length].body, rarity: CW.RARITY_ORDER[i % 5], weaponKind: CW.WEAPONS[id].epic[0].kind, weaponRarity: CW.RARITY_ORDER[(i + 2) % 5] });
       });
       requestAnimationFrame(draw);
     };
@@ -108,38 +110,59 @@
   };
 
   // ------------------------------------------------------------ RESULTS
+  // V2 results: 1/2/3 podium with the actual characters, then 4th–8th, awards and your placement reward.
   Screens.results = function (app, r) {
     const el = $('#scr-results');
     el.className = 'screen' + (r.won ? '' : ' lost');
-    const total = r.rewards.coins;
-    const tokens = Object.entries(r.rewards.tokens).filter(([, v]) => v > 0);
-    const rows = r.board.slice().sort((a, b) => b.dmg + b.heal - (a.dmg + a.heal));
-    const max = Math.max(1, ...rows.map((x) => x.dmg + x.heal));
+    const rows = r.rows;
+    const me = rows.find((x) => x.isHuman);
+    const tok = (t) => Object.entries(t).filter(([, v]) => v > 0).map(([k, v]) => `+${v} ${k.toUpperCase()}`).join(' · ');
+    const podium = [rows[1], rows[0], rows[2]].filter(Boolean);
+    const BLOCK = { 1: { x: 270, w: 156, h: 124 }, 2: { x: 104, w: 150, h: 98 }, 3: { x: 436, w: 150, h: 82 } };
     el.innerHTML = `<div class="res-wrap">
       <div class="res-head">
-        <div class="big">${r.won ? 'RAID CLEARED' : 'WIPED'}</div>
+        <div class="big" style="font-size:52px">${r.won ? 'BOSS DOWN' : r.why === 'timeout' ? 'BERSERK!' : 'WIPED'}</div>
         <div class="sub">${r.biome} · RAID POT ${CW.potLabel(r.potX100)} · ${r.modeName}</div>
         ${r.rewards.greedy ? `<div class="greedy">YOU LOST THE JUICED RAID. WE GOT GREEDY.</div>` : ''}
-        ${r.won && r.potX100 >= 200 ? `<div class="greedy">CHAOS RAID SURVIVED. LEGENDS.</div>` : ''}
+        ${r.won && r.potX100 >= 200 ? `<div class="greedy">CHAOS RAID SURVIVED.</div>` : ''}
       </div>
-      <div class="res-pay">
-        ${r.rewards.lines.map((l, i) => `<div class="line ${l.pot ? 'potline' : ''}" style="animation-delay:${0.2 + i * 0.25}s"><span>${l.label}${l.pot ? ' <small>(lobby boosts)</small>' : ''}</span><b>+${l.value}</b></div>`).join('')}
-        <div class="total"><span>TOTAL</span><b class="tot">0</b></div>
-        <div class="tokens">${tokens.length ? tokens.map(([k, v]) => `<span class="chip cur-${k}"><i></i>+${v} ${k.toUpperCase()} TOKEN</span>`).join('') : '<span style="color:#7d6b88">NO TOKEN DROPS THIS TIME</span>'}</div>
+      <div class="podium"><canvas width="1040" height="660"></canvas>
+        ${podium.map((x) => { const b = BLOCK[x.rank]; return `<div class="pod-lbl" style="left:${(b.x / 540) * 100}%;top:${330 - b.h + 8}px">
+          <div class="nm ${x.isHuman ? 'me' : ''}">${x.rank === 1 ? '🥇' : x.rank === 2 ? '🥈' : '🥉'} ${x.isHuman ? 'YOU' : esc(x.name)}</div>
+          <div class="dm">${fmt(x.dmg)} DMG</div>
+          <div class="rw">+${x.reward.coins} COINS</div>
+          <div class="tk">${tok(x.reward.tokens)}</div></div>`; }).join('')}
       </div>
-      <div class="res-board"><h4>WHO CARRIED</h4>
-        ${rows.map((x) => `<div class="res-row ${x.isHuman ? 'me' : ''}">
-            <div class="ava"><img src="${CW.Art.heroIcon(x.classId, x.heroRarity, 40)}"></div>
-            <div>${esc(x.name)} ${x.mvp ? '<span class="mvp">MVP</span>' : ''}<div class="pips">${CW.SLOTS.map((s) => `<span class="r-${x.rar[s]} pips"><b></b></span>`).join('')}</div></div>
-            <div class="bar"><i style="width:${(x.dmg / max) * 100}%"></i><i class="h" style="width:${(x.heal / max) * 100}%"></i></div>
-            <div class="num">${fmtK(x.dmg + x.heal)}</div></div>`).join('')}
-      </div></div>
-      <div class="res-btns"><button class="btn" data-r="again">PLAY AGAIN</button><button class="btn dark" data-r="menu">MENU</button></div>`;
-    // count-up
+      <div class="res-you"><div><div class="yp" style="color:${me.rank <= 3 ? ['', '#ffbf1a', '#d9dde3', '#e0954a'][me.rank] : '#fff'}">YOU — ${CW.ordinal(me.rank)}</div>
+        <div class="yl">${me.reward.lines.map((l) => `${l.label} <b style="color:#ffe7a6">+${l.value}</b>`).join(' · ')}${tok(me.reward.tokens) ? ' · <b style="color:#7dffb0">' + tok(me.reward.tokens) + ' TOKEN</b>' : ''}</div></div>
+        <div class="yc"><span class="tot">0</span><small>COINS</small></div></div>
+      <div class="res-rest">${rows.slice(3).map((x) => `<div class="rr ${x.isHuman ? 'me' : ''}"><span class="pl">${CW.ordinal(x.rank)}</span><img src="${CW.ArtPack.heroIcon(x.classId, x.heroRarity, 40, x.accent)}"><span>${x.isHuman ? 'YOU' : esc(x.name)}</span><span class="dm">${fmt(x.dmg)}</span><span class="rw">+${x.reward.coins}</span></div>`).join('')}</div>
+      ${r.awards.length ? `<div class="res-awards">${r.awards.map((a) => `<div><b>${a.title}</b>${esc(rows.find((x) => x.uid === a.uid).isHuman ? 'YOU' : a.name)} — ${esc(a.text)}</div>`).join('')}</div>` : ''}
+    </div>
+    <div class="res-btns"><button class="btn" data-r="again">PLAY AGAIN</button><button class="btn dark" data-r="menu">MENU</button></div>`;
+    // podium canvas: real characters on stepped blocks
+    const cv = el.querySelector('.podium canvas'), ctx = cv.getContext('2d');
+    const draw = () => {
+      if (app.screen !== 'results' || !cv.isConnected) return;
+      const t = performance.now() / 1000;
+      ctx.setTransform(2, 0, 0, 2, 0, 0); ctx.clearRect(0, 0, 540, 330);
+      const g = ctx.createRadialGradient(270, 150, 10, 270, 150, 260); g.addColorStop(0, 'rgba(255,191,26,0.35)'); g.addColorStop(1, 'rgba(255,191,26,0)'); ctx.fillStyle = g; ctx.fillRect(0, 0, 540, 330);
+      for (const x of podium) {
+        const b = BLOCK[x.rank], top = 330 - b.h;
+        const sc = x.rank === 1 ? 1.15 : 0.98;
+        CW.ArtPack.drawCharacter(ctx, x.classId, b.x, top - 2, sc, { t: t + x.rank, state: x.rank === 1 ? 'cheer' : 'idle', emote: x.rank === 1 ? 'cheer' : x.isHuman ? 'taunt' : null, accent: x.accent, rarity: x.heroRarity, weaponKind: x.weaponKind, weaponRarity: x.weaponRarity });
+        ctx.fillStyle = ['', '#ffbf1a', '#c9ced6', '#d98a43'][x.rank]; ctx.strokeStyle = '#140b17'; ctx.lineWidth = 4;
+        ctx.beginPath(); ctx.roundRect(b.x - b.w / 2, top, b.w, b.h + 6, 8); ctx.fill(); ctx.stroke();
+        ctx.fillStyle = 'rgba(0,0,0,0.18)'; ctx.fillRect(b.x - b.w / 2 + 4, top + b.h - 18, b.w - 8, 18);
+      }
+      requestAnimationFrame(draw);
+    };
+    requestAnimationFrame(draw);
     const tot = el.querySelector('.tot');
+    const total = r.rewards.coins;
     const t0 = performance.now(), dur = app.fast ? 200 : 1200;
     const tick = () => { const k = Math.min(1, (performance.now() - t0) / dur); tot.textContent = Math.round(total * k); if (k < 1) requestAnimationFrame(tick); else CW.Sfx.play('coin'); };
-    setTimeout(tick, app.fast ? 50 : 600);
+    setTimeout(tick, app.fast ? 50 : 500);
     el.onclick = (e) => {
       const b = e.target.closest('[data-r]'); if (!b) return;
       CW.Sfx.play('click');

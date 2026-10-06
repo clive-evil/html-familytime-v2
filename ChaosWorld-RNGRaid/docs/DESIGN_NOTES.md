@@ -1,5 +1,106 @@
 # RNG Raid — design + tech notes
 
+> **V2 (current).** Sections below the V2 block describe V1 systems that are still in place (rarity, chaos-phase
+> actions, raid pot tiers, bot personalities). Where V2 changed something it says so here.
+
+## V2 at a glance
+`MENU → LOBBY (intro → 3 simultaneous rounds → CHAOS 18/20s → LOADOUTS LOCKED [waits for you] → BOON VOTE 10s → 3·2·1)
+→ BOSS RACE (one boss, all 8 raiders; mid-fight vote at 50%) → PODIUM`
+
+### Simultaneous rounds (lobby-core `startRound`)
+* You press **SPIN** (auto after 7s idle); all 8 players' slot for that round starts spinning on the same frame.
+* Each reel gets its own landing time: ordinary results drop in randomly from **1.15s** in **0.14–0.34s** steps.
+  Legendary+/Chaos results, fake-outs (5% of reels, Commons that hang on) and ~45% of Epics are held for a
+  **dramatic tail**: +0.65–1.0s gap, then 0.55–0.9s apart, biggest last.
+* When only the tail is left, a `lastSpinning` beat fires: cards glow **STILL SPINNING…**, the crowd turns to look,
+  someone says "COME ON". Tunables: `CW.ROUND_REEL`.
+
+### Protect (lobby-core `protect`)
+* Offered during the Chaos Phase for **Legendary or Chaos** items (your slot sheet, or the PROTECT button).
+* Costs **all your coins** (tokens kept but unusable) and sets `locked`: reroll/shuffle/steal/grief/boost/protect
+  all return *LOCKED IN*.
+* Steal chance × `PROTECTION_STEAL_MULTIPLIER` (0.25 → Legendary 12% → 3%, Chaos 5% → 1.25%). Never absolute: a
+  success emits `wardBroken` → **WARD BROKEN!** slam, victim panics, everyone reacts.
+* Grief Raid: Legendary+ is already unstealable, so the ward protects against **curses** instead — a curse only
+  passes `PROTECT.griefPassChance` (30%); cost is spent either way ("WARD HELD").
+* Bots: per-personality chance (Coward 85%/95%, Greedy Mythic-only 90%, High Roller 8%, Rat 5%…). Measured: ~0.3
+  protects per lobby.
+
+### LOADOUTS LOCKED
+Chaos ends → phase `locked` with no timer. Cards show READY (bots), PWR, ward badges, raid pot; tapping any item
+opens an inspect sheet. Only **CONTINUE TO RAID** (or Space) moves on.
+
+### Boon votes (vote-core `BoonVote`)
+* 3 random boons from `BOON_OPTIONS` (Bloodlust, Iron Skin, Fortune's Favour, Executioner, Critical Mass, Vampiric
+  Pact, Chaos Blessing, Second Wind). 10s. Bots vote between 1.2–8.5s, weighted by personality prefs + a herd pull
+  towards the current leader. Votes appear on cards/as faces on the options.
+* Most votes wins; a tie triggers a **seeded tie-break spin** (deterministic per seed); debug can force the result.
+* **Mid-fight:** first time the boss drops to 50% the battle **pauses** (battle time, cooldowns, effect timers and
+  telegraphs all frozen) for a second vote. Its options never include an already-won boon and never repeat the
+  first vote's exact set. Both boons stack and apply to all 8 raiders.
+
+### Boss race (battle-race.js)
+* Isometric staging: boss upper-right, raiders on a diagonal lower-left → centre (you near the front).
+* Boss attacks are **telegraphed** (zones fill / beams aim before impact): Ground Slam (zone + stun), Shadow Beam
+  (3 targets, Knights' Taunt draws it), Roar (everyone −30% attack speed 3.5s), Chaos Meteors (4 zones).
+  Enrage < 25% HP; a x2.0 pot boss starts tougher/angrier. Big crits make the boss flinch.
+* Knocked-out raiders get up after 6s at 50% HP (uptime matters). Lose = all 8 down at once, or the 120s berserk timer.
+* **Ranking** = boss damage + 0.1 × healing (`BATTLE.healScoreWeight`). Healing can't dominate; the board reads as
+  "who did the most boss damage". Recomputed every 0.25s; overtakes emit `rankChange` (▲/▼ markers, OVERTAKEN!) and
+  `newLeader` banners.
+* Class attack values are calibrated (`tools/class-calibrate.js`) so the class roll doesn't decide the race —
+  measured avg finishing place per class 3.9–5.5; 1st/8th damage ≈1.7×; ~9 lead changes per raid.
+
+### Battle items
+* Every raider has one item slot. A reel spins (1.4s) roughly every `ITEM_INTERVAL` (10s) — faster further back
+  (`ITEM_RATE_BY_RANK`, 0.85× for 1st → 1.3× for 8th). **While you hold an item the next reel waits.**
+* Result is weighted by race bucket (`POSITION_ITEM_WEIGHTS`: 1st / 2–3 / 4–6 / 7–8) blended by
+  `COMEBACK_STRENGTH` (0 = flat odds, 1 = full, 2 = exaggerated). Weighting, not guarantees: 1st can (rarely) roll a
+  Bomb; last place still rolls plain Haste.
+
+| Item | Type | Effect |
+|---|---|---|
+| HASTE | self | +40% attack speed 6s |
+| POWER SURGE | self | +35% damage 5s |
+| CHAOS SHIELD | self | invulnerable 4.5s to boss hits **and** rival items |
+| BOMB | target | target + 2 nearest rivals stunned 1.6s, attacks interrupted |
+| HEX | target | −35% attack speed, −25% damage, 5s |
+| GHOST | target | swap **weapons** for 8s (`GHOST_DURATION`), then both restored — lobby loadouts untouched |
+| SWAP CURSE | target | swap your weakest piece (weapon/gear where they're most better) for 8s |
+| LIGHTNING | auto | every rival (not the caster, not shielded) stunned `LIGHTNING_DURATION` = 3.5s (debug: 3/5/10) |
+| CROWN BREAKER | auto | locks on the current 1st (2nd if you're 1st): 1.6s warning, then 2.5s stun + −30% dmg 5s. Shield/Purge in the window saves them |
+| CHAOS TONIC | self | random: haste / crit / short shield / 40% heal / surge |
+| MIMIC | self | copy the leader's active buffs (fizzles into a small surge if none) |
+| PURGE | self | remove one debuff (stun → crown warning → hex → curse → roar → being swapped) |
+
+* One swap per raider at a time (no chained Ghosts). Swaps restore on timeout, on Purge, and at battle end.
+* Bot item AI: personality hold windows (High Roller fires instantly, Greedy sits on it 6–11s), Coward holds Shield
+  until threatened, Rat Ghosts 1st place, Griefer Bombs the biggest cluster, Grudge targets whoever hit them,
+  back-markers fire at leaders immediately, leaders use defensive items fast. Occasional authored lines.
+
+### Rewards by placement
+`coins = winBase (400) × PLACEMENT_REWARDS[place] (100/85/75/65/60/55/50/45%) × raid pot` + 100 winner bonus and a
+Jack Token for 1st. Token drop chances scale with pot (+25% for podium). Loss: 60 consolation for everyone
+("WE GOT GREEDY" at pot ≥ x1.5). Podium shows the top three characters, then 4th–8th, plus up to three awards
+(Most Chaotic, Thief, Biggest Hit).
+
+### Measured balance (sims: `npm run sim:balance`, `npm run sim:lobby`)
+| | win | avg length | KOs | lead changes |
+|---|---|---|---|---|
+| random loadouts x1.0 | 99% | 82s | 3.7 | 8.5 |
+| random x1.5 | 98% | 93s | 7.7 | 9.3 |
+| random x2.0 | 58% | 112s | 19 | 8.9 |
+| all Common x1.0 / x2.0 | 68% / 0% | 113s / 120s | | |
+| all Legendary x2.0 | 100% | 46s | | |
+
+Lobby (human idle): RNG Raid ends ≈x1.35, Grief Raid ≈x1.64; ≈0.3 bot protects per lobby; ≈70s lobby.
+
+### Art
+No Battle Lab art was reachable. Placeholder archetypes (Scrub, Knight, Archer + Mage, Berserker, Rogue, Cleric,
+Necromancer, Paladin) and three giant bosses are procedural, in one shared ink/flat-fill system. All drawing goes
+through `ArtPack` → see `docs/ART_SWAP.md`.
+
+---
 ## Flow
 `MENU → LOBBY (intro 2s → ROLL ≤40s → CHAOS 18/20s → LAUNCH 3.5s countdown) → DUNGEON (3 waves, boss) → RESULTS → PLAY AGAIN`
 
@@ -56,7 +157,7 @@ Win: 250 × pot (breakdown shows the pot's share) + 40 MVP bonus if you top the 
 (Chaos 14%, Jack 12%, Grief 10% in Grief Raid) scale with the pot. Loss: 60 coins; at pot ≥x1.5 the results screen calls
 it "YOU LOST THE JUICED RAID. WE GOT GREEDY."
 
-## Swapping in BattleLab
+## (V1) Swapping in BattleLab — superseded by docs/ART_SWAP.md for art
 BattleLab wasn't available here (see README). To use its combat instead of `battle-core.js`:
 1. Input contract: `lobby.partySpec()` → 8 × `{ id, name, isHuman, look, loadout: { hero, weapon, gear } }` and
    `CW.raidMods(pot)` → `{ enemyHp, enemyDmg, eliteChance, bossEnraged }`.

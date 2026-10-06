@@ -23,25 +23,31 @@
 
   // ---------------------------------------------------------------- CLASSES
   // Base combat stats. variants = hero name per rarity (a "Legendary Brute" is a Chaos Lord).
+  // atk values are race-calibrated (tools/class-calibrate.js) so class RNG doesn't decide the race — rarity should.
+  // Chaos World archetypes. Scrub / Knight / Archer are the established trio; the rest are drawn in the same system
+  // (js/chars.js). variants = hero name per rarity. The character's accent colour comes from the player, not the class.
   CW.CLASSES = {
-    brute:     { id: 'brute',     name: 'BRUTE',       role: 'dps',    range: 'melee',  dmgType: 'phys',  hp: 560, atk: 31, aspd: 0.95, crit: 5,  hat: 'hornhelm', tint: '#c0392b', skills: ['cleave', 'chaosSlam'],
-                 variants: { common: 'Pit Brute', rare: 'Blood Knight', epic: 'Warlord', legendary: 'Chaos Lord', mythic: 'The Unmade King' } },
-    ranger:    { id: 'ranger',    name: 'RANGER',      role: 'dps',    range: 'ranged', dmgType: 'phys',  hp: 400, atk: 30, aspd: 1.10, crit: 8,  hat: 'hood',     tint: '#2e8b57', skills: ['volley', 'deadeye'],
-                 variants: { common: 'Bog Ranger', rare: 'Hawkeye', epic: 'Storm Ranger', legendary: 'Starfall Hunter', mythic: 'Eye of Ruin' } },
-    hexer:     { id: 'hexer',     name: 'HEXER',       role: 'dps',    range: 'ranged', dmgType: 'spell', hp: 360, atk: 38, aspd: 0.75, crit: 6,  hat: 'wizard',   tint: '#6a3dcf', skills: ['fireball', 'meteor'],
-                 variants: { common: 'Hedge Hexer', rare: 'Ember Magus', epic: 'Void Warlock', legendary: 'Archmage of Rot', mythic: 'The Unwritten' } },
-    rogue:     { id: 'rogue',     name: 'ROGUE',       role: 'dps',    range: 'melee',  dmgType: 'phys',  hp: 420, atk: 24, aspd: 1.45, crit: 15, hat: 'mask',     tint: '#34495e', skills: ['backstab', 'smokeBomb'],
-                 variants: { common: 'Gutter Rat', rare: 'Cutpurse', epic: 'Shadowblade', legendary: "Nightmother's Knife", mythic: 'No-One' } },
-    bulwark:   { id: 'bulwark',   name: 'BULWARK',     role: 'tank',   range: 'melee',  dmgType: 'phys',  hp: 900, atk: 18, aspd: 0.80, crit: 4,  hat: 'bucket',   tint: '#7f8c8d', skills: ['taunt', 'rallyWall'],
-                 variants: { common: 'Door Guard', rare: 'Ironhide', epic: 'Bastion', legendary: 'Living Fortress', mythic: 'The Wall That Walks' } },
-    necro:     { id: 'necro',     name: 'NECROMANCER', role: 'dps',    range: 'ranged', dmgType: 'spell', hp: 400, atk: 27, aspd: 0.80, crit: 6,  hat: 'skullhood', tint: '#1abc9c', skills: ['raiseDead', 'soulDrain'],
-                 variants: { common: 'Grave Digger', rare: 'Bonecaller', epic: 'Lich Adept', legendary: 'Lord of Bones', mythic: "Death's Accountant" } },
-    cleric:    { id: 'cleric',    name: 'CLERIC',      role: 'healer', range: 'ranged', dmgType: 'spell', hp: 440, atk: 18, aspd: 0.80, crit: 5,  hat: 'mitre',    tint: '#f1c40f', skills: ['mend', 'sanctuary'],
-                 variants: { common: 'Candle Monk', rare: 'Lightbinder', epic: 'High Priest', legendary: 'Saint of Chaos', mythic: 'The Unholy Pope' } },
-    berserker: { id: 'berserker', name: 'BERSERKER',   role: 'dps',    range: 'melee',  dmgType: 'phys',  hp: 600, atk: 30, aspd: 1.00, crit: 7,  hat: 'viking',   tint: '#e67e22', skills: ['frenzy', 'rampage'],
+    scrub:     { id: 'scrub',     name: 'SCRUB',       role: 'dps',    range: 'melee',  dmgType: 'phys',  hp: 540, atk: 19.9, aspd: 1.00, crit: 8,  hat: 'bucket',    tint: '#b5835a', skills: ['flail', 'haymaker'],
+                 variants: { common: 'Scrub', rare: 'Seasoned Scrub', epic: 'Scrub Captain', legendary: 'Scrub Supreme', mythic: 'The Eternal Scrub' } },
+    knight:    { id: 'knight',    name: 'KNIGHT',      role: 'tank',   range: 'melee',  dmgType: 'phys',  hp: 860, atk: 45, aspd: 0.85, crit: 5,  hat: 'bucket',    tint: '#9aa5b1', skills: ['taunt', 'rallyWall'],
+                 variants: { common: 'Squire', rare: 'Knight', epic: 'Knight Errant', legendary: 'Knight Commander', mythic: 'The Iron Saint' } },
+    archer:    { id: 'archer',    name: 'ARCHER',      role: 'dps',    range: 'ranged', dmgType: 'phys',  hp: 400, atk: 16.8, aspd: 1.10, crit: 9,  hat: 'hood',      tint: '#2e8b57', skills: ['volley', 'deadeye'],
+                 variants: { common: 'Archer', rare: 'Sharpshooter', epic: 'Storm Archer', legendary: 'Starfall Archer', mythic: 'Eye of Ruin' } },
+    mage:      { id: 'mage',      name: 'MAGE',        role: 'dps',    range: 'ranged', dmgType: 'spell', hp: 360, atk: 29.8, aspd: 0.75, crit: 6,  hat: 'wizard',    tint: '#6a3dcf', skills: ['fireball', 'meteor'],
+                 variants: { common: 'Apprentice', rare: 'Ember Mage', epic: 'Void Mage', legendary: 'Archmage', mythic: 'The Unwritten' } },
+    berserker: { id: 'berserker', name: 'BERSERKER',   role: 'dps',    range: 'melee',  dmgType: 'phys',  hp: 600, atk: 24.9, aspd: 1.00, crit: 7,  hat: 'viking',    tint: '#e67e22', skills: ['frenzy', 'rampage'],
                  variants: { common: 'Bar Brawler', rare: 'Rage Viking', epic: 'Bloodfrenzy', legendary: 'Wrath Incarnate', mythic: 'The Red Mist' } },
+    rogue:     { id: 'rogue',     name: 'ROGUE',       role: 'dps',    range: 'melee',  dmgType: 'phys',  hp: 420, atk: 17.1, aspd: 1.45, crit: 15, hat: 'mask',      tint: '#34495e', skills: ['backstab', 'smokeBomb'],
+                 variants: { common: 'Gutter Rat', rare: 'Cutpurse', epic: 'Shadowblade', legendary: "Nightmother's Knife", mythic: 'No-One' } },
+    cleric:    { id: 'cleric',    name: 'CLERIC',      role: 'healer', range: 'ranged', dmgType: 'spell', hp: 460, atk: 56.1, aspd: 0.85, crit: 6,  hat: 'mitre',     tint: '#f1c40f', skills: ['mend', 'sanctuary'],
+                 variants: { common: 'Candle Monk', rare: 'Lightbinder', epic: 'High Priest', legendary: 'Saint of Chaos', mythic: 'The Unholy Pope' } },
+    necro:     { id: 'necro',     name: 'NECROMANCER', role: 'dps',    range: 'ranged', dmgType: 'spell', hp: 400, atk: 19.1, aspd: 0.80, crit: 6,  hat: 'skullhood', tint: '#1abc9c', skills: ['raiseDead', 'soulDrain'],
+                 variants: { common: 'Grave Digger', rare: 'Bonecaller', epic: 'Lich Adept', legendary: 'Lord of Bones', mythic: "Death's Accountant" } },
+    paladin:   { id: 'paladin',   name: 'PALADIN',     role: 'dps',    range: 'melee',  dmgType: 'phys',  hp: 640, atk: 29.1, aspd: 0.90, crit: 6,  hat: 'hornhelm',  tint: '#ffd166', skills: ['smite', 'consecrate'],
+                 variants: { common: 'Acolyte', rare: 'Paladin', epic: 'Crusader', legendary: 'Lightbringer', mythic: 'Dawn Incarnate' } },
   };
   CW.CLASS_IDS = Object.keys(CW.CLASSES);
+
 
   // Hero rarity scales the hero's own HP / ATK / skill power.
   CW.HERO_RARITY_STATS = {
@@ -56,21 +62,21 @@
   // Pool is PER CLASS PER RARITY so pulls always respect the hero.
   // kind = icon to draw. fx = on-hit special (see WEAPON_FX). Commons have no fx.
   CW.WEAPONS = {
-    brute: {
+    scrub: {
       common:    [{ name: 'Rusty Sword', kind: 'sword' }, { name: 'Plank With A Nail', kind: 'club' }],
       rare:      [{ name: 'Fire Axe', kind: 'axe', fx: 'burn' }, { name: 'Iron Cleaver', kind: 'cleaver', fx: 'bleed' }],
       epic:      [{ name: 'Flaming Greatsword', kind: 'greatsword', fx: 'burn' }, { name: 'Dread Maul', kind: 'hammer', fx: 'stun' }],
       legendary: [{ name: 'Chaos Blade', kind: 'greatsword', fx: 'voidEcho' }],
       mythic:    [{ name: 'Worldsplitter', kind: 'greatsword', fx: 'cataclysm' }],
     },
-    ranger: {
+    archer: {
       common:    [{ name: 'Bent Bow', kind: 'bow' }, { name: 'Slingshot', kind: 'sling' }],
       rare:      [{ name: 'Yew Longbow', kind: 'bow', fx: 'bleed' }, { name: 'Crossbow of Spite', kind: 'crossbow', fx: 'stun' }],
       epic:      [{ name: 'Storm Bow', kind: 'bow', fx: 'chain' }, { name: 'Venom Repeater', kind: 'crossbow', fx: 'poison' }],
       legendary: [{ name: 'Starfall Bow', kind: 'bow', fx: 'voidEcho' }],
       mythic:    [{ name: 'The Last Arrow', kind: 'bow', fx: 'cataclysm' }],
     },
-    hexer: {
+    mage: {
       common:    [{ name: 'Cracked Wand', kind: 'wand' }, { name: 'Magic-ish Stick', kind: 'stick' }],
       rare:      [{ name: 'Ember Staff', kind: 'staff', fx: 'burn' }, { name: 'Frost Rod', kind: 'wand', fx: 'stun' }],
       epic:      [{ name: 'Lightning Orb', kind: 'orb', fx: 'chain' }, { name: 'Grim Grimoire', kind: 'tome', fx: 'poison' }],
@@ -84,8 +90,8 @@
       legendary: [{ name: 'Nightfall Daggers', kind: 'dagger', fx: 'voidEcho' }],
       mythic:    [{ name: 'Knife of Tomorrow', kind: 'dagger', fx: 'cataclysm' }],
     },
-    bulwark: {
-      common:    [{ name: 'Bin Lid & Club', kind: 'shield' }, { name: 'Old Door', kind: 'shield' }],
+    knight: {
+      common:    [{ name: 'Bin Lid & Club', kind: 'shield' }, { name: 'Squire Sword', kind: 'sword' }],
       rare:      [{ name: 'Tower Shield', kind: 'shield', fx: 'stun' }, { name: 'Spiked Buckler', kind: 'shield', fx: 'bleed' }],
       epic:      [{ name: 'Dragonscale Bulwark', kind: 'shield', fx: 'burn' }, { name: 'Thunder Hammer', kind: 'hammer', fx: 'chain' }],
       legendary: [{ name: 'Aegis of Spite', kind: 'shield', fx: 'voidEcho' }],
@@ -111,6 +117,13 @@
       epic:      [{ name: 'Bloodreaver', kind: 'axe', fx: 'bleed' }, { name: 'Twin Choppers', kind: 'cleaver', fx: 'burn' }],
       legendary: [{ name: 'Gorefather Axe', kind: 'axe', fx: 'voidEcho' }],
       mythic:    [{ name: 'Rage Itself', kind: 'axe', fx: 'cataclysm' }],
+    },
+    paladin: {
+      common:    [{ name: 'Wooden Hammer', kind: 'hammer' }, { name: 'Training Mace', kind: 'mace' }],
+      rare:      [{ name: 'Blessed Hammer', kind: 'hammer', fx: 'holy' }, { name: 'Dawn Mace', kind: 'mace', fx: 'stun' }],
+      epic:      [{ name: 'Judgement Maul', kind: 'hammer', fx: 'chain' }, { name: 'Oathblade', kind: 'greatsword', fx: 'holy' }],
+      legendary: [{ name: 'Lightbringer', kind: 'greatsword', fx: 'voidEcho' }],
+      mythic:    [{ name: 'Hammer of Dawn', kind: 'hammer', fx: 'cataclysm' }],
     },
   };
 
@@ -226,11 +239,10 @@
   // ---------------------------------------------------------------- TIMINGS (seconds, scaled by fast mode)
   CW.TIMINGS = {
     intro: 2.2,
-    rollPhaseMax: 40,          // hard cap; idle humans get auto-pulled
-    humanAutoPullSec: 7,       // idle time before your pull fires itself
-    botFirstPull: [0.8, 3.0],
-    botBetweenPulls: [1.4, 3.6],
-    reelMin: 1.3,              // reel spin before reveal (rarity adds its own revealMs)
+    rollPhaseMax: 60,          // hard cap; idle humans get auto-pulled
+    humanAutoPullSec: 7,       // idle time before YOU start the next round automatically
+    reelMin: 1.3,              // reel spin before reveal for rerolls/shuffles (rarity adds its own revealMs)
+    roundPause: 1.5,           // breather after the last reel of a round lands
     preChaosPause: 1.6,
     launchCountdown: 3.5,
     fastScale: 0.18,           // fast mode multiplies all lobby timings by this
@@ -240,8 +252,8 @@
   // ---------------------------------------------------------------- ECONOMY / REWARDS
   CW.ECONOMY = {
     startCoins: 800, startChaos: 1, startJack: 2, startGrief: 1,
-    winBase: 250,
-    mvpBonus: 40,
+    winBase: 400,              // V2: base raid reward before placement % and raid pot
+    mvpBonus: 100,             // V2: winner (1st place) bonus, not multiplied
     lossConsolation: 60,
     tokenDrops: { chaos: 0.14, jack: 0.12, grief: 0.10 }, // per win, scaled up by pot (x pot)
     lossTokenDrop: 0.03,
@@ -252,13 +264,13 @@
   // ---------------------------------------------------------------- BOTS
   // Weighted personalities. w* = chance per "think" to try that action.
   CW.BOT_PERSONALITIES = {
-    greedy:    { label: 'THE GREEDY ONE', think: [1.6, 3.0], wBoost: 0.70, wSteal: 0.10, wGrief: 0.06, wReroll: 0.15, wShuffle: 0.02, boostCeil: 200, boostMax: 2, griefMax: 1, chatty: 0.6 },
-    rat:       { label: 'THE RAT',        think: [1.4, 2.6], wBoost: 0.05, wSteal: 0.80, wGrief: 0.2, wReroll: 0.10, wShuffle: 0.02, boostCeil: 140, boostMax: 0, griefMax: 1, chatty: 0.7 },
-    griefer:   { label: 'THE GRIEFER',    think: [1.3, 2.4], wBoost: 0.08, wSteal: 0.25, wGrief: 0.85, wReroll: 0.08, wShuffle: 0.00, boostCeil: 160, boostMax: 0, griefMax: 2, chatty: 0.8 },
-    coward:    { label: 'THE COWARD',     think: [2.4, 4.0], wBoost: 0.25, wSteal: 0.05, wGrief: 0.03, wReroll: 0.30, wShuffle: 0.00, boostCeil: 130, boostMax: 1, griefMax: 0, chatty: 0.5 },
-    highroller:{ label: 'THE HIGH ROLLER',think: [1.3, 2.4], wBoost: 0.20, wSteal: 0.20, wGrief: 0.08, wReroll: 0.85, wShuffle: 0.35, boostCeil: 200, boostMax: 1, griefMax: 1, chatty: 0.6 },
-    hype:      { label: 'THE HYPE MAN',   think: [2.0, 3.4], wBoost: 0.35, wSteal: 0.10, wGrief: 0.05, wReroll: 0.20, wShuffle: 0.05, boostCeil: 190, boostMax: 1, griefMax: 1, chatty: 1.0 },
-    grudge:    { label: 'THE GRUDGE',     think: [1.8, 3.0], wBoost: 0.10, wSteal: 0.30, wGrief: 0.3, wReroll: 0.20, wShuffle: 0.02, boostCeil: 170, boostMax: 0, griefMax: 1, chatty: 0.6, revenge: 0.9 },
+    greedy:    { label: 'THE GREEDY ONE', think: [1.6, 3.0], wBoost: 0.70, wSteal: 0.10, wGrief: 0.06, wReroll: 0.15, wShuffle: 0.02, boostCeil: 200, boostMax: 2, griefMax: 1, chatty: 0.6, protect: { legendary: 0.0, mythic: 0.9 }, itemHold: [6, 11], boonPrefs: { fortune: 2, executioner: 1 } },
+    rat:       { label: 'THE RAT',        think: [1.4, 2.6], wBoost: 0.05, wSteal: 0.80, wGrief: 0.2, wReroll: 0.10, wShuffle: 0.02, boostCeil: 140, boostMax: 0, griefMax: 1, chatty: 0.7, protect: { legendary: 0.05, mythic: 0.1 }, itemHold: [1, 3], itemTarget: 'leader', boonPrefs: { fortune: 2 } },
+    griefer:   { label: 'THE GRIEFER',    think: [1.3, 2.4], wBoost: 0.08, wSteal: 0.25, wGrief: 0.85, wReroll: 0.08, wShuffle: 0.00, boostCeil: 160, boostMax: 0, griefMax: 2, chatty: 0.8, protect: { legendary: 0.3, mythic: 0.5 }, itemHold: [1, 3], itemTarget: 'cluster', boonPrefs: { chaosBlessing: 2 } },
+    coward:    { label: 'THE COWARD',     think: [2.4, 4.0], wBoost: 0.25, wSteal: 0.05, wGrief: 0.03, wReroll: 0.30, wShuffle: 0.00, boostCeil: 130, boostMax: 1, griefMax: 0, chatty: 0.5, protect: { legendary: 0.85, mythic: 0.95 }, itemHold: [3, 6], holdShield: true, boonPrefs: { ironSkin: 2, secondWind: 2 } },
+    highroller:{ label: 'THE HIGH ROLLER',think: [1.3, 2.4], wBoost: 0.20, wSteal: 0.20, wGrief: 0.08, wReroll: 0.85, wShuffle: 0.35, boostCeil: 200, boostMax: 1, griefMax: 1, chatty: 0.6, protect: { legendary: 0.08, mythic: 0.15 }, itemHold: [0, 0.4], boonPrefs: { chaosBlessing: 2, criticalMass: 1 } },
+    hype:      { label: 'THE HYPE MAN',   think: [2.0, 3.4], wBoost: 0.35, wSteal: 0.10, wGrief: 0.05, wReroll: 0.20, wShuffle: 0.05, boostCeil: 190, boostMax: 1, griefMax: 1, chatty: 1.0, protect: { legendary: 0.4, mythic: 0.6 }, itemHold: [1, 4], boonPrefs: { bloodlust: 2 } },
+    grudge:    { label: 'THE GRUDGE',     think: [1.8, 3.0], wBoost: 0.10, wSteal: 0.30, wGrief: 0.3, wReroll: 0.20, wShuffle: 0.02, boostCeil: 170, boostMax: 0, griefMax: 1, chatty: 0.6, revenge: 0.9, protect: { legendary: 0.35, mythic: 0.6 }, itemHold: [1, 4], itemTarget: 'revenge', boonPrefs: { executioner: 2 } },
   };
 
   // look = Overlord appearance. body/belly colours, horns, eyes, mouth, extra.
@@ -269,7 +281,7 @@
     { name: 'SIRLOINS',      personality: 'rat',        level: 15, look: { body: '#a16207', belly: '#e9c98a', horns: 'ears',    eyes: 'shifty', mouth: 'teeth', extra: 'whiskers' } },
     { name: 'NANA_RAGE',     personality: 'griefer',    level: 31, look: { body: '#db2777', belly: '#fbcfe8', horns: 'spike',   eyes: 'angry',  mouth: 'fangs', extra: 'curlers' } },
     { name: 'MOTHMAN_TTV',   personality: 'coward',     level: 4,  look: { body: '#a3a3a3', belly: '#e5e5e5', horns: 'antenna', eyes: 'worried',mouth: 'wobble',extra: 'none' } },
-    { name: 'xX_GOBLINA_Xx', personality: 'grudge',     level: 19, look: { body: '#10b981', belly: '#a7f3d0', horns: 'ears',    eyes: 'angry',  mouth: 'fangs', extra: 'nosering' } },
+    { name: 'QUITCUZZZ',     personality: 'grudge',     level: 19, look: { body: '#10b981', belly: '#a7f3d0', horns: 'ears',    eyes: 'angry',  mouth: 'fangs', extra: 'nosering' } },
   ];
   CW.HUMAN_PROFILE = { name: 'YOU', level: 12, look: { body: '#8b5cf6', belly: '#ddd6fe', horns: 'curl', eyes: 'big', mouth: 'grin', extra: 'none' } };
 
@@ -296,48 +308,47 @@
     shuffle:     ['YOLO', 'all in', 'send it'],
     taunt:       ['ez', 'scared?', 'gg already', 'lmao'],
     launch:      ['here we go', 'stay behind me', 'gl', 'dont die'],
+    lastReel:    ['still going…', 'oh no', 'COME ON', 'here it comes', 'why is it still spinning'],
+    protect:     ['mine. forever.', 'locked in', 'nobody touches this', 'ward up'],
+    wardBroken:  ['WARD BROKEN?!', 'I PAID FOR THAT', 'that was ALL my coins', 'actually crying'],
+    ready:       ['ready', 'lets go', 'k', 'gl all'],
+    vote:        ['trust me on this one', 'easy pick', 'come on guys', 'vote with me'],
+    itemBomb:    ['eat bomb', 'catch', 'fore!'],
+    itemGhost:   ['borrowing this', 'nice weapon. mine now', "I'll give it back. maybe"],
+    ghosted:     ['NOT THE STAFF', 'give that back', 'HEY', 'that is MINE'],
+    lightning:   ['LIGHTNING?!', 'who did that', 'cant move!!'],
+    crownHit:    ['not again', 'ok who sent that', 'heavy is the head'],
+    leader:      ['first place looks comfy', 'catch me', 'too easy'],
+    overtaken:   ['NO', 'how', 'unbelievable'],
   };
 
   // ---------------------------------------------------------------- DUNGEON
   CW.BIOMES = [
-    { id: 'gutter', name: 'THE GUTTERWORKS',  difficulty: 2, sky: '#1d2a1f', floor: '#33402b', glow: '#9cff57', enemies: ['sludge', 'ratman', 'gutterGob'], elite: 'bigRat',   boss: 'grubmaw' },
-    { id: 'bones',  name: 'THE BONE ORCHARD', difficulty: 3, sky: '#221a2b', floor: '#3b3045', glow: '#c9b8ff', enemies: ['skelly', 'boneDog', 'ghoul'],     elite: 'boneKnight', boss: 'orchardKing' },
-    { id: 'molten', name: 'THE MOLTEN CRYPT', difficulty: 3, sky: '#2a1512', floor: '#4a2418', glow: '#ff8a3d', enemies: ['imp', 'magmaSlug', 'cinderGob'],  elite: 'magmaBrute', boss: 'pyreMother' },
+    { id: 'gutter', name: 'THE GUTTERWORKS',  difficulty: 2, sky: '#1d2a1f', floor: '#33402b', glow: '#9cff57', boss: 'grubmaw' },
+    { id: 'bones',  name: 'THE BONE ORCHARD', difficulty: 3, sky: '#221a2b', floor: '#3b3045', glow: '#c9b8ff', boss: 'orchardKing' },
+    { id: 'molten', name: 'THE MOLTEN CRYPT', difficulty: 3, sky: '#2a1512', floor: '#4a2418', glow: '#ff8a3d', boss: 'pyreMother' },
   ];
 
-  // hp/atk are base values before raid modifiers. size = draw scale. shape = drawer.
-  CW.ENEMIES = {
-    sludge:      { name: 'Sludge',         hp: 820,  atk: 22, aspd: 0.7, shape: 'blob',   color: '#7fbf3f', size: 1.0 },
-    ratman:      { name: 'Ratman',         hp: 640,  atk: 26, aspd: 1.0, shape: 'rat',    color: '#8d6e63', size: 0.95 },
-    gutterGob:   { name: 'Gutter Goblin',  hp: 720,  atk: 24, aspd: 0.9, shape: 'gob',    color: '#6fae4f', size: 0.95 },
-    bigRat:      { name: 'ELITE Rat King', hp: 2600, atk: 46, aspd: 0.8, shape: 'rat',    color: '#5d4037', size: 1.4, elite: true },
-    grubmaw:     { name: 'GRUBMAW THE BLOATED', hp: 11000, atk: 60, aspd: 0.65, shape: 'blob', color: '#9ccc65', size: 2.3, boss: true },
-    skelly:      { name: 'Skelly',         hp: 640,  atk: 25, aspd: 1.0, shape: 'skull',  color: '#e8e2d0', size: 0.95 },
-    boneDog:     { name: 'Bone Dog',       hp: 600,  atk: 27, aspd: 1.2, shape: 'rat',    color: '#d7ccc8', size: 0.9 },
-    ghoul:       { name: 'Ghoul',          hp: 820,  atk: 23, aspd: 0.8, shape: 'gob',    color: '#8e9aaf', size: 1.0 },
-    boneKnight:  { name: 'ELITE Bone Knight', hp: 2700, atk: 44, aspd: 0.8, shape: 'skull', color: '#bdb6a3', size: 1.4, elite: true },
-    orchardKing: { name: 'THE ORCHARD KING', hp: 11500, atk: 58, aspd: 0.7, shape: 'skull', color: '#cfc6b0', size: 2.3, boss: true },
-    imp:         { name: 'Imp',            hp: 600,  atk: 27, aspd: 1.1, shape: 'gob',    color: '#ff5a36', size: 0.85 },
-    magmaSlug:   { name: 'Magma Slug',     hp: 880,  atk: 21, aspd: 0.7, shape: 'blob',   color: '#ff8a3d', size: 1.0 },
-    cinderGob:   { name: 'Cinder Goblin',  hp: 700,  atk: 25, aspd: 0.9, shape: 'gob',    color: '#b0411f', size: 0.95 },
-    magmaBrute:  { name: 'ELITE Magma Brute', hp: 2800, atk: 45, aspd: 0.75, shape: 'blob', color: '#e8590c', size: 1.4, elite: true },
-    pyreMother:  { name: 'PYRE MOTHER',    hp: 11200, atk: 60, aspd: 0.68, shape: 'gob',  color: '#ff6b2b', size: 2.3, boss: true },
+  // One enormous boss per dungeon. hp/atk before raid modifiers + BATTLE scales.
+  CW.BOSSES = {
+    grubmaw:     { name: 'GRUBMAW THE BLOATED', hp: 30000, atk: 48, skin: '#8fc25a', dark: '#4b7a2a', horn: '#efe0b0', eye: '#ffe14d', style: 'tusks' },
+    orchardKing: { name: 'THE ORCHARD KING',    hp: 30000, atk: 48, skin: '#cfc6b0', dark: '#7b715c', horn: '#6b4f2a', eye: '#b6ff3b', style: 'antlers' },
+    pyreMother:  { name: 'PYRE MOTHER',         hp: 30000, atk: 48, skin: '#e8643a', dark: '#8a2a12', horn: '#2b1a14', eye: '#fff07a', style: 'flames' },
   };
-  // Waves: counts of regular mobs; last wave = boss + adds.
-  CW.WAVES = [
-    { mobs: 4, eliteRoll: false },
-    { mobs: 5, eliteRoll: true },
-    { boss: true, adds: 2 },
-  ];
+
   CW.BATTLE = {
-    enemyHpScale: 1.4,         // global tuning knobs
-    enemyAtkScale: 2.3,
-    baseEliteChance: 0.15,
-    waveHealPct: 0.30,         // party heals this % between waves
+    enemyHpScale: 0.95,        // global tuning knobs (boss HP / damage) — see tools/difficulty-sweep.js
+    enemyAtkScale: 4.6,
+    baseEliteChance: 0.15,     // (kept for raidMods compatibility)
     critMult: 1.8,
-    bossEnrage: { aspd: 0.25, atk: 0.12, addsAtHalf: 3 },
-    maxTime: 150,              // safety: boss wins on timeout
+    enrageAtPct: 0.25,         // boss enrages below this HP
+    enrage: { aspd: 0.35, atk: 0.20 },
+    chaosRaidEnrage: { atk: 0.25, every: 0.8, hp: 0.15 }, // x2.0 pot: tougher boss that hits harder and attacks more often
+    maxTime: 120,              // berserk timer: boss obliterates the raid
     stunSec: 1.0,
+    koSec: 6,                  // knocked-out raiders get back up after this…
+    respawnPct: 0.5,           // …at this % HP. If ALL 8 are down at once → WIPE.
+    healScoreWeight: 0.1,      // race score = boss damage + this × healing (healing can't dominate)
   };
 
   // ---------------------------------------------------------------- SKILLS
@@ -359,5 +370,107 @@
     sanctuary: { name: 'SANCTUARY',   cd: 18, type: 'healParty', power: 0.25, revive: true, icon: 'bell' },
     frenzy:    { name: 'FRENZY',      cd: 10, type: 'buffSelf', aspd: 0.6, dur: 5, icon: 'knuckles' },
     rampage:   { name: 'RAMPAGE',     cd: 16, type: 'random', hits: 4, power: 1.25, lifesteal: 0.3, icon: 'axe' },
+    flail:     { name: 'FLAIL',       cd: 6,  type: 'random', hits: 4, power: 0.8,  icon: 'club' },
+    haymaker:  { name: 'HAYMAKER',    cd: 14, type: 'single', power: 3.6, critBonus: 40, icon: 'knuckles' },
+    smite:     { name: 'SMITE',       cd: 7,  type: 'single', power: 2.4, healParty: 0.05, icon: 'hammer' },
+    consecrate:{ name: 'CONSECRATE',  cd: 16, type: 'aoe',    power: 1.9, shieldParty: 0.06, icon: 'greatsword' },
   };
+
+  // =================================================================== V2 TUNING
+  // ---------------------------------------------------------------- SIMULTANEOUS ROUNDS
+  // Each round spins EVERYONE's slot at once; reels land one by one. Big rarities (and fake-outs) land last.
+  CW.ROUND_REEL = {
+    firstLand: 1.15,           // first reel lands after this
+    step: [0.14, 0.34],        // gap between ordinary landings
+    dramaGap: [0.65, 1.0],     // extra pause before the "still spinning…" reels
+    dramaStep: [0.55, 0.9],    // gap between dramatic landings
+    epicDramaChance: 0.45,     // epics sometimes join the dramatic tail
+    fakeoutChance: 0.05,       // per reel: a Common that hangs on like a Legendary
+    lastSpinningAfter: 0.5,    // announce "still spinning" if the tail is at least this long
+  };
+
+  // ---------------------------------------------------------------- PROTECT
+  // Legendary+/Mythic only. Costs ALL your coins and locks you out of every other paid lobby action.
+  CW.PROTECTION_STEAL_MULTIPLIER = 0.25;   // 12% legendary steal → 3%. Never absolute.
+  CW.PROTECT = {
+    eligible: ['legendary', 'mythic'],
+    minCoins: 1,               // must have something to give
+    griefPassChance: 0.3,      // Grief Raid: a curse only breaks a ward this often (cost is spent either way)
+  };
+
+  // ---------------------------------------------------------------- BOONS (group votes)
+  // Applied to ALL raiders. Effects read by battle-core.
+  CW.BOON_OPTIONS = {
+    bloodlust:     { name: 'BLOODLUST',        desc: '+15% ATTACK SPEED',            aspd: 0.15,       color: '#ff3b3b', icon: 'axe' },
+    ironSkin:      { name: 'IRON SKIN',        desc: '+20% DEFENCE',                 def: 0.20,        color: '#9aa5b1', icon: 'plate' },
+    fortune:       { name: "FORTUNE'S FAVOUR", desc: 'ITEM REELS COME FASTER',       itemRate: 0.33,   color: '#ffbf1a', icon: 'crown' },
+    executioner:   { name: 'EXECUTIONER',      desc: '+25% DMG WHILE BOSS < 25% HP', execute: 0.25,    color: '#c0392b', icon: 'greatsword' },
+    criticalMass:  { name: 'CRITICAL MASS',    desc: '+10% CRIT CHANCE',             crit: 10,         color: '#ffe14d', icon: 'dagger' },
+    vampiric:      { name: 'VAMPIRIC PACT',    desc: '5% LIFESTEAL',                 lifesteal: 0.05,  color: '#9b111e', icon: 'cloak' },
+    chaosBlessing: { name: 'CHAOS BLESSING',   desc: 'WILD DAMAGE, HIGHER AVERAGE',  variance: [0.35, 2.05], color: '#ff2fa0', icon: 'orb' },
+    secondWind:    { name: 'SECOND WIND',      desc: 'ONE FREE RECOVERY AT LOW HP',  secondWind: 0.6, color: '#7dff7a', icon: 'bell' },
+  };
+  CW.BOON_VOTE = {
+    seconds: 10,               // human gets ~10s
+    choices: 3,
+    botVoteWindow: [1.2, 8.5], // bots cast during this part of the timer
+    herd: 0.5,                 // bots lean towards whatever is already winning
+    midFightAtPct: 0.5,        // second vote when boss drops to this HP
+    tieBreakSec: 1.4,          // visible tie-break spin
+  };
+
+  // ---------------------------------------------------------------- BATTLE ITEMS (Mario-Kart-ish)
+  CW.ITEM_INTERVAL = 10;       // seconds between item reels (before rank modifiers)
+  CW.ITEM_REEL_SEC = 1.4;      // reel spin time
+  CW.ITEM_FIRST = [3, 7];      // first reel arrives in this window
+  CW.LIGHTNING_DURATION = 3.5; // try 3 / 5 / 10 in the debug panel
+  CW.GHOST_DURATION = 8;
+  CW.SWAP_CURSE_DURATION = 8;
+  CW.COMEBACK_STRENGTH = 1.0;  // 0 = everyone draws from the same odds, 1 = full position weighting, >1 = exaggerated
+  // Faster reels for those behind (multiplies the countdown speed), index = rank-1.
+  CW.ITEM_RATE_BY_RANK = [0.85, 0.92, 1.0, 1.0, 1.05, 1.1, 1.2, 1.3];
+  CW.BATTLE_ITEMS = {
+    haste:        { name: 'HASTE',         kind: 'self',   icon: 'boots',     color: '#7fdbff', desc: '+40% ATTACK SPEED · 6s', aspd: 0.4, dur: 6 },
+    surge:        { name: 'POWER SURGE',   kind: 'self',   icon: 'knuckles',  color: '#ff7a1a', desc: '+35% DAMAGE · 5s', dmg: 0.35, dur: 5 },
+    shield:       { name: 'CHAOS SHIELD',  kind: 'self',   icon: 'shield',    color: '#ffe14d', desc: 'INVULNERABLE · 4.5s (boss + rivals)', dur: 4.5 },
+    bomb:         { name: 'BOMB',          kind: 'target', icon: 'bomb',      color: '#ff3b3b', desc: 'STUNS TARGET + 2 NEARBY RIVALS', stun: 1.6, splash: 2 },
+    hex:          { name: 'HEX',           kind: 'target', icon: 'skullstaff',color: '#b44dff', desc: '-35% ATK SPEED, -25% DMG · 5s', aspd: -0.35, dmg: -0.25, dur: 5 },
+    ghost:        { name: 'GHOST',         kind: 'target', icon: 'ghost',     color: '#c9f1ff', desc: 'SWAP WEAPONS WITH A RIVAL · 8s', slot: 'weapon' },
+    swapCurse:    { name: 'SWAP CURSE',    kind: 'target', icon: 'swap',      color: '#c45cff', desc: 'SWAP YOUR WORST PIECE WITH THEIRS · 8s' },
+    lightning:    { name: 'LIGHTNING',     kind: 'auto',   icon: 'bolt',      color: '#fff07a', desc: 'STUNS EVERY RIVAL' },
+    crownBreaker: { name: 'CROWN BREAKER', kind: 'auto',   icon: 'crown',     color: '#ff2fa0', desc: 'HUNTS 1ST PLACE', warn: 1.6, stun: 2.5, dmg: -0.3, dur: 5 },
+    tonic:        { name: 'CHAOS TONIC',   kind: 'self',   icon: 'bottle',    color: '#7dff7a', desc: 'RANDOM GOOD THING' },
+    mimic:        { name: 'MIMIC',         kind: 'self',   icon: 'mimic',     color: '#d6a8ff', desc: "COPY THE LEADER'S BUFFS" },
+    purge:        { name: 'PURGE',         kind: 'self',   icon: 'candle',    color: '#ffffff', desc: 'CLEANSE ONE DEBUFF' },
+  };
+  // Weights per race bucket: [1st, 2nd–3rd, 4th–6th, 7th–8th]. Weighting, not guarantees.
+  CW.POSITION_ITEM_WEIGHTS = {
+    haste:        [16, 12, 10, 8],
+    surge:        [14, 12, 10, 9],
+    shield:       [18, 10, 6, 4],
+    purge:        [12, 7, 5, 3],
+    tonic:        [12, 10, 8, 5],
+    bomb:         [4, 10, 12, 11],
+    hex:          [5, 10, 11, 8],
+    mimic:        [2, 6, 7, 6],
+    ghost:        [2, 6, 10, 13],
+    swapCurse:    [1, 4, 7, 8],
+    crownBreaker: [0, 3, 7, 11],
+    lightning:    [0, 1, 4, 9],
+  };
+  CW.rankBucket = (rank) => (rank <= 1 ? 0 : rank <= 3 ? 1 : rank <= 6 ? 2 : 3);
+
+  // ---------------------------------------------------------------- BOSS ATTACKS (telegraphed)
+  CW.BOSS_ATTACKS = {
+    slam:    { name: 'GROUND SLAM',   weight: 3, warn: 1.25, power: 1.6, radius: 95,  stun: 0.8 },
+    beam:    { name: 'SHADOW BEAM',   weight: 3, warn: 1.0,  power: 1.3, targets: 3 },
+    roar:    { name: 'ROAR',          weight: 2, warn: 0.9,  aspd: -0.3, dur: 3.5, power: 0.25 },
+    meteors: { name: 'CHAOS METEORS', weight: 2, warn: 1.4,  power: 1.2, count: 4, radius: 55 },
+  };
+  CW.BOSS_ATTACK_EVERY = [3.4, 4.6]; // seconds between attacks (enrage speeds this up)
+
+  // ---------------------------------------------------------------- PLACEMENT REWARDS
+  // % of base raid reward by finishing place, THEN × raid pot. 1st also gets ECONOMY.mvpBonus + a Jack Token.
+  CW.PLACEMENT_REWARDS = [1.0, 0.85, 0.75, 0.65, 0.6, 0.55, 0.5, 0.45];
+  CW.RACE = { rankEvery: 0.25, leaderAnnounceCd: 2.5 };
 })(typeof window !== 'undefined' ? window : globalThis);

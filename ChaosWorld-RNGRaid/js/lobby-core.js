@@ -37,7 +37,7 @@
       this.mode = CW.MODES[opts.mode || 'rng'];
       this.seed = opts.seed >>> 0 || CW.randomSeed();
       this.rng = new CW.RNG(this.seed);
-      this.debug = opts.debug || { forceRarity: null, forceRarityBots: false, forceSteal: null };
+      this.debug = opts.debug || { forceRarity: null, forceRarityBots: false, forceSteal: null, forceVote: null };
       this.k = opts.fast ? CW.TIMINGS.fastScale : 1;
       this.firstSession = !!opts.firstSession;
       this.time = 0;
@@ -45,6 +45,11 @@
       this.phaseStart = 0;
       this.phaseEnd = CW.TIMINGS.intro * this.k;
       this.potX100 = CW.RAID_POT.start;
+      this.round = 0;              // 0 hero · 1 weapon · 2 gear
+      this.roundState = 'waiting'; // waiting (for YOU to pull) → spinning → pause
+      this.roundReadyAt = 0;
+      this.boons = [];             // won in the pre-raid vote, handed to the battle
+      this.vote = null;
       this.events = [];
       this.log = []; // every event ever, for tests / results
       this.pending = [];
@@ -82,7 +87,8 @@
         pullsDone: 0, nextPullAt: Infinity, idleSince: 0, joined: d.isHuman,
         griefsUsed: 0, rerollsUsed: 0, shieldUntil: 0, guardUntil: 0, nextThinkAt: Infinity,
         lastHitBy: null, chatCd: 0, status: '', statusUntil: 0,
-        stats: { steals: 0, stealFails: 0, stolenFrom: 0, griefsDone: 0, griefed: 0, boosts: 0, rerolls: 0, shuffles: 0, legendaries: 0 },
+        locked: false, protectedSlot: null, ready: false, protectDecided: false,
+        stats: { steals: 0, stealFails: 0, stolenFrom: 0, griefsDone: 0, griefed: 0, boosts: 0, rerolls: 0, shuffles: 0, legendaries: 0, protects: 0, wardsBroken: 0 },
       });
     }
 
@@ -143,9 +149,9 @@
     _reelSec(rarity, fakeout) {
       return (CW.TIMINGS.reelMin + CW.RARITY[rarity].revealMs / 1000 + (fakeout ? 1.4 : 0)) * this.k;
     }
-    _place(p, slot, item, delaySec = 0, cause = 'pull') {
-      const fakeout = item.rarity === 'common' && this.rng.chance(CW.FAKEOUT_CHANCE);
-      const dur = this._reelSec(item.rarity, fakeout) * (cause === 'pull' ? 1 : 0.75);
+    _place(p, slot, item, delaySec = 0, cause = 'pull', override = null) {
+      const fakeout = override ? override.fakeout : item.rarity === 'common' && this.rng.chance(CW.FAKEOUT_CHANCE);
+      const dur = override ? override.dur : this._reelSec(item.rarity, fakeout) * (cause === 'pull' ? 1 : 0.75);
       p.loadout[slot] = item;
       p.revealAt[slot] = this.time + delaySec + dur;
       this.emit({ type: 'spin', pid: p.id, slot, item, dur, delay: delaySec, fakeout, cause });
@@ -153,31 +159,67 @@
       return item;
     }
 
-    // ------------------------------------------------------------ PULLS
+    // ------------------------------------------------------------ PULLS (simultaneous rounds)
+    // YOU start each round; every player's reel for that slot spins at once and they land one by one.
     canPull(p) {
-      if (this.phase !== 'rolling' || p.pullsDone >= 3) return false;
-      if (p.pullsDone > 0 && this.time < p.revealAt[SLOTS[p.pullsDone - 1]]) return false;
-      return true;
+      return !!(p && p.isHuman && this.phase === 'rolling' && this.roundState === 'waiting' && this.round < 3);
     }
     pull(pid) {
       const p = typeof pid === 'string' ? this.get(pid) : pid;
       if (!this.canPull(p)) return null;
-      const slot = SLOTS[p.pullsDone];
-      const item = this._make(p, slot, this.rollRarity(p));
-      p.pullsDone++;
-      this._place(p, slot, item);
-      return item;
+      return this.startRound();
     }
     humanPull() { return this.pull(this.human); }
+
+    // Landing schedule: ordinary results drop in quickly in random order; Legendary+/fake-outs (and some Epics)
+    // are held back to the end so the lobby watches the last reels spin.
+    startRound() {
+      const slot = SLOTS[this.round];
+      const R = CW.ROUND_REEL;
+      const results = this.players.map((p) => {
+        const item = this._make(p, slot, this.rollRarity(p));
+        if (slot === 'hero') p.loadout.hero = item; // so later class picks in this round spread out
+        const tier = tierOf(item.rarity);
+        const fakeout = tier === 0 && this.rng.chance(R.fakeoutChance);
+        const drama = tier >= 3 || fakeout || (tier === 2 && this.rng.chance(R.epicDramaChance));
+        return { p, item, tier, fakeout, drama, order: this.rng.next() };
+      });
+      const quick = results.filter((r) => !r.drama).sort((a, b) => a.order - b.order);
+      const slow = results.filter((r) => r.drama).sort((a, b) => a.tier - b.tier || a.order - b.order); // biggest lands last
+      let t = R.firstLand;
+      quick.forEach((r, i) => { if (i) t += this.rng.range(...R.step); r.land = t; });
+      if (slow.length) {
+        t += this.rng.range(...R.dramaGap);
+        slow.forEach((r, i) => { if (i) t += this.rng.range(...R.dramaStep); r.land = t; });
+      }
+      for (const r of results) {
+        r.p.pullsDone = this.round + 1;
+        this._place(r.p, slot, r.item, 0, 'pull', { dur: r.land * this.k, fakeout: r.fakeout });
+      }
+      this.roundState = 'spinning';
+      this.roundEndAt = this.time + t * this.k;
+      this.emit({ type: 'roundStart', round: this.round, slot, lands: results.map((r) => ({ pid: r.p.id, at: r.land * this.k })) });
+      // "still spinning…" moment: when only the dramatic tail is left
+      const ordered = results.slice().sort((a, b) => a.land - b.land);
+      const last = ordered[ordered.length - 1], prev = ordered[ordered.length - 2];
+      if (prev && last.land - prev.land >= R.lastSpinningAfter) {
+        const tail = ordered.filter((r) => r.land > prev.land - 0.01 && r !== prev).concat(slow.length > 1 ? [] : []);
+        this._later((prev.land + 0.15) * this.k, () => {
+          const spinning = this.players.filter((p) => this.time < p.revealAt[slot]);
+          if (!spinning.length) return;
+          this.emit({ type: 'lastSpinning', slot, pids: spinning.map((p) => p.id) });
+          for (const o of this.players) if (!spinning.includes(o)) this.emote(o, 'look', spinning[0].id);
+          this._crowdSay(spinning[0], 'lastReel', {}, 1, 0.8);
+        });
+        void tail;
+      }
+      return results.find((r) => r.p.isHuman).item;
+    }
 
     _onReveal(p, slot, item, cause) {
       if (p.loadout[slot] !== item) return; // replaced mid-spin
       const r = CW.RARITY[item.rarity];
       this.emit({ type: 'reveal', pid: p.id, slot, item, cause });
-      if (cause === 'pull' && !p.isHuman && p.pullsDone < 3) {
-        p.nextPullAt = this.time + this.rng.range(...CW.TIMINGS.botBetweenPulls) * this.k;
-      }
-      if (cause === 'pull' && p.isHuman) p.idleSince = this.time;
       if (r.tier >= 3) {
         p.stats.legendaries++;
         this.stats.legendaryPulls++;
@@ -206,9 +248,38 @@
 
     // ------------------------------------------------------------ CHAOS ACTIONS
     inFlight(item) { return !!(item && item._busy); }
+    static get LOCKED() { return { ok: false, reason: 'LOCKED IN (PROTECTED)', lockedIn: true }; }
+
+    // PROTECT: ward one Legendary/Mythic item. Costs ALL your coins and ends your lobby manipulation.
+    protectCheck(p, slot) {
+      if (this.phase !== 'chaos') return { ok: false, reason: 'NOT NOW' };
+      if (p.locked) return Lobby.LOCKED;
+      const item = p.loadout[slot];
+      if (!item || !this.isRevealed(p, slot) || this.inFlight(item)) return { ok: false, reason: 'BUSY' };
+      if (!CW.PROTECT.eligible.includes(item.rarity)) return { ok: false, reason: 'LEGENDARY+ ONLY' };
+      if (p.wallet.coins < CW.PROTECT.minCoins) return { ok: false, reason: 'NO COINS TO SPEND' };
+      return { ok: true, cost: p.wallet.coins, item };
+    }
+    protect(pid, slot) {
+      const p = typeof pid === 'string' ? this.get(pid) : pid;
+      const chk = this.protectCheck(p, slot);
+      if (!chk.ok) { this.emit({ type: 'denied', pid: p.id, action: 'protect', reason: chk.reason }); return chk; }
+      p.wallet.coins = 0;
+      p.locked = true;
+      p.protectedSlot = slot;
+      chk.item.protected = true;
+      p.stats.protects++;
+      this.emit({ type: 'protect', pid: p.id, slot, item: chk.item, spent: chk.cost });
+      this.status(p, 'WARDED', 30);
+      this.emote(p, 'cheer');
+      if (!p.isHuman) this.say(p, 'protect', {}, true);
+      this._crowdReact(p, 'look', 0.5);
+      return { ok: true, spent: chk.cost };
+    }
 
     rerollCheck(p, slot) {
       if (this.phase !== 'chaos') return { ok: false, reason: 'NOT NOW' };
+      if (p.locked) return Lobby.LOCKED;
       const item = p.loadout[slot];
       if (!item || !this.isRevealed(p, slot) || this.inFlight(item)) return { ok: false, reason: 'BUSY' };
       const cost = this.rerollCost(p);
@@ -241,6 +312,7 @@
 
     shuffleCheck(p) {
       if (this.phase !== 'chaos') return { ok: false, reason: 'NOT NOW' };
+      if (p.locked) return Lobby.LOCKED;
       if (SLOTS.some((s) => !this.isRevealed(p, s) || this.inFlight(p.loadout[s]))) return { ok: false, reason: 'BUSY' };
       if ((p.wallet[CW.SHUFFLE.token] || 0) < CW.SHUFFLE.amount) return { ok: false, reason: 'NEED A CHAOS TOKEN' };
       return { ok: true };
@@ -271,18 +343,20 @@
     stealCheck(actor, target, slot) {
       if (this.phase !== 'chaos') return { ok: false, reason: 'NOT NOW' };
       if (!target || actor === target) return { ok: false, reason: 'NO TARGET' };
+      if (actor.locked) return Lobby.LOCKED;
       if (!CW.STEAL_RULES.stealableSlots.includes(slot)) return { ok: false, reason: "CAN'T STEAL A HERO" };
       const item = target.loadout[slot];
       if (!item || !this.isRevealed(target, slot) || this.inFlight(item) || this.inFlight(actor.loadout[slot]) || !this.isRevealed(actor, slot)) return { ok: false, reason: 'TOO LATE — MID-ACTION' };
       if (this.mode.unstealable.includes(item.rarity)) return { ok: false, reason: 'BOLTED DOWN', locked: true, chance: 0 };
       if (target.guardUntil > this.time) return { ok: false, reason: 'ON GUARD', chance: CW.STEAL_ODDS[item.rarity] };
-      const chance = CW.STEAL_ODDS[item.rarity];
+      const warded = !!item.protected;
+      const chance = CW.STEAL_ODDS[item.rarity] * (warded ? CW.PROTECTION_STEAL_MULTIPLIER : 1);
       const c = CW.STEAL_COST;
       let pay = null;
       if ((actor.wallet[c.token] || 0) >= c.amount) pay = c.token;
       else if (actor.wallet.coins >= c.coinAlt) pay = 'coins';
       if (!pay) return { ok: false, reason: 'NEED JACK TOKEN / ' + c.coinAlt + ' COINS', chance };
-      return { ok: true, chance, pay, costLabel: pay === 'coins' ? c.coinAlt + ' COINS' : c.amount + ' JACK TOKEN', item };
+      return { ok: true, chance, pay, costLabel: pay === 'coins' ? c.coinAlt + ' COINS' : c.amount + ' JACK TOKEN', item, warded, baseChance: CW.STEAL_ODDS[item.rarity] };
     }
     steal(aid, tid, slot) {
       const a = typeof aid === 'string' ? this.get(aid) : aid;
@@ -301,7 +375,7 @@
       const dur = CW.STEAL_RULES.suspenseSec * this.k;
       t.guardUntil = this.time + dur + CW.STEAL_RULES.guardSec * this.k;
       if (t.isHuman || a.isHuman) this.humanTargetCd = this.time + dur + 4 * this.k;
-      this.emit({ type: 'stealStart', aid: a.id, tid: t.id, slot, item, chance: chk.chance, roll, success, dur, pay: chk.pay });
+      this.emit({ type: 'stealStart', aid: a.id, tid: t.id, slot, item, chance: chk.chance, roll, success, dur, pay: chk.pay, warded: chk.warded });
       this.emote(a, 'sneak', t.id);
       this.status(a, 'STEALING…', dur / this.k + 0.3);
       if (this.mode.chaosTaxOnSteal) this.addPot(this.mode.chaosTaxOnSteal, a, 'steal');
@@ -311,13 +385,16 @@
     _resolveSteal(a, t, slot, item, mine, success, chance) {
       item._busy = mine._busy = false;
       if (success) {
+        const wardBroken = !!item.protected;
+        if (wardBroken) { item.protected = false; t.stats.wardsBroken++; t.protectedSlot = null; }
         const got = slot === 'weapon' ? this.reforge(item, a.loadout.hero.classId) : item;
         const gave = slot === 'weapon' ? this.reforge(mine, t.loadout.hero.classId) : mine;
         a.loadout[slot] = got; t.loadout[slot] = gave;
         a.revealAt[slot] = t.revealAt[slot] = this.time;
         a.stats.steals++; t.stats.stolenFrom++; this.stats.steals++;
         t.lastHitBy = a.id;
-        this.emit({ type: 'stealResult', aid: a.id, tid: t.id, slot, success: true, item: got, original: item, gave, chance });
+        this.emit({ type: 'stealResult', aid: a.id, tid: t.id, slot, success: true, item: got, original: item, gave, chance, wardBroken });
+        if (wardBroken) { this.emote(t, 'panic', a.id); this._crowdReact(t, 'shock', 0.9); if (!t.isHuman) this._later(0.3 * this.k, () => this.say(t, 'wardBroken', {}, true)); }
         this.status(a, 'YOINK', 3); this.status(t, 'ROBBED', 3);
         this.emote(a, 'cheer'); this.emote(t, 'angry', a.id);
         if (!a.isHuman) this.say(a, 'stealWin', { t: t.name }, true);
@@ -339,6 +416,7 @@
       if (!this.mode.grief) return { ok: false, reason: 'GRIEF RAID ONLY' };
       if (this.phase !== 'chaos') return { ok: false, reason: 'NOT NOW' };
       if (!target || actor === target) return { ok: false, reason: 'NO TARGET' };
+      if (actor.locked) return Lobby.LOCKED;
       const item = target.loadout[slot];
       if (!item || !this.isRevealed(target, slot) || this.inFlight(item)) return { ok: false, reason: 'BUSY' };
       if (tierOf(item.rarity) === 0) return { ok: false, reason: 'ALREADY COMMON' };
@@ -350,7 +428,7 @@
         if ((actor.wallet[cost.token] || 0) < cost.amount) return { ok: false, reason: 'NEED GRIEF TOKEN', cost };
       } else if (actor.wallet.coins < cost.coins) return { ok: false, reason: 'NEED ' + cost.coins + ' COINS', cost };
       const to = rarityAt(tierOf(item.rarity) - 1);
-      return { ok: true, cost, costLabel: cost.token ? cost.amount + ' GRIEF TOKEN' : cost.coins + ' COINS', from: item.rarity, to, item, left: max - actor.griefsUsed };
+      return { ok: true, cost, costLabel: cost.token ? cost.amount + ' GRIEF TOKEN' : cost.coins + ' COINS', from: item.rarity, to, item, left: max - actor.griefsUsed, warded: !!item.protected, passChance: item.protected ? CW.PROTECT.griefPassChance : 1 };
     }
     grief(aid, tid, slot) {
       const a = typeof aid === 'string' ? this.get(aid) : aid;
@@ -365,10 +443,18 @@
       const dur = CW.GRIEF_RULES.resolveSec * this.k;
       t.shieldUntil = this.time + dur + CW.GRIEF_RULES.immunitySec * this.k;
       if (t.isHuman || a.isHuman) this.humanTargetCd = this.time + dur + 4 * this.k;
-      this.emit({ type: 'griefStart', aid: a.id, tid: t.id, slot, item, dur });
+      const passes = !chk.warded || this.rng.chance(chk.passChance);
+      this.emit({ type: 'griefStart', aid: a.id, tid: t.id, slot, item, dur, warded: chk.warded });
       this.emote(a, 'cast', t.id);
       this._later(dur, () => {
         item._busy = false;
+        if (!passes) {
+          this.emit({ type: 'griefBlocked', aid: a.id, tid: t.id, slot, item });
+          this.status(t, 'WARD HELD', 2.5);
+          this.emote(t, 'taunt', a.id);
+          return;
+        }
+        if (item.protected) { item.protected = false; t.protectedSlot = null; t.stats.wardsBroken++; this.emit({ type: 'wardBroken', aid: a.id, tid: t.id, slot, item, by: 'grief' }); }
         const from = item.rarity;
         item.rarity = chk.to;
         item.cracks++;
@@ -388,6 +474,7 @@
 
     boostCheck(p) {
       if (this.phase !== 'chaos' && this.phase !== 'rolling') return { ok: false, reason: 'NOT NOW' };
+      if (p.locked) return Lobby.LOCKED;
       if (this.potX100 >= CW.RAID_POT.cap) return { ok: false, reason: 'POT MAXED' };
       const cost = this.nextBoostCost();
       if (p.wallet.coins < cost) return { ok: false, reason: 'NEED ' + cost + ' COINS', cost };
@@ -456,6 +543,17 @@
     // ------------------------------------------------------------ bots
     _botThink(p) {
       const per = CW.BOT_PERSONALITIES[p.personality];
+      if (!p.protectDecided) {
+        p.protectDecided = true;
+        const best = SLOTS.filter((s) => this.protectCheck(p, s).ok).sort((x, y) => tierOf(p.loadout[y].rarity) - tierOf(p.loadout[x].rarity))[0];
+        if (best && this.rng.chance((per.protect || {})[p.loadout[best].rarity] || 0)) {
+          this.protect(p, best);
+          this.stats.botActions++;
+          p.nextThinkAt = Infinity;
+          return;
+        }
+      }
+      if (p.locked) { p.nextThinkAt = Infinity; return; }
       const agg = this.mode.botAggression;
       const opts = [];
       const hum = this.human;
@@ -521,13 +619,15 @@
       this.phaseEnd = this.time + dur;
       this.emit({ type: 'phase', phase: ph, dur });
       if (ph === 'rolling') {
-        for (const p of this.players) if (!p.isHuman) p.nextPullAt = this.time + this.rng.range(...CW.TIMINGS.botFirstPull) * this.k;
-        this.human.idleSince = this.time;
+        this.round = 0; this.roundState = 'waiting'; this.roundReadyAt = this.time;
       }
       if (ph === 'chaos') {
         for (const p of this.players) {
           if (!p.isHuman) { p.nextThinkAt = this.time + this.rng.range(1.2, 3.5) * this.k / this.mode.botAggression; this.status(p, '', 0); }
         }
+      }
+      if (ph === 'locked') {
+        for (const p of this.players) if (!p.isHuman) this._later(this.rng.range(0.4, 2.6) * this.k, () => { p.ready = true; this.status(p, 'READY', 999); this.emit({ type: 'ready', pid: p.id }); if (this.rng.chance(0.25)) this.say(p, 'ready'); });
       }
       if (ph === 'launch') this._crowdSay(null, 'launch', {}, 2, 0.7);
     }
@@ -549,32 +649,63 @@
           }
           break;
         case 'rolling': {
-          for (const p of this.players) if (!p.isHuman && p.pullsDone < 3 && this.time >= p.nextPullAt) { p.nextPullAt = Infinity; this.pull(p); }
           const h = this.human;
-          if (this.canPull(h) && this.time - Math.max(h.idleSince, h.pullsDone ? h.revealAt[SLOTS[h.pullsDone - 1]] : 0) > CW.TIMINGS.humanAutoPullSec * this.k) {
+          if (this.canPull(h) && this.time - this.roundReadyAt > CW.TIMINGS.humanAutoPullSec * this.k) {
             this.emit({ type: 'autoPull', pid: h.id });
             this.pull(h);
           }
-          const allDone = this.players.every((p) => p.pullsDone >= 3 && this.allRevealed(p));
+          if (this.roundState === 'spinning' && this.time >= this.roundEndAt) {
+            this.roundState = 'pause';
+            this.roundPauseEnd = this.time + (this.round >= 2 ? CW.TIMINGS.preChaosPause : CW.TIMINGS.roundPause) * this.k;
+            this.emit({ type: 'roundEnd', round: this.round });
+          }
+          if (this.roundState === 'pause' && this.time >= this.roundPauseEnd) {
+            this.round++;
+            if (this.round < 3) { this.roundState = 'waiting'; this.roundReadyAt = this.time; this.emit({ type: 'roundReady', round: this.round }); }
+          }
+          const allDone = this.round >= 3 && this.players.every((p) => p.pullsDone >= 3 && this.allRevealed(p));
           if (allDone) {
-            if (!this._chaosAt) this._chaosAt = this.time + CW.TIMINGS.preChaosPause * this.k;
-            if (this.time >= this._chaosAt) this.setPhase('chaos', this.mode.chaosSec * this.k);
+            this.setPhase('chaos', this.mode.chaosSec * this.k);
           } else if (this.time >= this.phaseEnd) {
             // hard cap: force remaining pulls with short reels
             for (const p of this.players) while (p.pullsDone < 3) { const s = SLOTS[p.pullsDone]; p.loadout[s] = this._make(p, s, this.rollRarity(p)); p.revealAt[s] = this.time; p.pullsDone++; }
             for (const p of this.players) for (const s of SLOTS) p.revealAt[s] = Math.min(p.revealAt[s], this.time);
+            this.round = 3; this.roundState = 'pause'; this.roundPauseEnd = this.time;
           }
           break;
         }
         case 'chaos':
           for (const p of this.players) if (!p.isHuman && this.time >= p.nextThinkAt) this._botThink(p);
-          if (this.time >= this.phaseEnd) this.setPhase('launch', CW.TIMINGS.launchCountdown * this.k);
+          if (this.time >= this.phaseEnd && !this.pending.some((x) => x.chaos)) this.setPhase('locked', Infinity);
+          break;
+        case 'locked':
+          break; // LOADOUTS LOCKED: waits for YOU to press CONTINUE TO RAID
+        case 'vote':
+          this.vote.update(dt);
+          for (const e of this.vote.drain()) this.emit({ ...e, type: e.type, pid: e.voter });
+          if (this.vote.state === 'done') {
+            this.boons = [this.vote.winner];
+            this.setPhase('launch', CW.TIMINGS.launchCountdown * this.k);
+          }
           break;
         case 'launch':
           if (this.time >= this.phaseEnd && !this.pending.length) { this.phase = 'done'; this.emit({ type: 'launchNow' }); }
           break;
       }
     }
+
+    // ------------------------------------------------------------ LOCKED → VOTE
+    continueToRaid() {
+      if (this.phase !== 'locked') return false;
+      this.human.ready = true;
+      const voters = this.players.map((p) => ({ id: p.id, isHuman: p.isHuman, personality: p.personality }));
+      this.voteOptions = CW.pickBoonOptions(this.rng);
+      this.vote = new CW.BoonVote({ rng: this.rng, voters, options: this.voteOptions, k: this.k, label: 'PRE-RAID', forceResult: this.debug.forceVote || null });
+      this.setPhase('vote', this.vote.duration);
+      this.emit({ type: 'voteStart', options: this.voteOptions, dur: this.vote.duration });
+      return true;
+    }
+    humanVote(boonId) { return this.phase === 'vote' && this.vote.vote(this.human.id, boonId); }
 
     // Debug: finish everything instantly and jump to the dungeon.
     _joinAll() { for (const p of this.players) if (!p.joined) { p.joined = true; this.emit({ type: 'join', pid: p.id }); } }
@@ -592,8 +723,11 @@
       if (this.phase === 'intro' || this.phase === 'rolling') {
         this._joinAll();
         for (const p of this.players) { while (p.pullsDone < 3) { const s = SLOTS[p.pullsDone]; p.loadout[s] = this._make(p, s, this.rollRarity(p)); p.pullsDone++; } for (const s of SLOTS) p.revealAt[s] = Math.min(p.revealAt[s], this.time); }
+        this.round = 3; this.roundState = 'pause';
         this.setPhase('chaos', this.mode.chaosSec * this.k);
       } else if (this.phase === 'chaos') this.phaseEnd = this.time;
+      else if (this.phase === 'locked') this.continueToRaid();
+      else if (this.phase === 'vote') { this.vote.closeNow(); }
       else if (this.phase === 'launch') this.phaseEnd = this.time;
     }
 

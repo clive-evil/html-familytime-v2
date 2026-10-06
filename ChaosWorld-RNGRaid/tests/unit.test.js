@@ -10,11 +10,17 @@ function run(L, until, maxSec = 300) {
   while (!until(L) && t < maxSec) { L.update(STEP); t += STEP; }
   return t;
 }
-function chaosLobby(opts = {}) {
+// Lobby parked in the chaos phase with everything pulled. Bots are frozen so action tests are isolated.
+function chaosLobby(opts = {}, { freezeBots = true } = {}) {
   const L = new CW.Lobby({ seed: 1234, ...opts });
   L.skipPhase(); // intro/rolling → chaos with everything pulled
+  if (freezeBots) for (const p of L.players) if (!p.isHuman) { p.protectDecided = true; p.nextThinkAt = Infinity; }
   run(L, () => SLOTS.every((s) => L.isRevealed(L.human, s)), 5);
   return L;
+}
+// V2: the lobby waits on LOADOUTS LOCKED until the human presses Continue.
+function runToDone(L, maxSec = 300) {
+  return run(L, () => { if (L.phase === 'locked') L.continueToRaid(); return L.phase === 'done'; }, maxSec);
 }
 const weaponNames = (cls, r) => CW.WEAPONS[cls][r].map((w) => w.name);
 const gearNames = (r) => CW.GEAR[r].map((g) => g.name);
@@ -59,7 +65,7 @@ test('04 rarity odds config is valid and the roller honours it', () => {
   assert.ok(Math.abs(total - 100) < 1e-9, 'weights sum to 100');
   CW.RARITIES.forEach((r, i) => { assert.equal(r.tier, i); assert.ok(r.weight > 0); assert.ok(r.pips === i + 1); });
   for (let i = 1; i < CW.RARITIES.length; i++) assert.ok(CW.RARITIES[i].weight < CW.RARITIES[i - 1].weight, 'rarer = less likely');
-  for (const r of CW.RARITY_ORDER) { assert.ok(CW.WEAPONS.brute[r].length); assert.ok(CW.GEAR[r].length); }
+  for (const r of CW.RARITY_ORDER) { assert.ok(CW.WEAPONS.scrub[r].length); assert.ok(CW.GEAR[r].length); }
   for (const c of CW.CLASS_IDS) for (const r of CW.RARITY_ORDER) { assert.ok(CW.WEAPONS[c][r].length, `${c}/${r}`); assert.ok(CW.CLASSES[c].variants[r]); }
   const L = new CW.Lobby({ seed: 99 });
   const n = 40000, counts = {};
@@ -253,7 +259,7 @@ test('16 raid boost increases combat difficulty', () => {
   assert.ok(m2.enemyHp > 0 && m2.enemyDmg > 0);
   assert.ok(m3.bossEnraged && !m2.bossEnraged);
   const L = new CW.Lobby({ seed: 3 }); L.skipToBattle();
-  const hpAt = (pot) => { const b = new CW.Battle({ party: L.partySpec(), seed: 1, mods: CW.raidMods(pot), biome: CW.BIOMES[0] }); b.update(2); return b.enemies()[0].maxHp; };
+  const hpAt = (pot) => { const b = new CW.Battle({ party: L.partySpec(), seed: 1, mods: CW.raidMods(pot), biome: CW.BIOMES[0] }); b.update(2); return b.boss.maxHp; };
   assert.ok(hpAt(150) > hpAt(100));
 });
 
@@ -270,7 +276,7 @@ test('17 raid pot cap is respected', () => {
 test('18 bots perform lobby actions on their own', () => {
   for (const mode of ['rng', 'grief']) {
     const L = new CW.Lobby({ seed: 21, mode });
-    run(L, () => L.phase === 'done');
+    runToDone(L);
     assert.ok(L.stats.botActions >= 5, `${mode} botActions ${L.stats.botActions}`);
     const types = new Set(L.log.filter((e) => e.pid !== 'p0' && e.aid !== 'p0').map((e) => e.type));
     assert.ok(types.has('boost') || types.has('reroll'), mode);
@@ -281,29 +287,30 @@ test('18 bots perform lobby actions on their own', () => {
 
 test('19 lobby countdown hands over to the dungeon (launchNow)', () => {
   const L = new CW.Lobby({ seed: 8 });
-  run(L, () => L.phase === 'done');
+  runToDone(L);
   assert.equal(L.phase, 'done');
   const phases = L.log.filter((e) => e.type === 'phase').map((e) => e.phase);
-  assert.deepEqual(phases, ['rolling', 'chaos', 'launch']);
+  assert.deepEqual(phases, ['rolling', 'chaos', 'locked', 'vote', 'launch'], 'V2: locked review + boon vote before launch');
   assert.ok(L.log.some((e) => e.type === 'launchNow'));
   const b = new CW.Battle({ party: L.partySpec(), seed: 1, mods: CW.raidMods(L.potX100), biome: L.biome });
-  assert.equal(b.heroes().length, 8, 'all 8 lobby players enter the dungeon');
+  assert.equal(b.units.length, 8, 'all 8 lobby players enter the dungeon');
+  assert.deepEqual(L.boons.length, 1, 'the vote winner rides into the battle');
 });
 
 test('20 loadout changes battle stats', () => {
   const L = new CW.Lobby({ seed: 1 });
-  const hero = L.makeHero('hexer', 'common');
-  const base = { hero, weapon: L.makeWeapon('hexer', 'common'), gear: L.makeGear('common') };
+  const hero = L.makeHero('mage', 'common');
+  const base = { hero, weapon: L.makeWeapon('mage', 'common'), gear: L.makeGear('common') };
   const s0 = CW.deriveStats(base);
-  const sW = CW.deriveStats({ ...base, weapon: { ...L.makeWeapon('hexer', 'legendary') } });
+  const sW = CW.deriveStats({ ...base, weapon: { ...L.makeWeapon('mage', 'legendary') } });
   const sG = CW.deriveStats({ ...base, gear: L.makeGear('legendary') });
-  const sH = CW.deriveStats({ ...base, hero: L.makeHero('hexer', 'legendary') });
+  const sH = CW.deriveStats({ ...base, hero: L.makeHero('mage', 'legendary') });
   assert.ok(sW.atk > s0.atk * 1.4, 'legendary weapon hits much harder than common');
   assert.ok(sW.crit > s0.crit);
   assert.ok(sW.fx && sW.fxChance > 0 && !s0.fx, 'legendary weapon brings a special effect');
   assert.ok(sG.hp > s0.hp && sG.def > s0.def);
   assert.ok(sH.hp > s0.hp && sH.atk > s0.atk);
-  const tank = CW.deriveStats({ ...base, hero: L.makeHero('bulwark', 'common'), weapon: L.makeWeapon('bulwark', 'common') });
+  const tank = CW.deriveStats({ ...base, hero: L.makeHero('knight', 'common'), weapon: L.makeWeapon('knight', 'common') });
   assert.ok(tank.hp > s0.hp * 2 && tank.role === 'tank', 'class decides role + base HP');
   const legendStaff = CW.itemStatLines({ slot: 'weapon', rarity: 'legendary', fx: 'voidEcho', name: 'Void Staff' });
   assert.deepEqual(legendStaff, ['+35% DMG · +12% CRIT', '15% VOID ECHO']);
@@ -319,7 +326,7 @@ test('21 dungeon can be won', () => {
   const b = new CW.Battle({ party: L.partySpec(), seed: 3, mods: CW.raidMods(100), biome: CW.BIOMES[0], autoHuman: true });
   const r = b.runToEnd();
   assert.equal(r.won, true);
-  assert.equal(b.wave, CW.WAVES.length - 1, 'cleared the boss wave');
+  assert.equal(b.boss.hp, 0, 'the boss is dead');
 });
 
 test('22 dungeon can be lost', () => {
@@ -339,12 +346,13 @@ test('22 dungeon can be lost', () => {
 test('23 reward multiplier is applied (and loss pays consolation)', () => {
   const rng = () => new CW.RNG(5);
   const base = CW.ECONOMY.winBase;
-  assert.equal(CW.computeRewards({ won: true, potX100: 100, modeId: 'rng', rng: rng() }).coins, base);
-  assert.equal(CW.computeRewards({ won: true, potX100: 150, modeId: 'rng', rng: rng() }).coins, Math.round(base * 1.5));
-  const r2 = CW.computeRewards({ won: true, potX100: 200, modeId: 'rng', rng: rng() });
-  assert.equal(r2.coins, base * 2);
-  assert.ok(r2.lines.some((l) => l.pot && l.value === base), 'breakdown shows where the extra came from');
-  const loss = CW.computeRewards({ won: false, potX100: 180, modeId: 'rng', rng: rng() });
+  // V2: rewards are placement-based; 1st = 100% + winner bonus
+  assert.equal(CW.placementReward({ won: true, place: 1, potX100: 100, modeId: 'rng', rng: rng() }).coins, base + CW.ECONOMY.mvpBonus);
+  assert.equal(CW.placementReward({ won: true, place: 2, potX100: 150, modeId: 'rng', rng: rng() }).coins, Math.round(base * CW.PLACEMENT_REWARDS[1] * 1.5));
+  const r2 = CW.placementReward({ won: true, place: 3, potX100: 200, modeId: 'rng', rng: rng() });
+  assert.equal(r2.coins, Math.round(base * CW.PLACEMENT_REWARDS[2] * 2));
+  assert.ok(r2.lines.some((l) => l.pot && l.value === Math.round(base * CW.PLACEMENT_REWARDS[2])), 'breakdown shows where the extra came from');
+  const loss = CW.placementReward({ won: false, place: 1, potX100: 180, modeId: 'rng', rng: rng() });
   assert.equal(loss.coins, CW.ECONOMY.lossConsolation);
   assert.equal(loss.greedy, true, '"we got greedy" flag on juiced loss');
 });
@@ -385,7 +393,7 @@ test('25 save persists across reloads', () => {
 test('26 both game modes work end to end (logic)', () => {
   for (const mode of ['rng', 'grief']) {
     const L = new CW.Lobby({ seed: 31, mode });
-    run(L, () => L.phase === 'done');
+    runToDone(L);
     assert.equal(L.phase, 'done');
     const b = new CW.Battle({ party: L.partySpec(), seed: 2, mods: CW.raidMods(L.potX100), biome: L.biome, autoHuman: true });
     assert.ok(b.runToEnd());
@@ -415,14 +423,14 @@ test('27 debug force rarity works', () => {
 
 test('28 fast mode dramatically shortens the lobby', () => {
   const slow = new CW.Lobby({ seed: 6 }), fast = new CW.Lobby({ seed: 6, fast: true });
-  const ts = run(slow, () => slow.phase === 'done'), tf = run(fast, () => fast.phase === 'done');
+  const ts = runToDone(slow), tf = runToDone(fast);
   assert.ok(tf < ts * 0.3, `fast ${tf.toFixed(1)}s vs normal ${ts.toFixed(1)}s`);
 });
 
 // ---- extra regression checks
 test('R1 same seed → same lobby (deterministic debug hooks)', () => {
   const a = new CW.Lobby({ seed: 77 }), b = new CW.Lobby({ seed: 77 });
-  run(a, () => a.phase === 'done'); run(b, () => b.phase === 'done');
+  runToDone(a); runToDone(b);
   assert.deepEqual(a.players.map((p) => SLOTS.map((s) => p.loadout[s].name + p.loadout[s].rarity)), b.players.map((p) => SLOTS.map((s) => p.loadout[s].name + p.loadout[s].rarity)));
   assert.equal(a.potX100, b.potX100);
 });
@@ -459,7 +467,7 @@ test('R6 every battle skill + weapon fx resolves without errors', () => {
     L.human.loadout.weapon = L.makeWeapon(cls, 'mythic');
     const b = new CW.Battle({ party: L.partySpec(), seed: 4, autoHuman: true });
     assert.ok(b.runToEnd(), cls);
-    assert.ok(b.stats[b.human.id].dmg + b.stats[b.human.id].heal > 0, cls + ' contributed');
+    assert.ok(b.human.dmg + b.human.heal > 0, cls + ' contributed');
   }
 });
 test('R7 debug skips still announce every player (cards must not stay hidden)', () => {
