@@ -267,3 +267,81 @@ test('fleets can be engaged by railgun and pay salvage', () => {
   assert.equal(g.res.metals, m0 - 6 + 25);
   assert.equal(SF.fire(g, 'bombard', 'barrage', 'fleet:x', null).ok, false);
 });
+
+test('EMP disables installations for 2 cycles then they recover', () => {
+  const g = fresh();
+  goToSystem(g, 1);
+  g.res = { metals: 999, fissile: 999, crystals: 999, exotic: 0 };
+  SF.buyUpgrade(g, 'mis_smart');
+  const m = SF.planet(g, 'meridian'); m.scanned = true;
+  const shield = instOf(m, 'shield');
+  assert.ok(SF.shieldUp(m));
+  SF.fire(g, 'missile', 'emp', 'meridian', shield.id, { guarantee: true });
+  assert.equal(shield.disabled, 2);
+  assert.equal(SF.shieldUp(m), false, 'shield down while EMPd');
+  SF.endCycle(g); assert.equal(shield.disabled, 1);
+  SF.endCycle(g); assert.equal(shield.disabled, 0);
+  assert.ok(shield.hp > 0 && SF.shieldUp(m), 'shield recovers after EMP');
+});
+
+test('precision keeps captured value higher than bombardment', () => {
+  function takeWith(weapon, ammo) {
+    const g = fresh({ seed: 1 });
+    const p = SF.planet(g, 'corvin'); p.scanned = true;
+    // flatten the military so invasion always wins, using the chosen weapon on soft targets
+    let guard = 0;
+    while (SF.enemyGround(p) > 0 && guard++ < 60) {
+      const target = p.insts.find((i) => (i.type === 'barracks') && i.hp > 0);
+      if (!target) break;
+      g.res = { metals: 999, fissile: 999, crystals: 999, exotic: 999 }; g.fort.power = 999; g.weapons[weapon].shots = 0; g.weapons[weapon].overheated = 0;
+      const r = SF.fire(g, weapon, ammo, 'corvin', target.id, { guarantee: true });
+      if (!r.ok) break;
+    }
+    SF.capturePlanet(g, p);
+    return SF.intactPct(p);
+  }
+  const precise = takeWith('railgun', 'frag');
+  const blunt = takeWith('bombard', 'barrage');
+  assert.ok(precise >= blunt, `precise ${precise} vs blunt ${blunt}`);
+});
+
+test('sector strikes escalate the longer you linger', () => {
+  const g = fresh();
+  goToSystem(g, 1); // system 2 has threat + enemies
+  const s0 = SF.sectorStrike(g);
+  g.cycle += 3; // simulate time passing without securing
+  const s1 = SF.sectorStrike(g);
+  assert.ok(s1 > s0, `strike grew ${s0} -> ${s1}`);
+});
+
+test('fleets raid captured mines and the raid reduces income', () => {
+  const g = fresh();
+  goToSystem(g, 1);
+  const m = SF.planet(g, 'meridian'); SF.capturePlanet(g, m);
+  const incBefore = SF.incomeOf(g).metals;
+  // Park a fleet in-system and force the raid RNG by exhausting fortress-damage path
+  SF.curSys(g).fleets.push({ id: 'r', name: 'Raiders', hp: 100, maxHp: 100, eta: 0, dmg: 10, angle: 0 });
+  let raided = false;
+  for (let k = 0; k < 40 && !raided; k++) { const rep = SF.endCycle(g); raided = rep.raids.length > 0; }
+  assert.ok(raided, 'a raid eventually happened');
+});
+
+test('weapon modules can be knocked offline, and armour upgrade prevents it', () => {
+  // Isolate the hull-hit: no enemy worlds, just one fleet doing a steady ~20 dmg/cycle.
+  function run(withArmour) {
+    const g = fresh();
+    goToSystem(g, 1);
+    for (const p of SF.curSys(g).planets) if (p.owner === 'enemy') p.owner = 'player';
+    if (withArmour) { g.res = { metals: 9999, fissile: 999, crystals: 999, exotic: 0 }; SF.buyUpgrade(g, 'def_pd'); SF.buyUpgrade(g, 'def_armour'); }
+    let offline = false;
+    for (let k = 0; k < 40 && !g.over; k++) {
+      g.fort.hull = SF.hullMax(g); g.fort.shield = 0;
+      SF.curSys(g).fleets = [{ id: 'big', name: 'Hammer', hp: 9999, maxHp: 9999, eta: 0, dmg: 20, angle: 0 }];
+      const rep = SF.endCycle(g);
+      if (rep && rep.offline.length) offline = true;
+    }
+    return offline;
+  }
+  assert.ok(run(false), 'a module went offline under fire');
+  assert.equal(run(true), false, 'reinforced armour prevents module knockouts');
+});

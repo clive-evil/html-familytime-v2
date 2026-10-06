@@ -4353,9 +4353,16 @@ input[type=range] { width: 100%; accent-color: var(--warn); }
     SF.render.focusOn(G, null); SF.render.snap();
     UI.refresh();
     MAIN.autosave();
-    // auto-select the first enemy world to orient the player
-    const first = SF.enemyWorlds(G)[0];
-    if (first) setTimeout(() => select({ kind: 'planet', id: first.id }), 400);
+    // Auto-select the first enemy world to orient the player — but not during training,
+    // where selecting the world is the player's first objective.
+    if (!(G.tutorial.active && !G.tutorial.done)) {
+      const first = SF.enemyWorlds(G)[0];
+      const sysAt = G.sysIndex;
+      if (first) setTimeout(() => {
+        // Only orient the player if they haven't already picked a target themselves.
+        if (SF.game === G && G.sysIndex === sysAt && !UI.selected && !UI.selectedFleet && !UI.modal) select({ kind: 'planet', id: first.id });
+      }, 400);
+    }
   }
 
   MAIN.jump = function () {
