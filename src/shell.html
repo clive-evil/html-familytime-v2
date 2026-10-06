@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Long Watch — Section 6</title>
+<style>
+/*__CSS__*/
+</style>
+</head>
+<body>
+<canvas id="view"></canvas>
+<div id="fxVig"></div><div id="fxGrain"></div>
+
+<header id="top">
+  <div class="id"><div class="ship">CSV ARDENT VOW · SECTION 06</div><div class="sub"><span id="clock">—</span> · <span id="phase">—</span></div></div>
+  <div id="gauges"></div>
+  <div class="tc">
+    <button data-speed="0" title="Pause (Space)">❚❚</button><button data-speed="1" title="1× (1)">1×</button><button data-speed="2" title="2× (2)">2×</button><button data-speed="4" title="4× (3)">4×</button>
+    <label class="ap" title="Pause automatically when something critical happens"><input type="checkbox" id="chkAuto" checked> AUTO-PAUSE</label>
+    <button id="btnMute" title="M">SOUND ON</button><button id="btnHelp" title="H">HELP</button>
+  </div>
+</header>
+<div id="alerts"></div>
+<div id="pauseBanner">PAUSED <span id="pauseReason"></span></div>
+
+<aside id="left" class="panel">
+  <div class="ph">CREW <span id="crewCount"></span><span class="legend"><i class="hp"></i>HP <i class="ox"></i>O2 <i class="st"></i>STRESS</span></div>
+  <div id="roster"></div>
+</aside>
+
+<aside id="right" class="panel">
+  <div class="ph">SELECTION</div>
+  <div id="ctx"></div>
+  <div id="powerPanel">
+    <div class="ph">POWER DISTRIBUTION</div>
+    <div class="reac">
+      <div class="rr"><span>REACTOR</span><b id="rOut">—</b><span>DEMAND</span><b id="rDem">—</b></div>
+      <div class="rbar"><i id="rBar"></i><em id="rDemMark"></em></div>
+      <div class="rr small"><span>COOLANT</span><b id="rCool">—</b><span>INSTAB.</span><b id="rInst">—</b></div>
+      <div class="rr small"><span>OPERATOR</span><b id="rOp">—</b><span>BATTERY</span><b id="rBat">—</b></div>
+    </div>
+    <div id="groups"></div>
+    <div class="dim small shed">Breakers shed automatically when batteries hit 0: SENSORS → HABITATION → HYDRO → SECURITY → MEDICAL → LIFE → CRYO.</div>
+  </div>
+</aside>
+
+<section id="logWrap" class="panel"><div class="ph">EVENT LOG</div><div id="log"></div></section>
+
+<div id="menu"></div>
+
+<div id="decision" class="modal"><div class="box"><div class="ph" id="decTitle"></div><p id="decBody"></p><div class="btns big" id="decBtns"></div></div></div>
+
+<div id="help" class="modal"><div class="box wide">
+  <div class="ph">OPERATIONS MANUAL — WATCH OFFICER <button id="helpClose">CLOSE</button></div>
+  <div class="cols">
+  <div>
+  <h4>CAMERA</h4><p>Mouse wheel / Q E: zoom. Left-drag, middle-drag or WASD / arrows: pan. F: focus selection. 0 / Home: whole section.</p>
+  <h4>TIME</h4><p>SPACE pause · 1 = 1× · 2 = 2× · 3 = 4×. Auto-pause stops the clock on critical events. Orders can be given while paused.</p>
+  <h4>CREW</h4><p>Click a crew member (or their row) to select. <b>Right-click a room</b> for orders: move, repair, extinguish, seal breach, restore power, investigate, decontaminate, operate reactor, man security, rest, treat. Right-click another crew member to treat, observe or escort. TAB cycles crew.</p>
+  <p>Frightened, exhausted or grieving crew may <b>refuse</b> dangerous orders. You can INSIST — it costs stress and morale.</p>
+  <h4>DOORS</h4><p>Click a door: OPEN / CLOSE / LOCK / SEAL. Remote control needs power on either side. Without power, a crew member must crank it by hand (select crew, right-click the door). LOCKs need the SECURITY bus.</p>
+  </div><div>
+  <h4>ROOMS</h4><p>Click a room for atmosphere, damage, doors and controls. <b>DISPATCH</b> sends the best available crew. <b>EMERGENCY SEAL</b> clamps doors and vents shut. <b>VENT ATMOSPHERE</b> dumps the room to space: it kills fire, and anything breathing.</p>
+  <h4>POWER</h4><p>The reactor rarely covers everything. Shut buses down to choose what goes dark. Life support makes air. Cryo keeps 2,400 colonists alive. Security runs cameras and locks. Sensors run motion trackers and biomonitors.</p>
+  <h4>INFORMATION</h4><p>A room you cannot see needs <b>power + a working camera + the SECURITY bus</b>. Otherwise it goes dark: you get only life signs and motion (if SENSORS are on), and what your crew's helmet lamps show.</p>
+  <h4>MEDICAL</h4><p>Select a crew member: MEDICAL SCAN (quick, med bay), BLOOD TEST (quarantine lab, 2 supplies, better), QUESTION, OBSERVE, QUARANTINE. Tests are not perfect.</p>
+  </div></div>
+</div></div>
+
+<div id="title" class="modal show"><div class="box title">
+  <div class="kick">CSV ARDENT VOW · COLONY TRANSIT YEAR 87 · SECTION 06</div>
+  <h1>THE LONG WATCH</h1>
+  <p>Twelve crew are awake to keep Section 6 alive. Below them, two thousand four hundred colonists sleep in the cryo bay. Fourteen years to landfall.</p>
+  <p>You are the watch officer. Power, air, food, doors, people. Keep the metal city running until the next watch is thawed.</p>
+  <p class="dim">Headphones recommended. Best at 1920×1080. Press H in-game for the manual.</p>
+  <button id="btnStart">BEGIN WATCH</button>
+</div></div>
+
+<div id="end" class="modal"><div class="box wide">
+  <div class="ph" id="endTitle"></div>
+  <p id="endVerdict"></p>
+  <div class="cols"><div id="endStats"></div><div><h4>WATCH LOG</h4><div id="endStory"></div></div></div>
+  <button id="btnRestart">NEW WATCH</button>
+</div></div>
+
+<script>
+/*__JS__*/
+</script>
+</body>
+</html>
