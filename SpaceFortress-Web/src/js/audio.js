@@ -159,6 +159,11 @@
   A.impactFortress = function () { if (!ok()) return; const t = now(); noise(t, 0.5, 0.8, 'lowpass', 900, 1, { to: 100 }); osc('square', 70, t, 0.4, 0.3, null, { to: 30 }); noise(t + 0.05, 0.3, 0.2, 'bandpass', 3000, 4); };
   A.shieldHit = function () { if (!ok()) return; const t = now(); osc('sine', 420, t, 0.5, 0.15, null, { to: 160 }); noise(t, 0.3, 0.15, 'bandpass', 1800, 6); };
   A.capture = function () { if (!ok()) return; const t = now(); [392, 494, 587, 784].forEach((f, i) => osc('triangle', f, t + i * 0.12, 0.5, 0.09)); };
+  A.servoSlide = function () { if (!ok()) return; const t = now(); noise(t, 0.5, 0.18, 'bandpass', 500, 2, { a: 0.03, to: 1600 }); osc('sawtooth', 70, t, 0.5, 0.08, null, { to: 140 }); osc('square', 180, t, 0.45, 0.03, null, { to: 90 }); };
+  A.servo = function (d) { if (!ok()) return; const t = now(); d = d || 0.25; const g = A.ctx.createGain(); env(g, t, 0.02, 0.06, d, 0.0001); const o = A.ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.setValueAtTime(260, t); o.frequency.linearRampToValueAtTime(240, t + d); const f = A.ctx.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 900; f.Q.value = 3; o.connect(f); f.connect(g); g.connect(A.master); o.start(t); o.stop(t + d + 0.05); noise(t, d, 0.05, 'bandpass', 1400, 4); };
+  A.door = function () { if (!ok()) return; const t = now(); noise(t, 1.2, 0.3, 'lowpass', 400, 0.8, { a: 0.05, to: 90 }); osc('sawtooth', 50, t, 1.3, 0.3, null, { to: 28 }); for (let i = 0; i < 3; i++) osc('square', 120, t + 0.3 + i * 0.35, 0.08, 0.08, null, { to: 60 }); setTimeout(() => A.clunk && A.clunk(true), 1200); };
+  A.relay = function () { if (!ok()) return; const t = now(); noise(t, 0.03, 0.4, 'highpass', 2500); osc('square', 90, t, 0.04, 0.12); };
+  A.vibrate = function (lvl) { if (!ok() || A.loops.pkvib) return; const g = A.ctx.createGain(); g.gain.value = 0.0001; g.connect(A.master); const o = A.ctx.createOscillator(); o.type = 'sine'; o.frequency.value = 22; o.connect(g); o.start(); A.loops.pkvib = { g, nodes: [o], kind: 'sub' }; };
   A.warp = function () { if (!ok()) return; const t = now(); osc('sawtooth', 40, t, 2.4, 0.3, null, { to: 900, glide: 2.2 }); noise(t, 2.6, 0.4, 'bandpass', 200, 1, { a: 1.2, to: 5000 }); };
 
   // ---------------------------------------------------------- planet killer

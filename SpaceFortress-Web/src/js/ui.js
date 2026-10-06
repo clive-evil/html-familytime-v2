@@ -272,7 +272,7 @@
       UI.afterAction();
     };
     const pk = $('act-pk');
-    if (pk) pk.onclick = () => SF.pkMode.open(UI.selected);
+    if (pk) pk.onclick = () => SF.stations.go("pk", { pid: UI.selected });
   }
 
   // ------------------------------------------------------------------ dock
@@ -349,7 +349,7 @@
     }));
     const fa = $('fire-auto'); if (fa) fa.onclick = () => UI.fireAuto();
     const fm = $('fire-manual'); if (fm) fm.onclick = () => UI.openManual();
-    const fp = $('fire-pk'); if (fp) fp.onclick = () => SF.pkMode.open(UI.selected);
+    const fp = $("fire-pk"); if (fp) fp.onclick = () => SF.stations.go("pk", { pid: UI.selected });
   }
   UI.selectWeapon = function (w) {
     if (SF.WEAPONS[w].req && !SF.has(g(), SF.WEAPONS[w].req)) { SF.audio.deny(); UI.toast(SF.WEAPONS[w].name + ' not installed: ' + SF.UPGRADES[SF.WEAPONS[w].req].name, 'loss'); return; }
@@ -358,15 +358,8 @@
 
   // ------------------------------------------------------------------ firing (auto)
   UI.openManual = function () {
-    const t = targetRef();
-    const G = g();
-    if (!t) return;
-    const chk = SF.canFire(G, 'railgun', UI.ammo.railgun, t.pid, t.iid);
-    if (!chk.ok) { SF.audio.deny(); UI.toast(chk.reason, 'loss'); return; }
-    UI.mode = 'manual';
-    SF.tutorialAdvance(G, UI);
-    UI.afterAction();
-    SF.manual.open(t.pid, t.iid, UI.ammo.railgun);
+    // Travel to the railgun control station (handles target validation + transition).
+    SF.stations.go('railgun');
   };
 
   function snapshotHold(pid) {
@@ -458,8 +451,25 @@
   };
   UI.refresh = function () {
     if (!g()) return;
-    renderTop(); renderObjective(); renderLog(); renderPanel(); renderDock();
+    renderTop(); renderObjective(); renderLog(); renderPanel(); renderDock(); renderDeckHud();
+    if (SF.stations) SF.stations.applyDOM();
     SF.tutorialUI && SF.tutorialUI.update();
   };
+  // Minimal diegetic overlay shown while on the Command Deck: the standing order + a cue.
+  function renderDeckHud() {
+    const G = g();
+    const el = $('deckhud');
+    if (!el) return;
+    const def = SF.sysDef(G);
+    const enemies = SF.enemyWorlds(G).length;
+    const secured = SF.systemSecured(G);
+    el.innerHTML = `<div class="deck-obj panel">` +
+      `<div class="label">COMMAND DECK · ${esc(def.name)} · SYS ${G.sysIndex + 1}/${SF.CAMPAIGN.length}</div>` +
+      `<div class="obj-title">${secured ? '<span style="color:#6dff9c">SYSTEM SECURED</span>' : def.final ? 'TAKE OR ERASE AETERNUM' : 'CONQUER ' + esc(def.name)}</div>` +
+      `<div class="obj-text">${esc(def.brief)}</div>` +
+      `<div class="obj-meta"><span>Hostile worlds: <b style="color:#ff8a7a">${enemies}</b></span>` +
+      (SF.curSys(G).fleets.length ? `<span class="threat">⚠ ${SF.curSys(G).fleets.length} enemy fleet(s) in system</span>` : '') +
+      `<span style="color:#ffb066">▸ Approach the TACTICAL TABLE (or press T) to issue orders.</span></div></div>`;
+  }
   UI.renderPanel = renderPanel;
 })();

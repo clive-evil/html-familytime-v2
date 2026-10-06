@@ -10,11 +10,13 @@
   let cv, c, bg;
 
   R.init = function (canvas) { cv = canvas; c = cv.getContext('2d'); R.resize(); };
+  R.ctx = () => c;
+  R.invalidateBg = () => { bg = null; };
   R.resize = function () {
     R.dpr = Math.min(2, globalThis.devicePixelRatio || 1);
     R.W = cv.clientWidth; R.H = cv.clientHeight;
     cv.width = R.W * R.dpr; cv.height = R.H * R.dpr;
-    bg = null;
+    bg = null; if (SF.deck) SF.deck.invalidate();
     R.layout();
   };
   // Usable map region between HUD elements.

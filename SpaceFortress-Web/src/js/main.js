@@ -37,6 +37,11 @@
     UI.selected = null; UI.selectedInst = null; UI.selectedFleet = null; UI.mode = null;
     UI.weapon = 'railgun';
     SF.render.focusOn(G, null); SF.render.snap();
+    SF.deck.invalidate();
+    // Training starts at the tactical table (its first objective is to pick a world there);
+    // a normal campaign opens on the Command Deck.
+    SF.stations.current = (G.tutorial.active && !G.tutorial.done) ? 'tactical' : 'deck';
+    SF.stations.trans = null; SF.stations.beforeStation = 'deck';
     UI.refresh();
     MAIN.autosave();
     // Auto-select the first enemy world to orient the player — but not during training,
@@ -131,18 +136,28 @@
   function bindInput() {
     const map = $('map');
     addEventListener('resize', () => { SF.render.resize(); });
-    map.addEventListener('pointerdown', (e) => { dragging = { x: e.clientX, y: e.clientY, cx: SF.render.cam.x, cy: SF.render.cam.y }; moved = false; });
+    const onDeck = () => SF.game && SF.stations.activeCanvas() === 'deck' && !SF.stations.trans;
+    map.addEventListener('pointerdown', (e) => { if (onDeck()) return; dragging = { x: e.clientX, y: e.clientY, cx: SF.render.cam.x, cy: SF.render.cam.y }; moved = false; });
     addEventListener('pointermove', (e) => {
+      const r = map.getBoundingClientRect();
+      if (onDeck()) {
+        SF.deck.hover = SF.deck.hit(e.clientX - r.left, e.clientY - r.top, SF.render.W, SF.render.H);
+        map.style.cursor = SF.deck.hover ? 'pointer' : 'default';
+        return;
+      }
       if (dragging) {
         const dx = e.clientX - dragging.x, dy = e.clientY - dragging.y;
         if (Math.abs(dx) + Math.abs(dy) > 5) moved = true;
         if (moved) { SF.render.cam.x = dragging.cx - dx / SF.render.cam.z; SF.render.cam.y = dragging.cy - dy / SF.render.cam.z; SF.render.camT.x = SF.render.cam.x; SF.render.camT.y = SF.render.cam.y; SF.render.camT.pid = null; }
       }
-      const r = map.getBoundingClientRect();
       SF.render.hover = SF.render.pick(SF.game, e.clientX - r.left, e.clientY - r.top);
       map.style.cursor = SF.render.hover ? 'pointer' : dragging && moved ? 'grabbing' : 'grab';
     });
     addEventListener('pointerup', (e) => {
+      if (onDeck()) {
+        if (e.target === map && !UI.busy) { const r = map.getBoundingClientRect(); const h = SF.deck.hit(e.clientX - r.left, e.clientY - r.top, SF.render.W, SF.render.H); if (h && h.action) { SF.audio.ui(); h.action(); } }
+        return;
+      }
       if (dragging && !moved && SF.game && !UI.busy) {
         const r = map.getBoundingClientRect();
         const hit = SF.render.pick(SF.game, e.clientX - r.left, e.clientY - r.top);
@@ -152,6 +167,7 @@
       dragging = null;
     });
     map.addEventListener('wheel', (e) => {
+      if (onDeck()) return;
       e.preventDefault();
       if (!SF.game) return;
       const r = map.getBoundingClientRect();
@@ -174,11 +190,18 @@
       if (UI.modal) { if (e.key === 'Escape') { if (UI.modal === 'title' || UI.modal === 'end') return; UI.closeModal(); } return; }
       if (!SF.game) return;
       const k = e.key.toLowerCase();
+      // Station hotkeys always available.
+      if (k === 'c') { SF.stations.go('deck'); return; }
+      if (k === 't') { SF.stations.go('tactical'); return; }
+      if (k === 'r') { SF.stations.go('railgun'); return; }
+      if (k === 'k') { SF.stations.go('pk'); return; }
+      if (k === 'u') { SF.stations.go('engineering'); return; }
+      // The rest act on the tactical table; nudge there first if on the deck.
+      if (SF.stations.activeCanvas() === 'deck') { if (k === 'enter') MAIN.endCycle(); return; }
       if (k >= '1' && k <= '4') UI.selectWeapon(SF.WEAPON_ORDER[+k - 1]);
-      else if (k === 'f') { if (UI.weapon === 'railgun') UI.openManual(); else UI.fireAuto(); }
-      else if (k === 'm') UI.openManual();
+      else if (k === 'f') { if (UI.weapon === 'railgun') SF.stations.go('railgun'); else UI.fireAuto(); }
+      else if (k === 'm') SF.stations.go('railgun');
       else if (k === 'enter') MAIN.endCycle();
-      else if (k === 'u') { UI.openFortress(); UI.afterAction(); }
       else if (k === 'escape') { UI.selectedInst = null; UI.selected = null; UI.selectedFleet = null; SF.render.focusOn(SF.game, null); UI.afterAction(); }
       else if (k === 'tab') { e.preventDefault(); cycleTarget(); }
     });
@@ -200,7 +223,10 @@
       if (SF.render.fortState.recoil > 0) SF.render.fortState.recoil = Math.max(0, SF.render.fortState.recoil - dt * 3);
       if (!SF.manual.isOpen && !SF.pkMode.active) {
         SF.fx.update(dt);
-        SF.render.frame(dt, SF.game, UI);
+        SF.stations.update(dt);
+        if (SF.game && SF.stations.activeCanvas() === 'deck') SF.deck.frame(dt, SF.render.W, SF.render.H);
+        else SF.render.frame(dt, SF.game, UI);
+        drawWipe();
         SF.tutorialUI.frame();
       }
     } catch (e) {
@@ -208,6 +234,41 @@
       if (errCount++ < 5) console.error('frame error:', e && e.message);
     }
     requestAnimationFrame(loop);
+  }
+  // Station transition wipe: heavy blast-door style shutters closing/opening over the frame.
+  function drawWipe() {
+    const w = SF.stations.wipe();
+    if (w <= 0.001) return;
+    const c = SF.render.ctx();
+    const W = SF.render.W, H = SF.render.H;
+    c.setTransform(SF.render.dpr, 0, 0, SF.render.dpr, 0, 0);
+    const kind = SF.stations.transKind();
+    c.save();
+    if (kind === 'descend' || kind === 'ascend') {
+      // top + bottom shutters meeting in the middle
+      const h = (H / 2) * w;
+      shutter(c, 0, 0, W, h, true); shutter(c, 0, H - h, W, h, false);
+    } else {
+      // left + right blast doors
+      const ww = (W / 2) * w;
+      shutter(c, 0, 0, ww, H, true); shutter(c, W - ww, 0, ww, H, false);
+    }
+    c.restore();
+  }
+  function shutter(c, x, y, w, h, lead) {
+    if (w <= 0 || h <= 0) return;
+    const g = c.createLinearGradient(x, y, x, y + h);
+    g.addColorStop(0, '#12161a'); g.addColorStop(0.5, '#1c2228'); g.addColorStop(1, '#0a0d10');
+    c.fillStyle = g; c.fillRect(x, y, w, h);
+    c.strokeStyle = 'rgba(0,0,0,0.6)'; c.lineWidth = 2;
+    const horiz = h > w;
+    if (horiz) for (let yy = y; yy < y + h; yy += 46) { c.beginPath(); c.moveTo(x, yy); c.lineTo(x + w, yy); c.stroke(); }
+    else for (let xx = x; xx < x + w; xx += 46) { c.beginPath(); c.moveTo(xx, y); c.lineTo(xx, y + h); c.stroke(); }
+    // hazard edge on the leading rim
+    try {
+      if (horiz) SF.iron.hazard(c, x, lead ? y + h - 12 : y, w, 12, 1);
+      else SF.iron.hazard(c, lead ? x + w - 12 : x, y, 12, h, 1);
+    } catch (e) {}
   }
 
   if (document.readyState === 'loading') addEventListener('DOMContentLoaded', MAIN.boot);
