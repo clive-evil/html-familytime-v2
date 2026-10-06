@@ -400,21 +400,33 @@ const ROOM_ART = {
   cryo(r, A) {
     const fy = r.fy, y0 = r.y0;
     const c = ART.ctx;
-    // receding bay (the section goes much deeper than we can see)
-    kBevel(1350, y0 + 22, 150, 100, '#1b1f22');
-    for (let d = 0; d < 6; d++) {
-      const k = 1 - d * 0.15; const w = 140 * k, h = 92 * k; const x = 1425 - w / 2, y = y0 + 26 + (92 - h) / 2;
-      c.strokeStyle = `rgba(80,95,105,${0.35 * k})`; c.lineWidth = 1; c.strokeRect(x, y, w, h);
-      for (let p = 0; p < 6; p++) { c.fillStyle = `rgba(60,72,80,${0.5 * k})`; c.fillRect(x + 4 + p * (w - 8) / 6, y + h - 10 * k, (w - 8) / 6 - 2, 8 * k); }
-    }
-    kText(1356, y0 + 132, 'BAY 6-C CONTINUES — 2,400 BERTHS', PAL.off, 4.5, 0.45);
+    // observation glass into the main bay: berth rows receding into fog and dark
+    { const gx = 1342, gw = 166, gy = y0 + 16, gh = fy - y0 - 22, vx = gx + gw / 2, vy = gy + gh * 0.46;
+      kBevel(gx - 6, gy - 4, gw + 12, gh + 8, '#23292d', 2);
+      c.fillStyle = '#05070a'; c.fillRect(gx, gy, gw, gh);
+      c.save(); c.beginPath(); c.rect(gx, gy, gw, gh); c.clip();
+      for (let d = 22; d >= 1; d--) {
+        const k = 1 / (1 + d * 0.32); const hw = gw * 0.62 * k, hh = gh * 0.62 * k; const a = Math.min(1, k * 1.6);
+        c.strokeStyle = `rgba(70,84,94,${0.5 * a})`; c.lineWidth = 1; c.strokeRect(vx - hw, vy - hh, hw * 2, hh * 2);
+        for (const side of [-1, 1]) for (let tier = 0; tier < 3; tier++) {
+          const px = vx + side * hw * 0.82 - (side < 0 ? 0 : 6 * k * 2), py = vy - hh * 0.75 + tier * hh * 0.55;
+          c.fillStyle = `rgba(72,88,98,${0.7 * a})`; c.fillRect(px, py, 12 * k * 2, 18 * k * 2);
+          c.fillStyle = `rgba(90,140,100,${0.9 * a})`; c.fillRect(px + 2 * k, py + 2 * k, Math.max(0.6, 2 * k), Math.max(0.6, 1.4 * k));
+        }
+      }
+      const fog = c.createRadialGradient(vx, vy, 2, vx, vy, gw * 0.6); fog.addColorStop(0, 'rgba(120,140,150,0.18)'); fog.addColorStop(1, 'rgba(120,140,150,0)');
+      c.fillStyle = fog; c.fillRect(gx, gy, gw, gh);
+      c.restore();
+      c.fillStyle = 'rgba(200,215,220,0.06)'; c.beginPath(); c.moveTo(gx + 10, gy); c.lineTo(gx + 40, gy); c.lineTo(gx + 10, gy + 60); c.fill();
+      kText(gx, gy + gh + 4, 'BAY 6-C MAIN — 2,400 BERTHS — DO NOT ENTER WITHOUT THERMAL', PAL.off, 4, 0.45);
+      A.bayWindow = { x: gx, y: gy, w: gw, h: gh, vx, vy }; }
     A.pods = [];
     const podXs = [];
     for (let x = 1018; x < 1342; x += 54) podXs.push(x);
     for (let x = 1508; x < 1780; x += 54) if (Math.abs(x + 22 - 1550) > 36) podXs.push(x);
     for (const px of podXs) for (let t = 0; t < 2; t++) {
       const py = fy - 62 - t * 66;
-      kBevel(px, py, 46, 58, '#58646c', 1.5);
+      kBevel(px, py, 46, 58, '#4b565e', 1.5);
       c.fillStyle = '#0d1114'; c.beginPath(); c.ellipse(px + 23, py + 26, 14, 20, 0, 0, 6.3); c.fill();
       c.fillStyle = 'rgba(190,205,210,0.08)'; c.beginPath(); c.ellipse(px + 20, py + 22, 8, 12, 0, 0, 6.3); c.fill();
       // sleeper silhouette
@@ -423,8 +435,42 @@ const ROOM_ART = {
     }
     kPipeH(r.x0, r.x1, fy - 2, 2, '#6b7a84', false);
     kPipeH(r.x0, r.x1, y0 + 32, 3, '#6b7a84');
-    kBevel(1350, fy - 40, 150, 40, '#2f363b'); A.screens.push({ x: 1366, y: fy - 34, w: 40, h: 14, kind: 'console', seed: 3 }); A.screens.push({ x: 1440, y: fy - 34, w: 40, h: 14, kind: 'cryo' });
+    kBevel(1270, r.y0 + 14, 66, 22, '#2f363b'); A.screens.push({ x: 1274, y: r.y0 + 17, w: 28, h: 12, kind: 'console', seed: 3 }); A.screens.push({ x: 1305, y: r.y0 + 17, w: 28, h: 12, kind: 'cryo' });
   },
+};
+
+
+// ---------------------------------------------------------------------------
+// Lived-in kit: small authored-looking traces of 87 years of use
+// ---------------------------------------------------------------------------
+function kNote(x, y, rot = 0, col = '#a8a290') { const c = ART.ctx; c.save(); c.translate(x, y); c.rotate(rot); c.fillStyle = col; c.fillRect(0, 0, 9, 11); c.fillStyle = 'rgba(40,36,30,0.6)'; for (let i = 0; i < 4; i++) c.fillRect(1.5, 2.5 + i * 2.2, 3 + AR() * 4, 0.5); c.fillStyle = 'rgba(190,180,140,0.55)'; c.fillRect(-1, -1, 4, 2); c.fillRect(7, -1, 4, 2); c.restore(); }
+function kChecklist(x, y) { kNote(x, y, ar(-0.05, 0.05), '#b3ad9a'); const c = ART.ctx; c.fillStyle = 'rgba(30,60,30,0.6)'; for (let i = 0; i < 3; i++) c.fillRect(x + 6.5, y + 2.4 + i * 2.2, 1, 1); }
+function kSerial(x, y, txt) { kText(x, y, txt, '#b8b2a2', 3.6, 0.35); }
+function kWarn(x, y, txt) { kRect(x, y, txt.length * 2.5 + 4, 6, 'rgba(184,150,46,0.45)'); kText(x + 2, y + 4.6, txt, '#1a1712', 3.8, 0.8); }
+function kCup(x, y) { kRect(x, y - 4, 3, 4, '#9a968a'); kRect(x + 3, y - 3, 1, 2, '#9a968a'); kRect(x, y - 4, 3, 0.8, '#4a3020'); }
+function kTray(x, y) { kRect(x, y - 1.5, 10, 1.5, '#6e6b62'); kRect(x + 2, y - 3, 3, 1.5, '#7a6a4a'); }
+function kJacket(x, y, col) { const c = ART.ctx; c.fillStyle = '#222'; c.fillRect(x + 3, y - 2, 2, 2); c.fillStyle = col; c.beginPath(); c.moveTo(x, y); c.lineTo(x + 8, y); c.lineTo(x + 9, y + 18); c.lineTo(x - 1, y + 18); c.closePath(); c.fill(); c.fillStyle = shade(col, -0.3); c.fillRect(x + 3.6, y, 0.8, 18); }
+function kMask(x, y) { const c = ART.ctx; c.fillStyle = '#2a2a28'; c.beginPath(); c.ellipse(x, y, 3.2, 4, 0, 0, 6.3); c.fill(); c.fillStyle = PAL.yellowD; c.fillRect(x - 1, y + 3, 2, 3); c.strokeStyle = '#151515'; c.lineWidth = 0.6; c.beginPath(); c.moveTo(x - 3, y - 2); c.lineTo(x - 6, y - 8); c.stroke(); }
+function kBin(x, y, w, h, col = '#3e4a3a') { kBevel(x, y - h, w, h, col); kRect(x + 2, y - h + 2, w - 4, 2, shade(col, -0.35)); kText(x + 2, y - 3, 'B-' + Math.floor(ar(10, 99)), '#c9c3b2', 3.2, 0.4); }
+function kPhoto(x, y) { kRect(x, y, 5, 6, '#9c968a'); kRect(x + 0.8, y + 0.8, 3.4, 3.6, ['#4a5a6a', '#6a5a4a', '#5a6a5a'][Math.floor(AR() * 3)]); }
+function kDrip(x, y, len) { const c = ART.ctx; const g = c.createLinearGradient(0, y, 0, y + len); g.addColorStop(0, 'rgba(160,175,180,0.18)'); g.addColorStop(1, 'rgba(160,175,180,0)'); c.fillStyle = g; c.fillRect(x, y, 1.2, len); }
+function kTape(x, y, w) { kRect(x, y, w, 1.6, 'rgba(160,150,110,0.6)'); }
+
+const ROOM_DETAIL = {
+  airlock(r) { const fy = r.fy; kWarn(30, r.y0 + 52, 'CHECK SEALS'); kChecklist(36, r.y0 + 60); kSerial(64, fy - 4, 'SUIT 06-11 / SUIT 06-12'); kMask(132, r.y0 + 70); kMask(140, r.y0 + 72); kSerial(30, r.y0 + 112, 'AL-6 CYC 41,880'); },
+  security(r) { const fy = r.fy; kCup(470, fy - 44); kChecklist(380, r.y0 + 60); kNote(352, r.y0 + 98, 0.1); kJacket(340, r.y0 + 50, '#2c343a'); kSerial(262, fy - 4, 'ARMS LOCKER — 2 KEYS'); kTape(398, r.y0 + 26, 40); },
+  medbay(r) { const fy = r.fy; kNote(890, r.y0 + 60, -0.06); kNote(660, r.y0 + 74, 0.08, '#b9b39f'); kCup(650, fy - 22); kWarn(730, r.y0 + 112, 'MAX 1 PATIENT'); kSerial(600, fy - 4, 'BED 1'); kSerial(808, fy - 4, 'BED 2'); for (let i = 0; i < 3; i++) kRect(612 + i * 10, r.y0 + 24, 8, 4, '#7b7c74'); kDrip(700, r.y0 + 28, 30); },
+  quarantine(r) { const fy = r.fy; kRect(1010, fy, 18, 2, '#0b0c0c'); for (let i = 0; i < 5; i++) kRect(1011 + i * 3.5, fy + 0.4, 1.4, 1.2, '#2a2b28'); // floor drain
+    kWarn(938, r.y0 + 112, 'GLOVES — ALWAYS'); kChecklist(1070, r.y0 + 60); kSerial(1098, fy - 22, 'ISO-1  SEALED BED'); kTape(1088, r.y0 + 100, 20); },
+  bridge(r) { const fy = r.fy; kCup(1585, fy - 34); kNote(1240, r.y0 + 62, -0.04); kNote(1250, r.y0 + 64, 0.06, '#b9b39f'); kSerial(1214, fy - 4, 'NAV-1'); kSerial(1324, fy - 4, 'OPS-2'); kSerial(1544, fy - 4, 'WATCH CMD'); kPhoto(1630, r.y0 + 70); },
+  workshop(r) { const fy = r.fy; kBin(310, fy, 22, 14, '#4a4436'); kCup(260, fy - 38); kJacket(160, r.y0 + 52, '#5f5d48'); kNote(130, r.y0 + 72, 0.12); kWarn(20, r.y0 + 112, 'LATHE — EYES'); kSerial(16, fy - 4, 'FAB-3 SN 66-04821'); kRust(20, r.y0 + 20, 170, r.y0 + 60, 18); kDrip(60, r.y0 + 28, 50); },
+  quarters(r) { const fy = r.fy; kPhoto(450, fy - 70); kPhoto(560, fy - 118); kPhoto(640, fy - 70); kJacket(700, r.y0 + 40, '#45443a'); kJacket(712, r.y0 + 42, '#2f3a48');
+    for (const bx of [436, 528, 612, 724]) { kRect(bx + 20, fy - 22, 40, 4, ['#4e5148', '#5a4e44', '#3e4a52'][Math.floor(AR() * 3)]); } kCup(700, fy - 2); kNote(780, r.y0 + 40, 0.05); },
+  mess(r) { const fy = r.fy; kTray(948, fy - 30); kCup(1018, fy - 30); kTray(1100, fy - 30); kCup(1160, fy - 30); kCup(1166, fy - 30); kWarn(1194, r.y0 + 92, 'OUT OF ORDER'); kNote(882, r.y0 + 60, -0.08); kSerial(1190, fy - 4, 'GALLEY 6'); kJacket(886, r.y0 + 80, '#4f5c46'); },
+  hydro(r) { const fy = r.fy; kChecklist(1440, r.y0 + 50); kSerial(1282, fy - 4, 'TRAYS 1-9'); kSerial(1604, fy - 4, 'TRAYS 10-24'); for (let i = 0; i < 9; i++) kDrip(1290 + i * 55, r.y0 + 30, 20 + ar(40)); kBin(1540, fy, 18, 12, '#3e4a3a'); },
+  reactor(r) { const fy = r.fy; kWarn(270, r.y0 + 60, 'RAD AREA'); kChecklist(326, r.y0 + 72); kCup(300, fy - 50); kSerial(80, fy - 4, 'PRIMARY 06 — INSPECT 30d'); kSerial(486, fy - 4, 'HX-2'); kRust(380, r.y0 + 60, 600, fy, 24); kMask(360, r.y0 + 70); },
+  o2(r) { const fy = r.fy; kChecklist(860, r.y0 + 72); kSerial(616, fy - 4, 'STACK 1  2  3  4'); kWarn(735, r.y0 + 112, 'FILTER DUE'); for (let i = 0; i < 6; i++) kDrip(620 + i * 26, r.y0 + 30, 40 + ar(50)); kMask(905, r.y0 + 60); },
+  cryo(r) { const fy = r.fy; kSerial(1020, fy - 134, 'ROW A'); kSerial(1020, fy - 68, 'ROW B'); kChecklist(1360, fy - 46); kWarn(1500, r.y0 + 132, 'COLD BURN'); for (let i = 0; i < 12; i++) kDrip(1020 + i * 64, r.y0 + 36, 18 + ar(20)); },
 };
 
 function drawSuitSilhouette(x, fy) {
@@ -500,6 +546,8 @@ function drawExterior(ctx, ox, oy) {
     kRect(xa, 236, xb - xa, 12, '#1a1d20');
     for (let x = xa + 20; x < xb; x += 140) { ctx.fillStyle = 'rgba(160,150,120,0.25)'; ctx.fillRect(x, 240, 2, 2); }
   }
+  drawAdjacentSections(ctx);
+  drawCryoStack(ctx);
   // stern: reactor shield / engine shroud
   ctx.fillStyle = '#1b1e20';
   ctx.beginPath(); ctx.moveTo(-30, top + 10); ctx.lineTo(-150, 40); ctx.lineTo(-260, 120); ctx.lineTo(-260, 420); ctx.lineTo(-150, 520); ctx.lineTo(-30, bot); ctx.closePath(); ctx.fill();
@@ -540,22 +588,97 @@ function drawExterior(ctx, ox, oy) {
   ctx.restore();
 }
 
-function drawColossus(ctx, w, h) {
-  // the rest of the colony ship, far behind, parallax layer
-  ctx.fillStyle = '#050607'; ctx.fillRect(0, 0, w, h);
-  const AR2 = mulberry32(99);
-  for (let i = 0; i < 220; i++) { ctx.fillStyle = `rgba(200,200,190,${AR2() * 0.35})`; const s = AR2() < 0.1 ? 1.4 : 0.8; ctx.fillRect(AR2() * w, AR2() * h, s, s); }
-  // giant drum segments
-  const base = h * 0.18;
-  for (let i = 0; i < 7; i++) {
-    const x = i * 380 - 200, yw = 120 + (i % 2) * 40;
-    ctx.fillStyle = i % 2 ? '#0b0d0f' : '#0d1012';
-    ctx.fillRect(x, base - yw / 2 + 300, 320, yw * 2.4);
-    ctx.fillStyle = '#090b0c'; ctx.fillRect(x + 320, base + 340, 60, 60);
-    for (let k = 0; k < 14; k++) { if (AR2() < 0.25) { ctx.fillStyle = `rgba(190,150,90,${0.08 + AR2() * 0.12})`; ctx.fillRect(x + 10 + AR2() * 300, base + 300 + AR2() * yw * 2.2, 2, 1.5); } }
-    ctx.fillStyle = '#0a0c0d'; for (let k = 0; k < 12; k++) ctx.fillRect(x + k * 27, base - yw / 2 + 300, 1, yw * 2.4);
+// ---------------------------------------------------------------------------
+// The rest of the colony ship: two parallax layers + moving lights.
+// Everything here is darker, lower-contrast and slower than the section,
+// and dense with tiny detail so the playable decks read as a small slice.
+// ---------------------------------------------------------------------------
+const BG = { layers: [], movers: [], beacons: [] };
+function windowsGrid(ctx, R2, x, y, w, h, pitchX, pitchY, lit, col) {
+  for (let yy = y; yy < y + h; yy += pitchY) for (let xx = x; xx < x + w; xx += pitchX) {
+    const v = R2();
+    if (v < lit) { ctx.fillStyle = col; ctx.globalAlpha = 0.25 + R2() * 0.5; ctx.fillRect(xx, yy, 1.2, 1); }
   }
-  ctx.fillStyle = '#080a0b'; ctx.fillRect(0, base + 370, w, 26);
+  ctx.globalAlpha = 1;
+}
+function drawFarLayer(ctx, w, h) {
+  const R2 = mulberry32(99);
+  ctx.fillStyle = '#040505'; ctx.fillRect(0, 0, w, h);
+  for (let i = 0; i < 500; i++) { ctx.fillStyle = `rgba(200,200,190,${R2() * 0.45})`; ctx.fillRect(R2() * w, R2() * h, 1, 1); }
+  // habitation drum: an enormous band across the top, thousands of windows
+  const dy = 220, dh = 520;
+  const g = ctx.createLinearGradient(0, dy, 0, dy + dh); g.addColorStop(0, '#14181c'); g.addColorStop(0.5, '#1a1f24'); g.addColorStop(1, '#111417');
+  ctx.fillStyle = g; ctx.fillRect(0, dy, w, dh);
+  for (let x = 0; x < w; x += 120) { ctx.fillStyle = '#0b0d10'; ctx.fillRect(x, dy, 6, dh); ctx.fillStyle = '#20262c'; ctx.fillRect(x + 6, dy, 1, dh); }
+  for (let band = 0; band < 9; band++) windowsGrid(ctx, R2, 10, dy + 30 + band * 54, w - 20, 26, 6, 6, 0.11, '#d8a868');
+  ctx.fillStyle = '#06080a'; for (let i = 0; i < 9; i++) ctx.fillRect(0, dy + 22 + i * 54, w, 3);
+  ctx.save(); ctx.globalAlpha = 0.18; ctx.fillStyle = '#8e897c'; ctx.font = 'bold 34px "DejaVu Sans Mono", monospace';
+  ctx.fillText('HAB RING C', 300, dy + dh - 14); ctx.fillText('HAB RING C', 2300, dy + dh - 14); ctx.restore();
+  // spine: vast vertical shafts below the drum
+  for (let i = 0; i < 6; i++) {
+    const x = 160 + i * 640, sw = 150;
+    ctx.fillStyle = '#15191d'; ctx.fillRect(x, dy + dh, sw, h - dy - dh); ctx.fillStyle = '#1e2328'; ctx.fillRect(x, dy + dh, 3, h);
+    ctx.fillStyle = '#080a0b'; ctx.fillRect(x + 20, dy + dh, 8, h); ctx.fillRect(x + sw - 28, dy + dh, 8, h);
+    for (let y = dy + dh + 30; y < h; y += 90) { ctx.fillStyle = '#0f1214'; ctx.fillRect(x - 30, y, sw + 60, 10); }
+    BG.movers.push({ layer: 0, x0: x + 24, y0: dy + dh, x1: x + 24, y1: h, sp: 0.01 + R2() * 0.015, ph: R2(), col: '200,170,110', s: 1.6 });
+    BG.movers.push({ layer: 0, x0: x + sw - 24, y0: h, x1: x + sw - 24, y1: dy + dh, sp: 0.008 + R2() * 0.01, ph: R2(), col: '200,170,110', s: 1.6 });
+  }
+  // coolant arteries crossing the void
+  for (const [y, th] of [[dy + dh + 260, 26], [dy + dh + 520, 18]]) {
+    ctx.fillStyle = '#171b1f'; ctx.fillRect(0, y, w, th); ctx.fillStyle = '#242a30'; ctx.fillRect(0, y + 3, w, 2);
+    for (let x = 0; x < w; x += 200) { ctx.fillStyle = '#090b0c'; ctx.fillRect(x, y - 4, 14, th + 8); }
+  }
+  for (let i = 0; i < 10; i++) BG.beacons.push({ layer: 0, x: R2() * w, y: dy + R2() * dh, per: 2 + R2() * 3, ph: R2() * 5, col: R2() < 0.5 ? '190,40,30' : '220,215,200' });
+}
+function drawMidLayer(ctx, w, h) {
+  const R2 = mulberry32(7);
+  // giant structural ribs
+  for (let i = 0; i < 5; i++) {
+    const x = 220 + i * 760 + R2() * 160, rw = 50 + R2() * 50;
+    ctx.fillStyle = '#16191d'; ctx.fillRect(x, 0, rw, h);
+    ctx.fillStyle = '#262b31'; ctx.fillRect(x, 0, 4, h); ctx.fillStyle = '#08090a'; ctx.fillRect(x + rw - 6, 0, 6, h);
+    for (let y = 40; y < h; y += 140) { ctx.fillStyle = '#1b1f23'; ctx.fillRect(x - 10, y, rw + 20, 12); for (let b = 0; b < 6; b++) { ctx.fillStyle = '#16191c'; ctx.fillRect(x - 6 + b * 14, y + 4, 2, 2); } }
+    ctx.save(); ctx.globalAlpha = 0.16; ctx.fillStyle = '#b8962e'; for (let y = 300; y < h; y += 600) ctx.fillRect(x + 10, y, rw - 20, 8); ctx.restore();
+  }
+  // gantries with walkway lights
+  for (const y of [180, 1480, 1720]) {
+    ctx.fillStyle = '#181c20'; ctx.fillRect(0, y, w, 8); ctx.fillRect(0, y + 26, w, 4);
+    ctx.strokeStyle = '#181c20'; ctx.lineWidth = 2; ctx.beginPath(); for (let x = 0; x < w; x += 22) { ctx.moveTo(x, y + 8); ctx.lineTo(x + 11, y + 26); ctx.lineTo(x + 22, y + 8); } ctx.stroke();
+    for (let x = 30; x < w; x += 160) BG.beacons.push({ layer: 1, x, y: y - 2, per: 999, ph: 0, col: '200,170,110', steady: 0.35 });
+    BG.movers.push({ layer: 1, x0: 0, y0: y - 6, x1: w, y1: y - 6, sp: 0.004 + R2() * 0.004, ph: R2(), col: '210,190,150', s: 3, tram: true });
+  }
+  // dormant sections: blocks with dead windows
+  const dorm = [[150, 260, 700, 380, 'SECTION 07 — DORMANT'], [2500, 300, 760, 340, 'SECTION 05 — CRYO STACK'], [1100, 1560, 900, 300, 'DECK 42 — MAINTENANCE']];
+  for (const [x, y, dw, dh, label] of dorm) {
+    ctx.fillStyle = '#171a1e'; ctx.fillRect(x, y, dw, dh); ctx.fillStyle = '#23282d'; ctx.fillRect(x, y, dw, 4);
+    windowsGrid(ctx, R2, x + 12, y + 30, dw - 24, dh - 60, 9, 12, 0.012, '#c8b48a');
+    ctx.save(); ctx.globalAlpha = 0.2; ctx.fillStyle = '#8e897c'; ctx.font = 'bold 20px "DejaVu Sans Mono", monospace'; ctx.fillText(label, x + 14, y + dh - 12); ctx.restore();
+    BG.beacons.push({ layer: 1, x: x + dw - 10, y: y + 8, per: 3.2, ph: R2() * 3, col: '190,40,30' });
+  }
+  // suspended machinery
+  for (let i = 0; i < 5; i++) { const x = R2() * w, y = 600 + R2() * 700; ctx.fillStyle = '#16191d'; ctx.fillRect(x, y, 90 + R2() * 80, 50 + R2() * 40); ctx.fillRect(x + 30, y - 400, 3, 400); }
+}
+
+function drawCryoStack(ctx) {
+  // the rest of Bay 6-C, hanging below the keel: 2,400 berths, one light each
+  const x0 = 960, y0 = 742, cols = 80, rows = 30, pw = 10, ph = 5;
+  kBevel(x0 - 16, y0 - 22, cols * pw + 32, rows * ph + 40, '#15191c', 1);
+  ctx.fillStyle = '#07090b'; ctx.fillRect(x0 - 8, y0 - 6, cols * pw + 16, rows * ph + 12);
+  ctx.strokeStyle = '#1e2428'; ctx.lineWidth = 2; for (let i = 0; i <= 8; i++) { const x = x0 - 8 + i * (cols * pw + 16) / 8; ctx.beginPath(); ctx.moveTo(x, y0 - 6); ctx.lineTo(x, y0 + rows * ph + 6); ctx.stroke(); }
+  kText(x0 - 10, y0 - 28, 'CRYO BAY 6-C — LOWER STACK — 2,400 BERTHS', '#8e897c', 11, 0.4);
+  ART.cryoStack = { x0, y0, cols, rows, pw, ph };
+  for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) { ctx.fillStyle = '#1b2a22'; ctx.fillRect(x0 + c * pw, y0 + r * ph, pw - 3, ph - 2); }
+}
+function drawAdjacentSections(ctx) {
+  // the sections above and below ours: same design bureau, mostly dark
+  const R2 = mulberry32(31);
+  for (const [y, h, label] of [[-330, 150, 'SECTION 05 — ACCESS SPINE'], [742 + 170, 240, '']]) {
+    if (!label && h) { ctx.fillStyle = '#121518'; ctx.fillRect(-900, y + 40, 3600, h); continue; }
+    ctx.fillStyle = '#14181b'; ctx.fillRect(-120, y, 2200, h);
+    for (let x = -120; x < 2080; x += 60) { ctx.fillStyle = shade('#181c20', R2() * 0.1 - 0.05); ctx.fillRect(x, y, 58, h); }
+    windowsGrid(ctx, R2, -100, y + 20, 2160, h - 40, 14, 18, 0.03, '#c8a46a');
+    kText(40, y + h - 12, label, '#8e897c', 13, 0.3);
+  }
 }
 
 function makeGrain(size = 256) {
@@ -583,6 +706,7 @@ function buildArt() {
     ART.rooms[r.id] = A;
     roomShell(r, A);
     ROOM_ART[r.id](r, A);
+    if (ROOM_DETAIL[r.id]) ROOM_DETAIL[r.id](r);
     // grime pass
     kStreaks(r.x0, r.y0 + 14, r.x1, r.fy, Math.round(r.w / 18), 0.14);
     const g = ctx.createLinearGradient(0, r.y0, 0, r.y0 + 40); g.addColorStop(0, 'rgba(0,0,0,0.45)'); g.addColorStop(1, 'rgba(0,0,0,0)');
@@ -597,8 +721,19 @@ function buildArt() {
   ART.EX = { x: -900, y: -330, w: 3600, h: 1230 };
   ART.exterior = mkCanvas(ART.EX.w, ART.EX.h);
   drawExterior(ART.exterior.getContext('2d'), ART.EX.x, ART.EX.y);
-  ART.colossus = mkCanvas(2600, 1200);
-  drawColossus(ART.colossus.getContext('2d'), 2600, 1200);
+  BG.layers = [
+    { c: mkCanvas(4000, 2400), s: 0.7, zp: 0.3, f: 0.08, cx: 2000, cy: 1000 },
+    { c: mkCanvas(3600, 2000), s: 0.95, zp: 0.55, f: 0.25, cx: 1800, cy: 1050 },
+  ];
+  BG.movers = []; BG.beacons = [];
+  // render each layer once at full size, then keep a half-resolution copy with the depth haze baked in
+  BG.layers.forEach((L, i) => {
+    const full = L.c, x = full.getContext('2d');
+    (i === 0 ? drawFarLayer : drawMidLayer)(x, full.width, full.height);
+    x.fillStyle = i === 0 ? 'rgba(4,5,5,0.3)' : 'rgba(4,5,5,0.42)'; x.fillRect(0, 0, full.width, full.height);
+    const half = mkCanvas(full.width / 2, full.height / 2); half.getContext('2d').drawImage(full, 0, 0, half.width, half.height);
+    L.c = half; L.half = 2;
+  });
   // 1× mip of the interior for zoomed-out views (big perf win on software rasterisers)
   ART.interior1 = mkCanvas(ART.IW, ART.IH);
   { const x = ART.interior1.getContext('2d'); x.imageSmoothingQuality = 'high'; x.drawImage(ART.interior, 0, 0, ART.IW, ART.IH); }

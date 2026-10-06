@@ -77,7 +77,7 @@ function ventTick(m, dt) {
     m.moving = true;
     const rf = G.roomById[m.vfrom], rt = G.roomById[m.vto];
     if (G.sensors) { (m.vprog < 0.5 ? rf : rt).ductMotion = 1; }
-    if (m.vprog >= 1) { m.ventRoom = m.vto; m.vfrom = m.vto; m.vto = null; }
+    if (m.vprog >= 1) { m.ventRoom = m.vto; m.vfrom = m.vto; m.vto = null; const ar = G.roomById[m.ventRoom]; ar.cableSwing = 1; if (chance(0.45)) crewReact(ar.id, ar.vent, 0.4); }
     else return;
   }
   // regenerate in ducts
@@ -122,9 +122,13 @@ function emerge(m) {
     return;
   }
   m.visited[r.id] = G.t;
+  r.ventBent = true; r.cableSwing = 1.4;
+  // a shape crosses the doorway of a lit neighbouring room — a glimpse, never a reveal
+  const dd = G.adj[r.id].filter((e) => !e.door.hatch && G.roomById[e.to].observed && G.roomById[e.to].powered && e.door.anim > 0.5);
+  if (dd.length && chance(0.6)) { const e = pick(dd); G.shadowPass = { room: e.to, x: e.door.x, dir: G.roomById[e.to].cx > e.door.x ? 1 : -1, t: G.t }; }
   m.state = 'room'; m.room = r.id; m.x = r.vent; m.y = r.fy; m.mode = 'lurk'; m.timer = rnd(4, 10); m.emergeT = 0.9;
   m.target = null;
-  AUDIO.ventDrop(r);
+  AUDIO.ventDrop(r); crewReact(r.id, r.vent, 1);
   if (G.director) G.director.flag('emerge');
 }
 
@@ -147,7 +151,7 @@ function roomTick(m, dt) {
     r.lastCreatureSeen = G.t; m.lastSeen = G.t;
     if (!m.revealed) {
       m.revealed = true;
-      if (!G.firstSighting) { G.firstSighting = G.t; logEvent('crit', `UNIDENTIFIED ORGANISM — ${r.short}. Tall. Moving. Not crew.`, r.id, { story: true }); AUDIO.sting(); if (UI.autoPause) UI.autoPause('ORGANISM SIGHTED'); }
+      if (!G.firstSighting) { G.firstSighting = G.t; hint('organism', r.id); logEvent('crit', `UNIDENTIFIED ORGANISM — ${r.short}. Tall. Moving. Not crew.`, r.id, { story: true }); AUDIO.sting(); if (UI.autoPause) UI.autoPause('ORGANISM SIGHTED'); }
       else logEvent('crit', `ORGANISM SIGHTED — ${r.short}.`, r.id, { story: true });
       for (const c of G.crew) if (c.alive && c.room === r.id) c.stress = Math.min(100, c.stress + 25);
     }
@@ -205,7 +209,7 @@ function roomTick(m, dt) {
         m.attackT = rnd(1.1, 1.6);
         m.lunge = 0.25;
         const dmg = rnd(20, 30) * (G.phase >= 5 ? 1.2 : 1);
-        AUDIO.attack(r);
+        AUDIO.attack(r); crewReact(r.id, m.x, 1.5, true); if (chance(0.5)) addScar(r, 'scratch', { x: c.x + rnd(-14, 14), y: r.fy - rnd(28, 70) });
         r.blood.push({ x: c.x + rnd(-14, 14), y: c.y - rnd(0, 30), s: rnd(0.5, 1.1), wall: chance(0.5) });
         if (r.blood.length > 14) r.blood.shift();
         G.shake = Math.max(G.shake, r.observed ? 2 : 0.6);
@@ -389,7 +393,7 @@ function updateInfectedBehaviour(c, dt) {
   if (chance(dt * 0.004 * inf.stage)) {
     const witness = G.crew.find((o) => o !== c && o.alive && !o.infection && o.room === c.room && (hasTrait(o, 'Paranoid') || o.rel.some((r) => r.id === c.id) || hasTrait(o, 'Empathetic')));
     if (witness && G.t - (c.reportedOdd || 0) > 80) {
-      c.reportedOdd = G.t;
+      c.reportedOdd = G.t; hint('infection', c.room);
       const lines = [`"${c.first}'s not right. Ate like they were starving and still says they're hungry."`, `"Has anyone else noticed ${c.first} doesn't sleep any more?"`, `"I touched ${c.first}'s hand. They're burning up. Said they feel fine."`, `"${c.first} was in the ${G.roomById[inf.lastWander || c.duty].short} with the lights off. Just standing there."`];
       logEvent('story', `${witness.name} reports: ${pick(lines)}`, c.room, { story: true });
       AUDIO.radio();

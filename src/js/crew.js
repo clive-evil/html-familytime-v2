@@ -131,14 +131,14 @@ function orderCrew(c, task, opts = {}) {
     if (danger >= 2) {
       let p = (c.stress - 35) / 120 + (100 - c.morale) / 300 + (hasTrait(c, 'Cowardly') ? 0.28 : 0) - (hasTrait(c, 'Brave') ? 0.3 : 0) + (danger >= 4 ? 0.12 : 0) + (c.grief > 0 ? 0.1 : 0);
       if (hasTrait(c, 'Claustrophobic') && (!room.powered || room.sealed)) p += 0.25;
-      if (G.t < 140) p = 0; // never during routine
+      if (G.dirT < 140) p = 0; // never during routine
       if (chance(clamp(p, 0, 0.75))) {
         const lines = room.p < 50 ? ['There is no air in there.', 'Not without a suit. Not a chance.']
           : G.t - room.lastCreatureSeen < 60 ? ['You saw what was in there. You go.', "I'm not going in there. Not after that."]
           : !room.powered ? ['Not in the dark. Get the lights back first.', "I can't see a thing in there. No."]
           : ["Give me a minute. I can't.", "Send someone else. Please."];
         c.refused = { task, t: G.t, line: pick(lines) };
-        logEvent('warn', `${c.name} REFUSES: "${c.refused.line}"`, c.room, { story: true });
+        logEvent('warn', `${c.name} REFUSES: "${c.refused.line}"`, c.room, { story: true, cat: 'crew' }); hint('refusal');
         AUDIO.radio();
         return false;
       }
@@ -189,6 +189,7 @@ function workSpot(c) {
     case 'scan': case 'bloodtest': return t.room === 'quarantine' ? 1050 : 760;
     case 'eva': return 60;
     case 'investigate': return t.spot ?? (t.spot = rnd(r.x0 + 40, r.x1 - 40));
+    case 'eat': return t.spot ?? (t.spot = messSeat(c));
     default: return t.spot ?? (t.spot = clamp(r.cx + rnd(-r.w * 0.3, r.w * 0.3), r.x0 + 30, r.x1 - 30));
   }
 }
@@ -248,7 +249,7 @@ function stepMovement(c, dt) {
   }
   return false;
 }
-function finishPortal(c, d) { c.path.shift(); if (!c.path.length) c.path = []; }
+function finishPortal(c, d) { if (c.path && c.path.length) c.path.shift(); if (!c.path) c.path = []; }
 function moveToward(c, tx, dt) {
   const dx = tx - c.x; const s = speedOf(c) * dt;
   c.face = dx > 0 ? 1 : -1;
@@ -271,6 +272,8 @@ function updateCrew(dt) {
     if (!c.alive) continue;
     if (c.down) { c.moving = false; c.atWork = false; continue; }
     if (c.infection) updateInfectedBehaviour(c, dt, clock);
+    if (c.react && c.react.t > 0) c.react.t -= dt;
+    if (c.social) { c.social.t -= dt; c.social.sw -= dt; if (c.social.sw <= 0) { c.social.sw = rnd(1.8, 3.6); c.social.speaking = !c.social.speaking; } if (c.social.t <= 0 || G.alertLevel === 2 || !G.crew[c.social.with].alive || G.crew[c.social.with].room !== c.room) c.social = null; }
     if (c.panicT > 0) { c.panicT -= dt; if (c.panicT <= 0 && c.panicRelief) { c.panicRelief = false; c.stress = Math.min(c.stress, 58); if (c.task && c.task.type === 'panic') c.task = null; } }
     // autonomy: flee immediate hazards unless doing hazard-work
     const hazardWork = c.task && ['extinguish', 'seal', 'door', 'fight', 'reactor', 'restart'].includes(c.task.type) && c.task.room === c.room;
@@ -300,6 +303,10 @@ function updateCrew(dt) {
     }
     // no task → schedule
     if (!c.task) scheduleTask(c, clock);
+    // social life during routine
+    if (!c.social && G.alertLevel < 2 && c.atWork && c.task && ['eat', 'duty'].includes(c.task.type) && ['mess', 'quarters', 'bridge', 'hydro', 'medbay'].includes(c.room) && chance(dt * 0.06)) startSocial(c);
+    // a startled crew member freezes for a moment and looks
+    if (c.react && c.react.t > 0.7 && !(c.task && ['flee', 'panic', 'fight'].includes(c.task.type))) { c.moving = false; continue; }
     // movement
     const moved = stepMovement(c, dt);
     if (!moved && !c.climb && (!c.path || !c.path.length)) {
@@ -319,6 +326,36 @@ function updateCrew(dt) {
   updateDoorsCrew(dt);
 }
 
+const MESS_SEATS = [928, 952, 1032, 1056, 1063, 1087, 1167, 1191];
+function messSeat(c) {
+  // sit beside a friend or relative if one is already eating
+  const taken = G.crew.filter((o) => o !== c && o.alive && o.task && o.task.type === 'eat' && o.task.spot).map((o) => o.task.spot);
+  for (const rel of c.rel) { const o = G.crew[rel.id]; if (rel.type !== 'rival' && o.alive && o.task && o.task.type === 'eat' && o.task.spot) { const i = MESS_SEATS.indexOf(o.task.spot); const n = MESS_SEATS[i % 2 ? i - 1 : i + 1]; if (n && !taken.includes(n)) return n; } }
+  const free = MESS_SEATS.filter((s) => !taken.includes(s));
+  return free.length ? free[(c.id * 3) % free.length] : rnd(940, 1180);
+}
+function startSocial(c) {
+  const mates = G.crew.filter((o) => o !== c && o.alive && !o.missing && o.room === c.room && o.atWork && !o.social && o.task && ['eat', 'duty'].includes(o.task.type) && Math.abs(o.x - c.x) < 90);
+  if (!mates.length) return;
+  mates.sort((a, b) => (b.rel.some((r) => r.id === c.id && r.type !== 'rival') ? 1 : 0) - (a.rel.some((r) => r.id === c.id && r.type !== 'rival') ? 1 : 0));
+  const o = mates[0]; const dur = rnd(10, 22);
+  const friends = o.rel.some((r) => r.id === c.id && r.type === 'friend');
+  c.social = { with: o.id, t: dur, sw: rnd(1, 3), speaking: true, cards: friends && c.task.type === 'eat' };
+  o.social = { with: c.id, t: dur, sw: rnd(2, 4), speaking: false, cards: c.social.cards };
+  c.face = o.x > c.x ? 1 : -1; o.face = c.x > o.x ? 1 : -1;
+  const kin = c.rel.find((r) => r.id === o.id);
+  c.stress = Math.max(0, c.stress - 3); o.stress = Math.max(0, o.stress - 3);
+  if (kin && kin.type !== 'rival') { c.morale = Math.min(100, c.morale + 2); o.morale = Math.min(100, o.morale + 2); }
+}
+// crew in a room (and optionally its neighbours) flinch and look toward an event
+function crewReact(roomId, x, strength = 1, neighbours = false) {
+  const rooms = new Set([roomId]); if (neighbours) for (const e of G.adj[roomId] || []) rooms.add(e.to);
+  for (const c of G.crew) {
+    if (!c.alive || c.down || c.missing || c.eva || !rooms.has(c.room) || c.sleeping) continue;
+    c.react = { t: 0.6 + strength * 0.8, dir: Math.sign(x - c.x) || 1 }; if (!c.moving) c.face = c.react.dir;
+    c.social = null;
+  }
+}
 function nearestSafeRoom(c, fromMonster) {
   let best = null, bc = 1e9;
   for (const r of G.rooms) {
@@ -407,11 +444,12 @@ function doTask(c, dt) {
       c.stress = Math.max(0, c.stress - dt * 0.5 * (r.powered ? 1 : 0.4));
       { const h = fmtClock(G.t).hour, s = [22, 6, 14][c.watch]; if ((h - s + 24) % 24 >= 7 && c.fatigue < 40) { c.sleeping = false; completeTask(c); } }
       break;
-    case 'eat': t.prog += dt; c.morale = Math.min(100, c.morale + dt * (r.powered ? 0.25 : 0.05)); c.stress = Math.max(0, c.stress - dt * 0.3); if (t.prog > 14) completeTask(c); break;
+    case 'eat': t.prog += (c.social ? 0.5 : 1) * dt; c.morale = Math.min(100, c.morale + dt * (r.powered ? 0.25 : 0.05)); c.stress = Math.max(0, c.stress - dt * 0.3); if (t.prog > 14) completeTask(c); break;
     case 'rest': c.stress = Math.max(0, c.stress - dt * 0.9); c.fatigue = Math.max(0, c.fatigue - dt * 0.6); if (c.stress < 10 && c.fatigue < 15) completeTask(c, `${c.name} feels steadier.`); break;
     case 'medical': if (c.hp >= 90) completeTask(c); break;
     case 'repair': {
-      if (r.integ >= 100 && !r.leak && !(r.id === 'reactor' && G.reactor.instability > 0.3)) { completeTask(c, `${c.name} finished repairs in ${r.short}.`); r.cameraJammed = false; break; }
+      if (t.startInteg === undefined) t.startInteg = r.integ;
+      if (r.integ >= 100 && !r.leak && !(r.id === 'reactor' && G.reactor.instability > 0.3)) { if (t.startInteg < 65) addScar(r, 'weld', { x: rnd(r.x0 + 30, r.x1 - 60), y: r.y0 + rnd(30, 100) }); completeTask(c, `${c.name} finished repairs in ${r.short}.`); r.cameraJammed = false; break; }
       if (G.res.parts <= 0) { if (!t.noParts) { t.noParts = true; logEvent('warn', `${c.name}: no spare parts left to repair ${r.short}.`); } break; }
       const amt = dt * 2.6 * workRate(c, 'eng');
       t.partAcc = (t.partAcc || 0) + amt;
@@ -428,7 +466,7 @@ function doTask(c, dt) {
       if (!r.elecFault) { completeTask(c, `${r.short}: power restored.`); break; }
       t.prog += dt * 0.09 * workRate(c, 'eng');
       c.sparkT = (c.sparkT || 0) + dt; if (c.sparkT > 0.5) { c.sparkT = 0; FX.sparks(c.x + c.face * 10, r.y0 + 30, 4); }
-      if (t.prog >= 1) { if (useParts(c, 1)) { r.elecFault = false; AUDIO.relay(true); completeTask(c, `${c.name} restored power to ${r.short}.`); } else { logEvent('warn', 'No spare parts for wiring.'); completeTask(c); } }
+      if (t.prog >= 1) { if (useParts(c, 1)) { r.elecFault = false; addScar(r, 'panel', { x: clamp(c.x + c.face * 14, r.x0 + 20, r.x1 - 30), y: r.y0 + rnd(24, 40) }); AUDIO.relay(true); completeTask(c, `${c.name} restored power to ${r.short}.`); } else { logEvent('warn', 'No spare parts for wiring.'); completeTask(c); } }
       break;
     }
     case 'extinguish': {
@@ -444,7 +482,7 @@ function doTask(c, dt) {
       t.prog += dt * 0.045 * workRate(c, 'eng');
       c.sparkT = (c.sparkT || 0) + dt; if (c.sparkT > 0.25) { c.sparkT = 0; FX.sparks(r.breachX, r.breachY + 10, 5, true); AUDIO.weld(); }
       if (t.prog >= 1) {
-        if (useParts(c, 2)) { r.breach = 0; G.res.hull = Math.min(100, G.res.hull + 4); logEvent('info', `${c.name} welded a patch over the breach in ${r.short}.`, r.id, { story: true }); completeTask(c); }
+        if (useParts(c, 2)) { addScar(r, 'patch', { x: r.breachX, y: r.breachY, s: 0.8 + r.breach }); r.breach = 0; G.res.hull = Math.min(100, G.res.hull + 4); logEvent('info', `${c.name} welded a patch over the breach in ${r.short}.`, r.id, { story: true }); completeTask(c); }
         else { if (!t.noParts) logEvent('warn', 'Not enough spare parts to patch the breach (2 needed).'); t.noParts = true; t.prog = 0.8; }
       }
       break;
@@ -456,7 +494,7 @@ function doTask(c, dt) {
       break;
     }
     case 'decon': {
-      if (r.contam <= 0.02) { r.contam = 0; r.contamKnown = false; completeTask(c, `${c.name} burned out the growth in ${r.short}.`); break; }
+      if (r.contam <= 0.02) { r.contam = 0; r.contamKnown = false; addScar(r, 'burnt', { x: r.vent }); completeTask(c, `${c.name} burned out the growth in ${r.short}.`); break; }
       r.contam = Math.max(0, r.contam - dt * 0.03 * workRate(c, 'sci'));
       FX.foam(c.x + c.face * 12, c.y - 10, c.face, true);
       if (r.contam > 0.5 && chance(dt * 0.004)) exposeInfection(c, 'decon');
@@ -601,6 +639,7 @@ function startPanic(c) {
   c.panicT = 22; c.panicCool = G.t + 140; c.panicRelief = true;
   const dest = pick(['quarters', 'mess', 'bridge', 'medbay'].filter((id) => !roomHazardNow(G.roomById[id]))) || 'quarters';
   c.task = { type: 'panic', room: dest, prog: 0 }; repath(c);
+  hint('panic');
   logEvent('warn', `${c.name} is PANICKING — abandoned post, running for ${G.roomById[dest].short}.`, c.room, { story: true });
   AUDIO.scream(0.25, c);
   for (const o of G.crew) if (o !== c && o.alive && o.room === c.room) o.stress = Math.min(100, o.stress + 6);
@@ -620,6 +659,7 @@ function hurt(c, amt, cause) {
   if (amt > 3) c.hitFlash = 0.3;
   if (c.hp < 15 && !c.down && c.hp > 0) {
     c.down = true; c.task = null; c.path = []; c.climb = null;
+    hint('down', c.room);
     logEvent('crit', `${c.name} is DOWN in ${crewRoom(c).short} (${cause}). Needs a medic.`, c.room, { story: true });
     AUDIO.scream(0.2, c);
   }
@@ -735,6 +775,7 @@ function runMedicalTest(c, dt) {
 }
 
 function orderQuarantine(subject) {
+  hint('quarantine');
   const q = G.roomById.quarantine;
   if (subject.quarantined) { // release
     subject.quarantined = false; subject.task = null;

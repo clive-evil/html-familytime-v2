@@ -47,6 +47,7 @@ button.critb{border-color:#6e221a;color:#e0a090}
 @keyframes blink{50%{opacity:.45}}
 
 #alerts{position:fixed;top:54px;left:calc(var(--lw) + 16px);right:calc(var(--rw) + 16px);display:flex;flex-wrap:wrap;gap:4px;z-index:4;pointer-events:auto}
+.al:first-child{font-size:11.5px;padding:3px 10px;font-weight:bold}
 .al{font-size:10px;padding:2px 7px;border:1px solid #333;background:rgba(10,10,10,.85);letter-spacing:.06em;cursor:pointer}
 .al.crit{border-color:#6e221a;color:#e07a6a;border-left:3px solid var(--red)}
 .al.warn{border-color:#5a4520;color:var(--amber);border-left:3px solid var(--amber)}
@@ -81,7 +82,7 @@ i.hp{background:#7f9a74} i.ox{background:#6c8090} i.st{background:#b07a32}
 .who{display:flex;gap:9px}.who canvas{border:1px solid var(--line2);flex:none;width:84px;height:104px}
 .tr{display:flex;flex-wrap:wrap;gap:3px;margin:3px 0}.tr span{font-size:9.5px;border:1px solid var(--line2);padding:0 4px;color:#b4ae9e;cursor:help}
 .who .st{font-size:10.5px;margin-top:4px}
-.bio{font-size:10.5px;color:#a49e90;margin:6px 0;font-style:italic}
+.bio{font-size:10px;color:#857f72;margin:8px 0 2px;font-style:italic;border-top:1px solid #1e201f;padding-top:6px}
 p.bio{color:#a49e90} #ctx p{margin:4px 0}
 .br{display:grid;grid-template-columns:78px 1fr 58px;align-items:center;gap:6px;font-size:10px;margin:2px 0}
 .br span{color:var(--dim);letter-spacing:.06em}.br i{height:5px;background:#1e201f;display:block}.br i b{display:block;height:100%;background:#7c8676}
@@ -155,6 +156,52 @@ ul.rel{list-style:none;padding:0;margin:6px 0;font-size:10.5px}ul.rel li{color:v
 @media (max-width:1300px){ .gl{font-size:8px} .gv{font-size:11px} #top .id{min-width:180px} .tc .ap{display:none} }
 @media (max-width:1000px){ #left{display:none} #alerts,#logWrap{left:6px} :root{--rw:270px} }
 
+/* ---------------- V2: onboarding, hints, tooltips, settings ---------------- */
+button.lnk{background:none;border:0;color:var(--dim);text-decoration:underline;padding:2px 4px}
+button.lnk:hover{color:var(--hi);background:none}
+.pop{position:fixed;top:52px;right:8px;z-index:25;background:#111312;border:1px solid #4a4c46;width:260px;display:none;box-shadow:0 6px 24px #000}
+.pop label{display:flex;align-items:center;gap:8px;padding:6px 10px;font-size:11px;color:var(--text)}
+.pop input[type=checkbox]{accent-color:#8a7a48}.pop .vol input{flex:1;accent-color:#8a7a48}
+#hints{position:fixed;left:calc(var(--lw) + 16px);top:84px;width:380px;z-index:6;display:flex;flex-direction:column;gap:6px;pointer-events:none}
+.hintToast{pointer-events:auto;display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:start;background:rgba(14,15,14,.94);border:1px solid #3e4a3a;border-left:3px solid #7f9a74;padding:6px 6px 7px 8px;font-size:11px;color:#c9c3b2;animation:tin .35s ease-out}
+.hintToast .hk{color:#8fa585;font-size:9px;letter-spacing:.15em;padding-top:2px}
+.hintToast .hx{border:0;background:none;color:var(--dim);font-size:14px;line-height:1;padding:0 4px}
+@keyframes tin{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+#banner{position:fixed;top:40%;left:50%;transform:translate(-50%,-50%);z-index:12;text-align:center;opacity:0;transition:opacity 1.2s;pointer-events:none;background:rgba(8,9,9,.82);border-top:1px solid #4a4c46;border-bottom:1px solid #4a4c46;padding:16px 46px}
+#banner.show{opacity:1}
+#banner b{display:block;letter-spacing:.5em;font-size:18px;color:var(--hi);margin-bottom:8px}
+#banner span{color:#a8a294;font-size:12px}
+#tutFrame{position:fixed;z-index:9;pointer-events:none;display:none;border:1px solid rgba(232,226,206,.85);box-shadow:0 0 0 2000px rgba(0,0,0,.18);animation:pulse 1.6s ease-in-out infinite;transition:left .25s,top .25s,width .25s,height .25s}
+@keyframes pulse{50%{border-color:rgba(232,226,206,.3)}}
+#tutBox{position:fixed;z-index:11;width:340px;display:none;background:#121412;border:1px solid #6a6450;box-shadow:0 8px 30px rgba(0,0,0,.7);transition:left .25s,top .25s}
+#tutBox .tt{background:#1f1d16;color:#e2d6a8;letter-spacing:.14em;font-size:10.5px;font-weight:bold;padding:6px 10px;border-bottom:1px solid #3a372a}
+#tutBox .tb{padding:9px 10px;font-size:12px;line-height:1.45;color:var(--text)}
+#tutBox .tf{display:flex;align-items:center;gap:6px;padding:0 10px 8px}
+#tutBox .tf #tutCont{border-color:#8a7a48;background:#2a2619;color:var(--hi)}
+#tutBox .tn{margin-left:auto;color:var(--dim);font-size:10px}
+#tutList{position:fixed;left:calc(var(--lw) + 12px);bottom:calc(clamp(110px,16vh,170px) + 12px);width:190px;z-index:6;background:var(--panel);border:1px solid var(--line);display:none}
+#tutList .ph{cursor:pointer}
+#tutList.collapsed #tutItems{display:none}
+.ti{font-size:10.5px;padding:3px 8px;color:var(--dim);cursor:pointer;display:flex;gap:6px}
+.ti i{width:10px;font-style:normal;color:#8fa585}
+.ti.ok{color:#8fa585}.ti.cur{color:var(--hi);background:#1b1d1a}
+.ti:hover{background:#202220}
+#tip{position:fixed;z-index:40;max-width:280px;background:#0f1110;border:1px solid #4a4c46;color:#c9c3b2;font-size:11px;padding:6px 8px;pointer-events:none;display:none;line-height:1.4}
+#logTabs{margin-left:auto;display:flex;gap:2px}
+#logTabs button{font-size:9px;padding:1px 6px;letter-spacing:.06em;border-color:#2b2d2b;color:var(--dim)}
+#logTabs button.on{color:var(--hi);border-color:#6a6450;background:#22211b}
+.le .lg{display:inline-block;width:12px;text-align:center;color:#6e6a5e;margin-right:4px}
+.le.crit .lg{color:var(--red);font-weight:bold}
+.le.crit{border-left:2px solid var(--red);padding-left:4px;background:rgba(120,30,20,.08)}
+.le.story{border-left:2px solid #6a6450;padding-left:4px}
+.le.c-medical .lg{color:#8fa585}.le.c-security .lg{color:#a89a6a}
+.box.title{text-align:left}
+.intro .l{font-size:12px;letter-spacing:.32em;color:#8e897c;opacity:0;animation:fadein 1s forwards}
+.intro .l1{color:var(--hi);animation-delay:.2s}.intro .l2{animation-delay:.9s}.intro .l3{animation-delay:1.6s}.intro .l4{animation-delay:2.3s}.intro .l5{animation-delay:3.2s;color:#c8a24a;margin-top:10px}
+.box.title h1{opacity:0;animation:fadein 2s 3.9s forwards}
+.startb{display:flex;align-items:center;gap:14px;opacity:0;animation:fadein 1s 4.6s forwards}
+@keyframes fadein{to{opacity:1}}
+
 </style>
 </head>
 <body>
@@ -166,11 +213,22 @@ ul.rel{list-style:none;padding:0;margin:6px 0;font-size:10.5px}ul.rel li{color:v
   <div id="gauges"></div>
   <div class="tc">
     <button data-speed="0" title="Pause (Space)">❚❚</button><button data-speed="1" title="1× (1)">1×</button><button data-speed="2" title="2× (2)">2×</button><button data-speed="4" title="4× (3)">4×</button>
-    <label class="ap" title="Pause automatically when something critical happens"><input type="checkbox" id="chkAuto" checked> AUTO-PAUSE</label>
-    <button id="btnMute" title="M">SOUND ON</button><button id="btnHelp" title="H">HELP</button>
+    <button id="btnMute" data-tip="Mute / unmute (M)">SOUND ON</button><button id="btnSettings" data-tip="Settings: hints, auto-pause, volume">SETTINGS</button><button id="btnHelp" data-tip="Operations manual (H)">? HELP</button>
   </div>
 </header>
 <div id="alerts"></div>
+<div id="settings" class="pop">
+  <div class="ph">SETTINGS</div>
+  <label><input type="checkbox" id="setHints" checked> Tutorial hints</label>
+  <label><input type="checkbox" id="chkAuto" checked> Auto-pause on critical events</label>
+  <label class="vol">Volume <input type="range" id="setVol" min="0" max="1" step="0.05" value="0.8"></label>
+</div>
+<div id="hints"></div>
+<div id="banner"></div>
+<div id="tutFrame"></div>
+<div id="tutBox"></div>
+<div id="tutList"><div class="ph" id="tutHead">FIRST WATCH <span class="dim">▾</span></div><div id="tutItems"></div></div>
+<div id="tip"></div>
 <div id="pauseBanner">PAUSED <span id="pauseReason"></span></div>
 
 <aside id="left" class="panel">
@@ -194,7 +252,7 @@ ul.rel{list-style:none;padding:0;margin:6px 0;font-size:10.5px}ul.rel li{color:v
   </div>
 </aside>
 
-<section id="logWrap" class="panel"><div class="ph">EVENT LOG</div><div id="log"></div></section>
+<section id="logWrap" class="panel"><div class="ph">EVENT LOG <span id="logTabs"><button data-f="all" class="on">ALL</button><button data-f="crit">! CRITICAL</button><button data-f="crew">● CREW</button><button data-f="medical">+ MEDICAL</button><button data-f="security">◉ SECURITY</button><button data-f="system">· SYSTEM</button><button data-f="door">▮ DOORS</button></span></div><div id="log"></div></section>
 
 <div id="menu"></div>
 
@@ -204,6 +262,7 @@ ul.rel{list-style:none;padding:0;margin:6px 0;font-size:10.5px}ul.rel li{color:v
   <div class="ph">OPERATIONS MANUAL — WATCH OFFICER <button id="helpClose">CLOSE</button></div>
   <div class="cols">
   <div>
+  <h4>FIRST WATCH</h4><p>New players: BEGIN WATCH starts a short guided first watch (skippable). Tips appear the first time something new happens; switch them off in SETTINGS. Hover any number for an explanation.</p>
   <h4>CAMERA</h4><p>Mouse wheel / Q E: zoom. Left-drag, middle-drag or WASD / arrows: pan. F: focus selection. 0 / Home: whole section.</p>
   <h4>TIME</h4><p>SPACE pause · 1 = 1× · 2 = 2× · 3 = 4×. Auto-pause stops the clock on critical events. Orders can be given while paused.</p>
   <h4>CREW</h4><p>Click a crew member (or their row) to select. <b>Right-click a room</b> for orders: move, repair, extinguish, seal breach, restore power, investigate, decontaminate, operate reactor, man security, rest, treat. Right-click another crew member to treat, observe or escort. TAB cycles crew.</p>
@@ -218,12 +277,19 @@ ul.rel{list-style:none;padding:0;margin:6px 0;font-size:10.5px}ul.rel li{color:v
 </div></div>
 
 <div id="title" class="modal show"><div class="box title">
-  <div class="kick">CSV ARDENT VOW · COLONY TRANSIT YEAR 87 · SECTION 06</div>
+  <div class="intro">
+    <div class="l l1">CSV ARDENT VOW</div>
+    <div class="l l2">COLONY TRANSIT YEAR 87</div>
+    <div class="l l3">POPULATION: 2,412 &nbsp;·&nbsp; AWAKE: 12</div>
+    <div class="l l4">DISTANCE TO LANDFALL: 14 YEARS</div>
+    <div class="l l5">SECTION 06 — WATCH CHANGE</div>
+  </div>
   <h1>THE LONG WATCH</h1>
-  <p>Twelve crew are awake to keep Section 6 alive. Below them, two thousand four hundred colonists sleep in the cryo bay. Fourteen years to landfall.</p>
-  <p>You are the watch officer. Power, air, food, doors, people. Keep the metal city running until the next watch is thawed.</p>
-  <p class="dim">Headphones recommended. Best at 1920×1080. Press H in-game for the manual.</p>
-  <button id="btnStart">BEGIN WATCH</button>
+  <div class="startb">
+    <button id="btnStart">BEGIN WATCH</button>
+    <button id="btnStartSkip" class="lnk">begin without tutorial</button>
+  </div>
+  <p class="dim small">Headphones recommended · desktop browser · press H for the manual at any time</p>
 </div></div>
 
 <div id="end" class="modal"><div class="box wide">
@@ -371,8 +437,17 @@ function fmtT(simT) {
 // SIM — rooms, doors, atmosphere, power, fire, resources, pathfinding
 // ============================================================================
 
+function logCategory(sev, text, opts) {
+  if (opts.cat) return opts.cat;
+  if (sev === 'hint') return 'hint';
+  if (/BIOMONITOR|BLOOD TEST|SCAN |treat|medic|fever|wound|DOWN in|puncture|rash|quarantine|QUARANTINE/i.test(text)) return 'medical';
+  if (/ORGANISM|MOTION|CAMERA|camera|lock|duct|DUCT|noise|knock|shape|stain|organism|security/i.test(text)) return 'security';
+  if (/DOOR|HATCH|door|hatch|bulkhead|SEALED|seal released/.test(text)) return 'door';
+  if (G.crew && G.crew.some((c) => text.includes(c.first + ' ' + c.last))) return 'crew';
+  return 'system';
+}
 function logEvent(sev, text, roomId, opts = {}) {
-  const e = { t: G.t, clock: fmtClock(G.t).str, sev, text, room: roomId || null, id: (G.logId = (G.logId || 0) + 1) };
+  const e = { t: G.t, clock: fmtClock(G.t).str, sev, text, room: roomId || null, id: (G.logId = (G.logId || 0) + 1), cat: logCategory(sev, text, opts) };
   G.log.push(e); if (G.fullLog) G.fullLog.push(e);
   if (G.log.length > 300) G.log.shift();
   if (opts.story !== false && (sev === 'crit' || sev === 'story' || opts.story)) G.story.push(`${fmtClock(G.t).str} — ${text}`);
@@ -391,7 +466,7 @@ function initShip() {
       elecFault: false, cameraOK: true, cameraT: 0, contam: 0, contamKnown: false, venting: false, sealed: false,
       powered: true, observed: true, lifeSigns: 0, motion: 0, ductMotion: 0, leak: false, blood: [],
       flick: 0, dangerSeen: 0, lastCreatureSeen: -999, interference: 0, vent: VENT_X[d.id], noise: 0,
-      sparkT: 0, lightLevel: 1, staffBonus: 0, investigatedT: -999,
+      sparkT: 0, lightLevel: 1, staffBonus: 0, investigatedT: -999, scars: [],
     });
     G.rooms.push(r); G.roomById[r.id] = r;
   }
@@ -552,13 +627,14 @@ function roomAt(x, y) {
 function reactorOutput() {
   const rr = G.roomById.reactor, R = G.reactor;
   if (R.scramT > 0 || R.needsRestart) return 0;
+  const cap = G.tutCap || 999;
   const manned = G.crew.some((c) => c.alive && c.room === 'reactor' && c.atWork && (c.task?.type === 'reactor' || (c.duty === 'reactor' && c.task?.type === 'duty')));
   R.manned = manned;
   const integ = Math.max(0, rr.integ) / 100;
   let out = 132 * Math.pow(integ, 0.7) * (0.45 + 0.55 * R.coolant / 100) * (manned ? 1 : 0.86);
   if (R.instability > 0.25) out *= 1 - R.instability * 0.35 * (0.5 + 0.5 * Math.sin(G.t * 3.1) * Math.sin(G.t * 1.7));
   if (rr.elecFault) out *= 0.6;
-  return Math.max(0, out);
+  return Math.max(0, Math.min(cap, out));
 }
 
 function updatePower(dt) {
@@ -590,6 +666,7 @@ function updatePower(dt) {
   // battery: 100% = 1100 unit-seconds
   G.battery = clamp(G.battery + (net * dt / 1100) * 100, 0, 100);
   G.brownout = net < 0 && G.battery < 15;
+  if (net < -2 && G.battery < 60 && !(G.tut && G.tut.active)) hint('deficit');
   if (G.battery <= 0 && net < 0) {
     // trip breakers in shed order
     const g = SHED_ORDER.map((id) => G.groups[id]).find((g) => g.on);
@@ -598,7 +675,7 @@ function updatePower(dt) {
       logEvent('crit', `BREAKER TRIP — ${g.name} shed. Reactor ${Math.round(supply)} MW vs demand ${Math.round(demand)} MW.`);
       AUDIO.powerDown(); G.shake = Math.max(G.shake, 1.5);
       G.flashPower = 2;
-      if (!G._tripHint) { G._tripHint = true; logEvent('hint', 'A tripped bus stays dark until you re-energise it in POWER DISTRIBUTION — and it will trip again unless generation covers demand. Choose what to keep.'); }
+      hint('trip');
       if (UI.autoPause && G.t - (G._tripPause || -999) > 60) { G._tripPause = G.t; UI.autoPause('BREAKER TRIP'); }
     }
   }
@@ -684,6 +761,7 @@ function updateAtmosphere(dt) {
     if (r === al && outer.anim > 0.05) leak += 1.4 * outer.anim;
     if (leak > 0) { const k = Math.min(1, leak * dt); r.p -= r.p * k; }
     if (r.p < 0.2) r.p = 0;
+    if (r.p < 25 && !r._vacScar) { r._vacScar = true; addScar(r, 'frost', { x: r.cx }); } else if (r.p > 90) r._vacScar = false;
     // life support
     const sealedOff = r.sealed || r.venting;
     if (life && !sealedOff && G.res.o2 > 0) {
@@ -728,10 +806,16 @@ function igniteRoom(r, amt = 0.15, cause = '') {
   if (r.fireXs.length === 0 || chance(0.4)) r.fireXs.push(rnd(r.x0 + 30, r.x1 - 30));
   if (r.fireXs.length > 3) r.fireXs.shift();
   if (was < 0.05) {
+    hint('fire', r.id); crewReact(r.id, r.cx, 1.2, true);
     logEvent('crit', `FIRE in ${r.short}${cause === 'spread' ? ' (spread through open door)' : cause === 'electrical' ? ' — junction box arcing' : ''}.`, r.id);
     AUDIO.fireStart(r);
     if (G.director) G.director.flag('fire');
   }
+}
+// persistent damage: rooms remember what happened to them
+function addScar(r, k, o = {}) {
+  r.scars.push(Object.assign({ k, x: r.cx, y: r.cy, s: 1, t: G.t, seed: Math.random() * 1000 }, o));
+  if (r.scars.length > 16) r.scars.splice(r.scars.findIndex((x) => x.k !== 'patch'), 1);
 }
 function damageRoom(r, amt, cause) {
   r.integ = Math.max(0, r.integ - amt);
@@ -742,21 +826,28 @@ function breachRoom(r, size, x) {
   r.breach = Math.min(1, r.breach + size);
   r.breachX = x ?? rnd(r.x0 + 40, r.x1 - 40);
   r.breachY = r.y0 + rnd(25, 70);
-  r.sealProg = 0;
+  r.sealProg = 0; crewReact(r.id, r.breachX, 1.5, true);
   G.res.hull = Math.max(0, G.res.hull - size * 14);
 }
 
+function recordBurn(r) {
+  for (const bx of r.burnXs || []) addScar(r, 'scorch', { x: bx, s: 0.5 + (r.maxFire || 0.5) });
+  addScar(r, 'soot', { s: Math.max(0.4, r.maxFire || 0.5) });
+  if ((r.maxFire || 0) > 0.5) addScar(r, 'melt', { x: (r.burnXs || [r.cx])[0] + rnd(-20, 20), y: r.y0 + rnd(50, 90) });
+  r.burnXs = []; r.maxFire = 0;
+}
 function updateFire(dt) {
   for (const r of G.rooms) {
-    if (r.fire <= 0) { r.fireXs.length = 0; continue; }
+    if (r.fire <= 0) { if (r.burnXs && r.burnXs.length) recordBurn(r); r.fireXs.length = 0; continue; }
     const e = effO2(r);
     if (e < 10 || r.p < 25) r.fire -= 0.22 * dt;
     else r.fire += 0.022 * dt * (e / 21);
     r.fire = clamp(r.fire, 0, 1);
     r.integ = Math.max(0, r.integ - r.fire * 0.45 * dt);
+    r.maxFire = Math.max(r.maxFire || 0, r.fire); for (const fx of r.fireXs) if (!(r.burnXs || (r.burnXs = [])).some((b) => Math.abs(b - fx) < 30)) r.burnXs.push(fx);
     if (r.fire > 0.5 && r.cameraOK && chance(0.02 * dt)) { r.cameraOK = false; logEvent('warn', `Camera in ${r.short} burned out.`, r.id); }
     if (r.fire > 0.4 && !r.elecFault && chance(0.015 * dt)) { r.elecFault = true; logEvent('warn', `${r.short}: wiring loom burning — local power lost.`, r.id); }
-    if (r.fire <= 0) { r.fire = 0; logEvent('info', `Fire in ${r.short} is out.`, r.id); }
+    if (r.fire <= 0) { r.fire = 0; logEvent('info', `Fire in ${r.short} is out.`, r.id); recordBurn(r); }
   }
 }
 
@@ -810,7 +901,7 @@ function updateObservation(dt) {
   G.secManned = secManned;
   const lost = [];
   for (const r of G.rooms) {
-    if (!r.cameraOK && secManned && camNet && r.powered && r.integ > 30) {
+    if (!r.cameraOK && secManned && camNet && r.powered && r.integ > 30 && !r.tutCam) {
       r.cameraT += dt;
       if (r.cameraT > 25 && !r.cameraJammed) { r.cameraOK = true; r.cameraT = 0; logEvent('info', `Security rebooted camera feed: ${r.short}.`, r.id); }
     } else if (r.cameraOK) r.cameraT = 0;
@@ -823,9 +914,11 @@ function updateObservation(dt) {
     for (const m of G.creatures) if (m.alive && m.room === r.id && m.state !== 'vent') { ls++; if (m.moving) mo += 2; }
     r.lifeSigns = ls; r.motion = approach(r.motion, mo > 0 ? 1 : 0, dt * (mo > 0 ? 3 : 0.4));
     r.ductMotion = Math.max(0, r.ductMotion - dt * 0.5);
+    if (r.feedCollapse > 0) r.feedCollapse -= dt;
   }
   if (lost.length) {
-    AUDIO.staticBurst(0.5);
+    AUDIO.staticBurst(0.5); for (const r of lost) r.feedCollapse = 0.6;
+    if (!(G.tut && G.tut.active)) hint('camera', lost[0].id);
     if (!camNet && G._camNet) logEvent('crit', `SECURITY BUS DOWN — ALL CAMERA FEEDS LOST. You are blind outside rooms with crew in them.`, null, { story: true });
     else if (lost.length === 1) { const r = lost[0]; logEvent('warn', `CAMERA FEED LOST — ${DECK_NAME[r.deck]} / ${r.short}.`, r.id, { story: !r.cameraJammed ? false : true }); }
     else logEvent('warn', `CAMERA FEEDS LOST — ${lost.map((r) => r.short).join(', ')}.`, lost[0].id);
@@ -977,14 +1070,14 @@ function orderCrew(c, task, opts = {}) {
     if (danger >= 2) {
       let p = (c.stress - 35) / 120 + (100 - c.morale) / 300 + (hasTrait(c, 'Cowardly') ? 0.28 : 0) - (hasTrait(c, 'Brave') ? 0.3 : 0) + (danger >= 4 ? 0.12 : 0) + (c.grief > 0 ? 0.1 : 0);
       if (hasTrait(c, 'Claustrophobic') && (!room.powered || room.sealed)) p += 0.25;
-      if (G.t < 140) p = 0; // never during routine
+      if (G.dirT < 140) p = 0; // never during routine
       if (chance(clamp(p, 0, 0.75))) {
         const lines = room.p < 50 ? ['There is no air in there.', 'Not without a suit. Not a chance.']
           : G.t - room.lastCreatureSeen < 60 ? ['You saw what was in there. You go.', "I'm not going in there. Not after that."]
           : !room.powered ? ['Not in the dark. Get the lights back first.', "I can't see a thing in there. No."]
           : ["Give me a minute. I can't.", "Send someone else. Please."];
         c.refused = { task, t: G.t, line: pick(lines) };
-        logEvent('warn', `${c.name} REFUSES: "${c.refused.line}"`, c.room, { story: true });
+        logEvent('warn', `${c.name} REFUSES: "${c.refused.line}"`, c.room, { story: true, cat: 'crew' }); hint('refusal');
         AUDIO.radio();
         return false;
       }
@@ -1035,6 +1128,7 @@ function workSpot(c) {
     case 'scan': case 'bloodtest': return t.room === 'quarantine' ? 1050 : 760;
     case 'eva': return 60;
     case 'investigate': return t.spot ?? (t.spot = rnd(r.x0 + 40, r.x1 - 40));
+    case 'eat': return t.spot ?? (t.spot = messSeat(c));
     default: return t.spot ?? (t.spot = clamp(r.cx + rnd(-r.w * 0.3, r.w * 0.3), r.x0 + 30, r.x1 - 30));
   }
 }
@@ -1094,7 +1188,7 @@ function stepMovement(c, dt) {
   }
   return false;
 }
-function finishPortal(c, d) { c.path.shift(); if (!c.path.length) c.path = []; }
+function finishPortal(c, d) { if (c.path && c.path.length) c.path.shift(); if (!c.path) c.path = []; }
 function moveToward(c, tx, dt) {
   const dx = tx - c.x; const s = speedOf(c) * dt;
   c.face = dx > 0 ? 1 : -1;
@@ -1117,6 +1211,8 @@ function updateCrew(dt) {
     if (!c.alive) continue;
     if (c.down) { c.moving = false; c.atWork = false; continue; }
     if (c.infection) updateInfectedBehaviour(c, dt, clock);
+    if (c.react && c.react.t > 0) c.react.t -= dt;
+    if (c.social) { c.social.t -= dt; c.social.sw -= dt; if (c.social.sw <= 0) { c.social.sw = rnd(1.8, 3.6); c.social.speaking = !c.social.speaking; } if (c.social.t <= 0 || G.alertLevel === 2 || !G.crew[c.social.with].alive || G.crew[c.social.with].room !== c.room) c.social = null; }
     if (c.panicT > 0) { c.panicT -= dt; if (c.panicT <= 0 && c.panicRelief) { c.panicRelief = false; c.stress = Math.min(c.stress, 58); if (c.task && c.task.type === 'panic') c.task = null; } }
     // autonomy: flee immediate hazards unless doing hazard-work
     const hazardWork = c.task && ['extinguish', 'seal', 'door', 'fight', 'reactor', 'restart'].includes(c.task.type) && c.task.room === c.room;
@@ -1146,6 +1242,10 @@ function updateCrew(dt) {
     }
     // no task → schedule
     if (!c.task) scheduleTask(c, clock);
+    // social life during routine
+    if (!c.social && G.alertLevel < 2 && c.atWork && c.task && ['eat', 'duty'].includes(c.task.type) && ['mess', 'quarters', 'bridge', 'hydro', 'medbay'].includes(c.room) && chance(dt * 0.06)) startSocial(c);
+    // a startled crew member freezes for a moment and looks
+    if (c.react && c.react.t > 0.7 && !(c.task && ['flee', 'panic', 'fight'].includes(c.task.type))) { c.moving = false; continue; }
     // movement
     const moved = stepMovement(c, dt);
     if (!moved && !c.climb && (!c.path || !c.path.length)) {
@@ -1165,6 +1265,36 @@ function updateCrew(dt) {
   updateDoorsCrew(dt);
 }
 
+const MESS_SEATS = [928, 952, 1032, 1056, 1063, 1087, 1167, 1191];
+function messSeat(c) {
+  // sit beside a friend or relative if one is already eating
+  const taken = G.crew.filter((o) => o !== c && o.alive && o.task && o.task.type === 'eat' && o.task.spot).map((o) => o.task.spot);
+  for (const rel of c.rel) { const o = G.crew[rel.id]; if (rel.type !== 'rival' && o.alive && o.task && o.task.type === 'eat' && o.task.spot) { const i = MESS_SEATS.indexOf(o.task.spot); const n = MESS_SEATS[i % 2 ? i - 1 : i + 1]; if (n && !taken.includes(n)) return n; } }
+  const free = MESS_SEATS.filter((s) => !taken.includes(s));
+  return free.length ? free[(c.id * 3) % free.length] : rnd(940, 1180);
+}
+function startSocial(c) {
+  const mates = G.crew.filter((o) => o !== c && o.alive && !o.missing && o.room === c.room && o.atWork && !o.social && o.task && ['eat', 'duty'].includes(o.task.type) && Math.abs(o.x - c.x) < 90);
+  if (!mates.length) return;
+  mates.sort((a, b) => (b.rel.some((r) => r.id === c.id && r.type !== 'rival') ? 1 : 0) - (a.rel.some((r) => r.id === c.id && r.type !== 'rival') ? 1 : 0));
+  const o = mates[0]; const dur = rnd(10, 22);
+  const friends = o.rel.some((r) => r.id === c.id && r.type === 'friend');
+  c.social = { with: o.id, t: dur, sw: rnd(1, 3), speaking: true, cards: friends && c.task.type === 'eat' };
+  o.social = { with: c.id, t: dur, sw: rnd(2, 4), speaking: false, cards: c.social.cards };
+  c.face = o.x > c.x ? 1 : -1; o.face = c.x > o.x ? 1 : -1;
+  const kin = c.rel.find((r) => r.id === o.id);
+  c.stress = Math.max(0, c.stress - 3); o.stress = Math.max(0, o.stress - 3);
+  if (kin && kin.type !== 'rival') { c.morale = Math.min(100, c.morale + 2); o.morale = Math.min(100, o.morale + 2); }
+}
+// crew in a room (and optionally its neighbours) flinch and look toward an event
+function crewReact(roomId, x, strength = 1, neighbours = false) {
+  const rooms = new Set([roomId]); if (neighbours) for (const e of G.adj[roomId] || []) rooms.add(e.to);
+  for (const c of G.crew) {
+    if (!c.alive || c.down || c.missing || c.eva || !rooms.has(c.room) || c.sleeping) continue;
+    c.react = { t: 0.6 + strength * 0.8, dir: Math.sign(x - c.x) || 1 }; if (!c.moving) c.face = c.react.dir;
+    c.social = null;
+  }
+}
 function nearestSafeRoom(c, fromMonster) {
   let best = null, bc = 1e9;
   for (const r of G.rooms) {
@@ -1253,11 +1383,12 @@ function doTask(c, dt) {
       c.stress = Math.max(0, c.stress - dt * 0.5 * (r.powered ? 1 : 0.4));
       { const h = fmtClock(G.t).hour, s = [22, 6, 14][c.watch]; if ((h - s + 24) % 24 >= 7 && c.fatigue < 40) { c.sleeping = false; completeTask(c); } }
       break;
-    case 'eat': t.prog += dt; c.morale = Math.min(100, c.morale + dt * (r.powered ? 0.25 : 0.05)); c.stress = Math.max(0, c.stress - dt * 0.3); if (t.prog > 14) completeTask(c); break;
+    case 'eat': t.prog += (c.social ? 0.5 : 1) * dt; c.morale = Math.min(100, c.morale + dt * (r.powered ? 0.25 : 0.05)); c.stress = Math.max(0, c.stress - dt * 0.3); if (t.prog > 14) completeTask(c); break;
     case 'rest': c.stress = Math.max(0, c.stress - dt * 0.9); c.fatigue = Math.max(0, c.fatigue - dt * 0.6); if (c.stress < 10 && c.fatigue < 15) completeTask(c, `${c.name} feels steadier.`); break;
     case 'medical': if (c.hp >= 90) completeTask(c); break;
     case 'repair': {
-      if (r.integ >= 100 && !r.leak && !(r.id === 'reactor' && G.reactor.instability > 0.3)) { completeTask(c, `${c.name} finished repairs in ${r.short}.`); r.cameraJammed = false; break; }
+      if (t.startInteg === undefined) t.startInteg = r.integ;
+      if (r.integ >= 100 && !r.leak && !(r.id === 'reactor' && G.reactor.instability > 0.3)) { if (t.startInteg < 65) addScar(r, 'weld', { x: rnd(r.x0 + 30, r.x1 - 60), y: r.y0 + rnd(30, 100) }); completeTask(c, `${c.name} finished repairs in ${r.short}.`); r.cameraJammed = false; break; }
       if (G.res.parts <= 0) { if (!t.noParts) { t.noParts = true; logEvent('warn', `${c.name}: no spare parts left to repair ${r.short}.`); } break; }
       const amt = dt * 2.6 * workRate(c, 'eng');
       t.partAcc = (t.partAcc || 0) + amt;
@@ -1274,7 +1405,7 @@ function doTask(c, dt) {
       if (!r.elecFault) { completeTask(c, `${r.short}: power restored.`); break; }
       t.prog += dt * 0.09 * workRate(c, 'eng');
       c.sparkT = (c.sparkT || 0) + dt; if (c.sparkT > 0.5) { c.sparkT = 0; FX.sparks(c.x + c.face * 10, r.y0 + 30, 4); }
-      if (t.prog >= 1) { if (useParts(c, 1)) { r.elecFault = false; AUDIO.relay(true); completeTask(c, `${c.name} restored power to ${r.short}.`); } else { logEvent('warn', 'No spare parts for wiring.'); completeTask(c); } }
+      if (t.prog >= 1) { if (useParts(c, 1)) { r.elecFault = false; addScar(r, 'panel', { x: clamp(c.x + c.face * 14, r.x0 + 20, r.x1 - 30), y: r.y0 + rnd(24, 40) }); AUDIO.relay(true); completeTask(c, `${c.name} restored power to ${r.short}.`); } else { logEvent('warn', 'No spare parts for wiring.'); completeTask(c); } }
       break;
     }
     case 'extinguish': {
@@ -1290,7 +1421,7 @@ function doTask(c, dt) {
       t.prog += dt * 0.045 * workRate(c, 'eng');
       c.sparkT = (c.sparkT || 0) + dt; if (c.sparkT > 0.25) { c.sparkT = 0; FX.sparks(r.breachX, r.breachY + 10, 5, true); AUDIO.weld(); }
       if (t.prog >= 1) {
-        if (useParts(c, 2)) { r.breach = 0; G.res.hull = Math.min(100, G.res.hull + 4); logEvent('info', `${c.name} welded a patch over the breach in ${r.short}.`, r.id, { story: true }); completeTask(c); }
+        if (useParts(c, 2)) { addScar(r, 'patch', { x: r.breachX, y: r.breachY, s: 0.8 + r.breach }); r.breach = 0; G.res.hull = Math.min(100, G.res.hull + 4); logEvent('info', `${c.name} welded a patch over the breach in ${r.short}.`, r.id, { story: true }); completeTask(c); }
         else { if (!t.noParts) logEvent('warn', 'Not enough spare parts to patch the breach (2 needed).'); t.noParts = true; t.prog = 0.8; }
       }
       break;
@@ -1302,7 +1433,7 @@ function doTask(c, dt) {
       break;
     }
     case 'decon': {
-      if (r.contam <= 0.02) { r.contam = 0; r.contamKnown = false; completeTask(c, `${c.name} burned out the growth in ${r.short}.`); break; }
+      if (r.contam <= 0.02) { r.contam = 0; r.contamKnown = false; addScar(r, 'burnt', { x: r.vent }); completeTask(c, `${c.name} burned out the growth in ${r.short}.`); break; }
       r.contam = Math.max(0, r.contam - dt * 0.03 * workRate(c, 'sci'));
       FX.foam(c.x + c.face * 12, c.y - 10, c.face, true);
       if (r.contam > 0.5 && chance(dt * 0.004)) exposeInfection(c, 'decon');
@@ -1447,6 +1578,7 @@ function startPanic(c) {
   c.panicT = 22; c.panicCool = G.t + 140; c.panicRelief = true;
   const dest = pick(['quarters', 'mess', 'bridge', 'medbay'].filter((id) => !roomHazardNow(G.roomById[id]))) || 'quarters';
   c.task = { type: 'panic', room: dest, prog: 0 }; repath(c);
+  hint('panic');
   logEvent('warn', `${c.name} is PANICKING — abandoned post, running for ${G.roomById[dest].short}.`, c.room, { story: true });
   AUDIO.scream(0.25, c);
   for (const o of G.crew) if (o !== c && o.alive && o.room === c.room) o.stress = Math.min(100, o.stress + 6);
@@ -1466,6 +1598,7 @@ function hurt(c, amt, cause) {
   if (amt > 3) c.hitFlash = 0.3;
   if (c.hp < 15 && !c.down && c.hp > 0) {
     c.down = true; c.task = null; c.path = []; c.climb = null;
+    hint('down', c.room);
     logEvent('crit', `${c.name} is DOWN in ${crewRoom(c).short} (${cause}). Needs a medic.`, c.room, { story: true });
     AUDIO.scream(0.2, c);
   }
@@ -1581,6 +1714,7 @@ function runMedicalTest(c, dt) {
 }
 
 function orderQuarantine(subject) {
+  hint('quarantine');
   const q = G.roomById.quarantine;
   if (subject.quarantined) { // release
     subject.quarantined = false; subject.task = null;
@@ -1728,7 +1862,7 @@ function ventTick(m, dt) {
     m.moving = true;
     const rf = G.roomById[m.vfrom], rt = G.roomById[m.vto];
     if (G.sensors) { (m.vprog < 0.5 ? rf : rt).ductMotion = 1; }
-    if (m.vprog >= 1) { m.ventRoom = m.vto; m.vfrom = m.vto; m.vto = null; }
+    if (m.vprog >= 1) { m.ventRoom = m.vto; m.vfrom = m.vto; m.vto = null; const ar = G.roomById[m.ventRoom]; ar.cableSwing = 1; if (chance(0.45)) crewReact(ar.id, ar.vent, 0.4); }
     else return;
   }
   // regenerate in ducts
@@ -1773,9 +1907,13 @@ function emerge(m) {
     return;
   }
   m.visited[r.id] = G.t;
+  r.ventBent = true; r.cableSwing = 1.4;
+  // a shape crosses the doorway of a lit neighbouring room — a glimpse, never a reveal
+  const dd = G.adj[r.id].filter((e) => !e.door.hatch && G.roomById[e.to].observed && G.roomById[e.to].powered && e.door.anim > 0.5);
+  if (dd.length && chance(0.6)) { const e = pick(dd); G.shadowPass = { room: e.to, x: e.door.x, dir: G.roomById[e.to].cx > e.door.x ? 1 : -1, t: G.t }; }
   m.state = 'room'; m.room = r.id; m.x = r.vent; m.y = r.fy; m.mode = 'lurk'; m.timer = rnd(4, 10); m.emergeT = 0.9;
   m.target = null;
-  AUDIO.ventDrop(r);
+  AUDIO.ventDrop(r); crewReact(r.id, r.vent, 1);
   if (G.director) G.director.flag('emerge');
 }
 
@@ -1798,7 +1936,7 @@ function roomTick(m, dt) {
     r.lastCreatureSeen = G.t; m.lastSeen = G.t;
     if (!m.revealed) {
       m.revealed = true;
-      if (!G.firstSighting) { G.firstSighting = G.t; logEvent('crit', `UNIDENTIFIED ORGANISM — ${r.short}. Tall. Moving. Not crew.`, r.id, { story: true }); AUDIO.sting(); if (UI.autoPause) UI.autoPause('ORGANISM SIGHTED'); }
+      if (!G.firstSighting) { G.firstSighting = G.t; hint('organism', r.id); logEvent('crit', `UNIDENTIFIED ORGANISM — ${r.short}. Tall. Moving. Not crew.`, r.id, { story: true }); AUDIO.sting(); if (UI.autoPause) UI.autoPause('ORGANISM SIGHTED'); }
       else logEvent('crit', `ORGANISM SIGHTED — ${r.short}.`, r.id, { story: true });
       for (const c of G.crew) if (c.alive && c.room === r.id) c.stress = Math.min(100, c.stress + 25);
     }
@@ -1856,7 +1994,7 @@ function roomTick(m, dt) {
         m.attackT = rnd(1.1, 1.6);
         m.lunge = 0.25;
         const dmg = rnd(20, 30) * (G.phase >= 5 ? 1.2 : 1);
-        AUDIO.attack(r);
+        AUDIO.attack(r); crewReact(r.id, m.x, 1.5, true); if (chance(0.5)) addScar(r, 'scratch', { x: c.x + rnd(-14, 14), y: r.fy - rnd(28, 70) });
         r.blood.push({ x: c.x + rnd(-14, 14), y: c.y - rnd(0, 30), s: rnd(0.5, 1.1), wall: chance(0.5) });
         if (r.blood.length > 14) r.blood.shift();
         G.shake = Math.max(G.shake, r.observed ? 2 : 0.6);
@@ -2040,7 +2178,7 @@ function updateInfectedBehaviour(c, dt) {
   if (chance(dt * 0.004 * inf.stage)) {
     const witness = G.crew.find((o) => o !== c && o.alive && !o.infection && o.room === c.room && (hasTrait(o, 'Paranoid') || o.rel.some((r) => r.id === c.id) || hasTrait(o, 'Empathetic')));
     if (witness && G.t - (c.reportedOdd || 0) > 80) {
-      c.reportedOdd = G.t;
+      c.reportedOdd = G.t; hint('infection', c.room);
       const lines = [`"${c.first}'s not right. Ate like they were starving and still says they're hungry."`, `"Has anyone else noticed ${c.first} doesn't sleep any more?"`, `"I touched ${c.first}'s hand. They're burning up. Said they feel fine."`, `"${c.first} was in the ${G.roomById[inf.lastWander || c.duty].short} with the lights off. Just standing there."`];
       logEvent('story', `${witness.name} reports: ${pick(lines)}`, c.room, { story: true });
       AUDIO.radio();
@@ -2514,21 +2652,33 @@ const ROOM_ART = {
   cryo(r, A) {
     const fy = r.fy, y0 = r.y0;
     const c = ART.ctx;
-    // receding bay (the section goes much deeper than we can see)
-    kBevel(1350, y0 + 22, 150, 100, '#1b1f22');
-    for (let d = 0; d < 6; d++) {
-      const k = 1 - d * 0.15; const w = 140 * k, h = 92 * k; const x = 1425 - w / 2, y = y0 + 26 + (92 - h) / 2;
-      c.strokeStyle = `rgba(80,95,105,${0.35 * k})`; c.lineWidth = 1; c.strokeRect(x, y, w, h);
-      for (let p = 0; p < 6; p++) { c.fillStyle = `rgba(60,72,80,${0.5 * k})`; c.fillRect(x + 4 + p * (w - 8) / 6, y + h - 10 * k, (w - 8) / 6 - 2, 8 * k); }
-    }
-    kText(1356, y0 + 132, 'BAY 6-C CONTINUES — 2,400 BERTHS', PAL.off, 4.5, 0.45);
+    // observation glass into the main bay: berth rows receding into fog and dark
+    { const gx = 1342, gw = 166, gy = y0 + 16, gh = fy - y0 - 22, vx = gx + gw / 2, vy = gy + gh * 0.46;
+      kBevel(gx - 6, gy - 4, gw + 12, gh + 8, '#23292d', 2);
+      c.fillStyle = '#05070a'; c.fillRect(gx, gy, gw, gh);
+      c.save(); c.beginPath(); c.rect(gx, gy, gw, gh); c.clip();
+      for (let d = 22; d >= 1; d--) {
+        const k = 1 / (1 + d * 0.32); const hw = gw * 0.62 * k, hh = gh * 0.62 * k; const a = Math.min(1, k * 1.6);
+        c.strokeStyle = `rgba(70,84,94,${0.5 * a})`; c.lineWidth = 1; c.strokeRect(vx - hw, vy - hh, hw * 2, hh * 2);
+        for (const side of [-1, 1]) for (let tier = 0; tier < 3; tier++) {
+          const px = vx + side * hw * 0.82 - (side < 0 ? 0 : 6 * k * 2), py = vy - hh * 0.75 + tier * hh * 0.55;
+          c.fillStyle = `rgba(72,88,98,${0.7 * a})`; c.fillRect(px, py, 12 * k * 2, 18 * k * 2);
+          c.fillStyle = `rgba(90,140,100,${0.9 * a})`; c.fillRect(px + 2 * k, py + 2 * k, Math.max(0.6, 2 * k), Math.max(0.6, 1.4 * k));
+        }
+      }
+      const fog = c.createRadialGradient(vx, vy, 2, vx, vy, gw * 0.6); fog.addColorStop(0, 'rgba(120,140,150,0.18)'); fog.addColorStop(1, 'rgba(120,140,150,0)');
+      c.fillStyle = fog; c.fillRect(gx, gy, gw, gh);
+      c.restore();
+      c.fillStyle = 'rgba(200,215,220,0.06)'; c.beginPath(); c.moveTo(gx + 10, gy); c.lineTo(gx + 40, gy); c.lineTo(gx + 10, gy + 60); c.fill();
+      kText(gx, gy + gh + 4, 'BAY 6-C MAIN — 2,400 BERTHS — DO NOT ENTER WITHOUT THERMAL', PAL.off, 4, 0.45);
+      A.bayWindow = { x: gx, y: gy, w: gw, h: gh, vx, vy }; }
     A.pods = [];
     const podXs = [];
     for (let x = 1018; x < 1342; x += 54) podXs.push(x);
     for (let x = 1508; x < 1780; x += 54) if (Math.abs(x + 22 - 1550) > 36) podXs.push(x);
     for (const px of podXs) for (let t = 0; t < 2; t++) {
       const py = fy - 62 - t * 66;
-      kBevel(px, py, 46, 58, '#58646c', 1.5);
+      kBevel(px, py, 46, 58, '#4b565e', 1.5);
       c.fillStyle = '#0d1114'; c.beginPath(); c.ellipse(px + 23, py + 26, 14, 20, 0, 0, 6.3); c.fill();
       c.fillStyle = 'rgba(190,205,210,0.08)'; c.beginPath(); c.ellipse(px + 20, py + 22, 8, 12, 0, 0, 6.3); c.fill();
       // sleeper silhouette
@@ -2537,8 +2687,42 @@ const ROOM_ART = {
     }
     kPipeH(r.x0, r.x1, fy - 2, 2, '#6b7a84', false);
     kPipeH(r.x0, r.x1, y0 + 32, 3, '#6b7a84');
-    kBevel(1350, fy - 40, 150, 40, '#2f363b'); A.screens.push({ x: 1366, y: fy - 34, w: 40, h: 14, kind: 'console', seed: 3 }); A.screens.push({ x: 1440, y: fy - 34, w: 40, h: 14, kind: 'cryo' });
+    kBevel(1270, r.y0 + 14, 66, 22, '#2f363b'); A.screens.push({ x: 1274, y: r.y0 + 17, w: 28, h: 12, kind: 'console', seed: 3 }); A.screens.push({ x: 1305, y: r.y0 + 17, w: 28, h: 12, kind: 'cryo' });
   },
+};
+
+
+// ---------------------------------------------------------------------------
+// Lived-in kit: small authored-looking traces of 87 years of use
+// ---------------------------------------------------------------------------
+function kNote(x, y, rot = 0, col = '#a8a290') { const c = ART.ctx; c.save(); c.translate(x, y); c.rotate(rot); c.fillStyle = col; c.fillRect(0, 0, 9, 11); c.fillStyle = 'rgba(40,36,30,0.6)'; for (let i = 0; i < 4; i++) c.fillRect(1.5, 2.5 + i * 2.2, 3 + AR() * 4, 0.5); c.fillStyle = 'rgba(190,180,140,0.55)'; c.fillRect(-1, -1, 4, 2); c.fillRect(7, -1, 4, 2); c.restore(); }
+function kChecklist(x, y) { kNote(x, y, ar(-0.05, 0.05), '#b3ad9a'); const c = ART.ctx; c.fillStyle = 'rgba(30,60,30,0.6)'; for (let i = 0; i < 3; i++) c.fillRect(x + 6.5, y + 2.4 + i * 2.2, 1, 1); }
+function kSerial(x, y, txt) { kText(x, y, txt, '#b8b2a2', 3.6, 0.35); }
+function kWarn(x, y, txt) { kRect(x, y, txt.length * 2.5 + 4, 6, 'rgba(184,150,46,0.45)'); kText(x + 2, y + 4.6, txt, '#1a1712', 3.8, 0.8); }
+function kCup(x, y) { kRect(x, y - 4, 3, 4, '#9a968a'); kRect(x + 3, y - 3, 1, 2, '#9a968a'); kRect(x, y - 4, 3, 0.8, '#4a3020'); }
+function kTray(x, y) { kRect(x, y - 1.5, 10, 1.5, '#6e6b62'); kRect(x + 2, y - 3, 3, 1.5, '#7a6a4a'); }
+function kJacket(x, y, col) { const c = ART.ctx; c.fillStyle = '#222'; c.fillRect(x + 3, y - 2, 2, 2); c.fillStyle = col; c.beginPath(); c.moveTo(x, y); c.lineTo(x + 8, y); c.lineTo(x + 9, y + 18); c.lineTo(x - 1, y + 18); c.closePath(); c.fill(); c.fillStyle = shade(col, -0.3); c.fillRect(x + 3.6, y, 0.8, 18); }
+function kMask(x, y) { const c = ART.ctx; c.fillStyle = '#2a2a28'; c.beginPath(); c.ellipse(x, y, 3.2, 4, 0, 0, 6.3); c.fill(); c.fillStyle = PAL.yellowD; c.fillRect(x - 1, y + 3, 2, 3); c.strokeStyle = '#151515'; c.lineWidth = 0.6; c.beginPath(); c.moveTo(x - 3, y - 2); c.lineTo(x - 6, y - 8); c.stroke(); }
+function kBin(x, y, w, h, col = '#3e4a3a') { kBevel(x, y - h, w, h, col); kRect(x + 2, y - h + 2, w - 4, 2, shade(col, -0.35)); kText(x + 2, y - 3, 'B-' + Math.floor(ar(10, 99)), '#c9c3b2', 3.2, 0.4); }
+function kPhoto(x, y) { kRect(x, y, 5, 6, '#9c968a'); kRect(x + 0.8, y + 0.8, 3.4, 3.6, ['#4a5a6a', '#6a5a4a', '#5a6a5a'][Math.floor(AR() * 3)]); }
+function kDrip(x, y, len) { const c = ART.ctx; const g = c.createLinearGradient(0, y, 0, y + len); g.addColorStop(0, 'rgba(160,175,180,0.18)'); g.addColorStop(1, 'rgba(160,175,180,0)'); c.fillStyle = g; c.fillRect(x, y, 1.2, len); }
+function kTape(x, y, w) { kRect(x, y, w, 1.6, 'rgba(160,150,110,0.6)'); }
+
+const ROOM_DETAIL = {
+  airlock(r) { const fy = r.fy; kWarn(30, r.y0 + 52, 'CHECK SEALS'); kChecklist(36, r.y0 + 60); kSerial(64, fy - 4, 'SUIT 06-11 / SUIT 06-12'); kMask(132, r.y0 + 70); kMask(140, r.y0 + 72); kSerial(30, r.y0 + 112, 'AL-6 CYC 41,880'); },
+  security(r) { const fy = r.fy; kCup(470, fy - 44); kChecklist(380, r.y0 + 60); kNote(352, r.y0 + 98, 0.1); kJacket(340, r.y0 + 50, '#2c343a'); kSerial(262, fy - 4, 'ARMS LOCKER — 2 KEYS'); kTape(398, r.y0 + 26, 40); },
+  medbay(r) { const fy = r.fy; kNote(890, r.y0 + 60, -0.06); kNote(660, r.y0 + 74, 0.08, '#b9b39f'); kCup(650, fy - 22); kWarn(730, r.y0 + 112, 'MAX 1 PATIENT'); kSerial(600, fy - 4, 'BED 1'); kSerial(808, fy - 4, 'BED 2'); for (let i = 0; i < 3; i++) kRect(612 + i * 10, r.y0 + 24, 8, 4, '#7b7c74'); kDrip(700, r.y0 + 28, 30); },
+  quarantine(r) { const fy = r.fy; kRect(1010, fy, 18, 2, '#0b0c0c'); for (let i = 0; i < 5; i++) kRect(1011 + i * 3.5, fy + 0.4, 1.4, 1.2, '#2a2b28'); // floor drain
+    kWarn(938, r.y0 + 112, 'GLOVES — ALWAYS'); kChecklist(1070, r.y0 + 60); kSerial(1098, fy - 22, 'ISO-1  SEALED BED'); kTape(1088, r.y0 + 100, 20); },
+  bridge(r) { const fy = r.fy; kCup(1585, fy - 34); kNote(1240, r.y0 + 62, -0.04); kNote(1250, r.y0 + 64, 0.06, '#b9b39f'); kSerial(1214, fy - 4, 'NAV-1'); kSerial(1324, fy - 4, 'OPS-2'); kSerial(1544, fy - 4, 'WATCH CMD'); kPhoto(1630, r.y0 + 70); },
+  workshop(r) { const fy = r.fy; kBin(310, fy, 22, 14, '#4a4436'); kCup(260, fy - 38); kJacket(160, r.y0 + 52, '#5f5d48'); kNote(130, r.y0 + 72, 0.12); kWarn(20, r.y0 + 112, 'LATHE — EYES'); kSerial(16, fy - 4, 'FAB-3 SN 66-04821'); kRust(20, r.y0 + 20, 170, r.y0 + 60, 18); kDrip(60, r.y0 + 28, 50); },
+  quarters(r) { const fy = r.fy; kPhoto(450, fy - 70); kPhoto(560, fy - 118); kPhoto(640, fy - 70); kJacket(700, r.y0 + 40, '#45443a'); kJacket(712, r.y0 + 42, '#2f3a48');
+    for (const bx of [436, 528, 612, 724]) { kRect(bx + 20, fy - 22, 40, 4, ['#4e5148', '#5a4e44', '#3e4a52'][Math.floor(AR() * 3)]); } kCup(700, fy - 2); kNote(780, r.y0 + 40, 0.05); },
+  mess(r) { const fy = r.fy; kTray(948, fy - 30); kCup(1018, fy - 30); kTray(1100, fy - 30); kCup(1160, fy - 30); kCup(1166, fy - 30); kWarn(1194, r.y0 + 92, 'OUT OF ORDER'); kNote(882, r.y0 + 60, -0.08); kSerial(1190, fy - 4, 'GALLEY 6'); kJacket(886, r.y0 + 80, '#4f5c46'); },
+  hydro(r) { const fy = r.fy; kChecklist(1440, r.y0 + 50); kSerial(1282, fy - 4, 'TRAYS 1-9'); kSerial(1604, fy - 4, 'TRAYS 10-24'); for (let i = 0; i < 9; i++) kDrip(1290 + i * 55, r.y0 + 30, 20 + ar(40)); kBin(1540, fy, 18, 12, '#3e4a3a'); },
+  reactor(r) { const fy = r.fy; kWarn(270, r.y0 + 60, 'RAD AREA'); kChecklist(326, r.y0 + 72); kCup(300, fy - 50); kSerial(80, fy - 4, 'PRIMARY 06 — INSPECT 30d'); kSerial(486, fy - 4, 'HX-2'); kRust(380, r.y0 + 60, 600, fy, 24); kMask(360, r.y0 + 70); },
+  o2(r) { const fy = r.fy; kChecklist(860, r.y0 + 72); kSerial(616, fy - 4, 'STACK 1  2  3  4'); kWarn(735, r.y0 + 112, 'FILTER DUE'); for (let i = 0; i < 6; i++) kDrip(620 + i * 26, r.y0 + 30, 40 + ar(50)); kMask(905, r.y0 + 60); },
+  cryo(r) { const fy = r.fy; kSerial(1020, fy - 134, 'ROW A'); kSerial(1020, fy - 68, 'ROW B'); kChecklist(1360, fy - 46); kWarn(1500, r.y0 + 132, 'COLD BURN'); for (let i = 0; i < 12; i++) kDrip(1020 + i * 64, r.y0 + 36, 18 + ar(20)); },
 };
 
 function drawSuitSilhouette(x, fy) {
@@ -2614,6 +2798,8 @@ function drawExterior(ctx, ox, oy) {
     kRect(xa, 236, xb - xa, 12, '#1a1d20');
     for (let x = xa + 20; x < xb; x += 140) { ctx.fillStyle = 'rgba(160,150,120,0.25)'; ctx.fillRect(x, 240, 2, 2); }
   }
+  drawAdjacentSections(ctx);
+  drawCryoStack(ctx);
   // stern: reactor shield / engine shroud
   ctx.fillStyle = '#1b1e20';
   ctx.beginPath(); ctx.moveTo(-30, top + 10); ctx.lineTo(-150, 40); ctx.lineTo(-260, 120); ctx.lineTo(-260, 420); ctx.lineTo(-150, 520); ctx.lineTo(-30, bot); ctx.closePath(); ctx.fill();
@@ -2654,22 +2840,97 @@ function drawExterior(ctx, ox, oy) {
   ctx.restore();
 }
 
-function drawColossus(ctx, w, h) {
-  // the rest of the colony ship, far behind, parallax layer
-  ctx.fillStyle = '#050607'; ctx.fillRect(0, 0, w, h);
-  const AR2 = mulberry32(99);
-  for (let i = 0; i < 220; i++) { ctx.fillStyle = `rgba(200,200,190,${AR2() * 0.35})`; const s = AR2() < 0.1 ? 1.4 : 0.8; ctx.fillRect(AR2() * w, AR2() * h, s, s); }
-  // giant drum segments
-  const base = h * 0.18;
-  for (let i = 0; i < 7; i++) {
-    const x = i * 380 - 200, yw = 120 + (i % 2) * 40;
-    ctx.fillStyle = i % 2 ? '#0b0d0f' : '#0d1012';
-    ctx.fillRect(x, base - yw / 2 + 300, 320, yw * 2.4);
-    ctx.fillStyle = '#090b0c'; ctx.fillRect(x + 320, base + 340, 60, 60);
-    for (let k = 0; k < 14; k++) { if (AR2() < 0.25) { ctx.fillStyle = `rgba(190,150,90,${0.08 + AR2() * 0.12})`; ctx.fillRect(x + 10 + AR2() * 300, base + 300 + AR2() * yw * 2.2, 2, 1.5); } }
-    ctx.fillStyle = '#0a0c0d'; for (let k = 0; k < 12; k++) ctx.fillRect(x + k * 27, base - yw / 2 + 300, 1, yw * 2.4);
+// ---------------------------------------------------------------------------
+// The rest of the colony ship: two parallax layers + moving lights.
+// Everything here is darker, lower-contrast and slower than the section,
+// and dense with tiny detail so the playable decks read as a small slice.
+// ---------------------------------------------------------------------------
+const BG = { layers: [], movers: [], beacons: [] };
+function windowsGrid(ctx, R2, x, y, w, h, pitchX, pitchY, lit, col) {
+  for (let yy = y; yy < y + h; yy += pitchY) for (let xx = x; xx < x + w; xx += pitchX) {
+    const v = R2();
+    if (v < lit) { ctx.fillStyle = col; ctx.globalAlpha = 0.25 + R2() * 0.5; ctx.fillRect(xx, yy, 1.2, 1); }
   }
-  ctx.fillStyle = '#080a0b'; ctx.fillRect(0, base + 370, w, 26);
+  ctx.globalAlpha = 1;
+}
+function drawFarLayer(ctx, w, h) {
+  const R2 = mulberry32(99);
+  ctx.fillStyle = '#040505'; ctx.fillRect(0, 0, w, h);
+  for (let i = 0; i < 500; i++) { ctx.fillStyle = `rgba(200,200,190,${R2() * 0.45})`; ctx.fillRect(R2() * w, R2() * h, 1, 1); }
+  // habitation drum: an enormous band across the top, thousands of windows
+  const dy = 220, dh = 520;
+  const g = ctx.createLinearGradient(0, dy, 0, dy + dh); g.addColorStop(0, '#14181c'); g.addColorStop(0.5, '#1a1f24'); g.addColorStop(1, '#111417');
+  ctx.fillStyle = g; ctx.fillRect(0, dy, w, dh);
+  for (let x = 0; x < w; x += 120) { ctx.fillStyle = '#0b0d10'; ctx.fillRect(x, dy, 6, dh); ctx.fillStyle = '#20262c'; ctx.fillRect(x + 6, dy, 1, dh); }
+  for (let band = 0; band < 9; band++) windowsGrid(ctx, R2, 10, dy + 30 + band * 54, w - 20, 26, 6, 6, 0.11, '#d8a868');
+  ctx.fillStyle = '#06080a'; for (let i = 0; i < 9; i++) ctx.fillRect(0, dy + 22 + i * 54, w, 3);
+  ctx.save(); ctx.globalAlpha = 0.18; ctx.fillStyle = '#8e897c'; ctx.font = 'bold 34px "DejaVu Sans Mono", monospace';
+  ctx.fillText('HAB RING C', 300, dy + dh - 14); ctx.fillText('HAB RING C', 2300, dy + dh - 14); ctx.restore();
+  // spine: vast vertical shafts below the drum
+  for (let i = 0; i < 6; i++) {
+    const x = 160 + i * 640, sw = 150;
+    ctx.fillStyle = '#15191d'; ctx.fillRect(x, dy + dh, sw, h - dy - dh); ctx.fillStyle = '#1e2328'; ctx.fillRect(x, dy + dh, 3, h);
+    ctx.fillStyle = '#080a0b'; ctx.fillRect(x + 20, dy + dh, 8, h); ctx.fillRect(x + sw - 28, dy + dh, 8, h);
+    for (let y = dy + dh + 30; y < h; y += 90) { ctx.fillStyle = '#0f1214'; ctx.fillRect(x - 30, y, sw + 60, 10); }
+    BG.movers.push({ layer: 0, x0: x + 24, y0: dy + dh, x1: x + 24, y1: h, sp: 0.01 + R2() * 0.015, ph: R2(), col: '200,170,110', s: 1.6 });
+    BG.movers.push({ layer: 0, x0: x + sw - 24, y0: h, x1: x + sw - 24, y1: dy + dh, sp: 0.008 + R2() * 0.01, ph: R2(), col: '200,170,110', s: 1.6 });
+  }
+  // coolant arteries crossing the void
+  for (const [y, th] of [[dy + dh + 260, 26], [dy + dh + 520, 18]]) {
+    ctx.fillStyle = '#171b1f'; ctx.fillRect(0, y, w, th); ctx.fillStyle = '#242a30'; ctx.fillRect(0, y + 3, w, 2);
+    for (let x = 0; x < w; x += 200) { ctx.fillStyle = '#090b0c'; ctx.fillRect(x, y - 4, 14, th + 8); }
+  }
+  for (let i = 0; i < 10; i++) BG.beacons.push({ layer: 0, x: R2() * w, y: dy + R2() * dh, per: 2 + R2() * 3, ph: R2() * 5, col: R2() < 0.5 ? '190,40,30' : '220,215,200' });
+}
+function drawMidLayer(ctx, w, h) {
+  const R2 = mulberry32(7);
+  // giant structural ribs
+  for (let i = 0; i < 5; i++) {
+    const x = 220 + i * 760 + R2() * 160, rw = 50 + R2() * 50;
+    ctx.fillStyle = '#16191d'; ctx.fillRect(x, 0, rw, h);
+    ctx.fillStyle = '#262b31'; ctx.fillRect(x, 0, 4, h); ctx.fillStyle = '#08090a'; ctx.fillRect(x + rw - 6, 0, 6, h);
+    for (let y = 40; y < h; y += 140) { ctx.fillStyle = '#1b1f23'; ctx.fillRect(x - 10, y, rw + 20, 12); for (let b = 0; b < 6; b++) { ctx.fillStyle = '#16191c'; ctx.fillRect(x - 6 + b * 14, y + 4, 2, 2); } }
+    ctx.save(); ctx.globalAlpha = 0.16; ctx.fillStyle = '#b8962e'; for (let y = 300; y < h; y += 600) ctx.fillRect(x + 10, y, rw - 20, 8); ctx.restore();
+  }
+  // gantries with walkway lights
+  for (const y of [180, 1480, 1720]) {
+    ctx.fillStyle = '#181c20'; ctx.fillRect(0, y, w, 8); ctx.fillRect(0, y + 26, w, 4);
+    ctx.strokeStyle = '#181c20'; ctx.lineWidth = 2; ctx.beginPath(); for (let x = 0; x < w; x += 22) { ctx.moveTo(x, y + 8); ctx.lineTo(x + 11, y + 26); ctx.lineTo(x + 22, y + 8); } ctx.stroke();
+    for (let x = 30; x < w; x += 160) BG.beacons.push({ layer: 1, x, y: y - 2, per: 999, ph: 0, col: '200,170,110', steady: 0.35 });
+    BG.movers.push({ layer: 1, x0: 0, y0: y - 6, x1: w, y1: y - 6, sp: 0.004 + R2() * 0.004, ph: R2(), col: '210,190,150', s: 3, tram: true });
+  }
+  // dormant sections: blocks with dead windows
+  const dorm = [[150, 260, 700, 380, 'SECTION 07 — DORMANT'], [2500, 300, 760, 340, 'SECTION 05 — CRYO STACK'], [1100, 1560, 900, 300, 'DECK 42 — MAINTENANCE']];
+  for (const [x, y, dw, dh, label] of dorm) {
+    ctx.fillStyle = '#171a1e'; ctx.fillRect(x, y, dw, dh); ctx.fillStyle = '#23282d'; ctx.fillRect(x, y, dw, 4);
+    windowsGrid(ctx, R2, x + 12, y + 30, dw - 24, dh - 60, 9, 12, 0.012, '#c8b48a');
+    ctx.save(); ctx.globalAlpha = 0.2; ctx.fillStyle = '#8e897c'; ctx.font = 'bold 20px "DejaVu Sans Mono", monospace'; ctx.fillText(label, x + 14, y + dh - 12); ctx.restore();
+    BG.beacons.push({ layer: 1, x: x + dw - 10, y: y + 8, per: 3.2, ph: R2() * 3, col: '190,40,30' });
+  }
+  // suspended machinery
+  for (let i = 0; i < 5; i++) { const x = R2() * w, y = 600 + R2() * 700; ctx.fillStyle = '#16191d'; ctx.fillRect(x, y, 90 + R2() * 80, 50 + R2() * 40); ctx.fillRect(x + 30, y - 400, 3, 400); }
+}
+
+function drawCryoStack(ctx) {
+  // the rest of Bay 6-C, hanging below the keel: 2,400 berths, one light each
+  const x0 = 960, y0 = 742, cols = 80, rows = 30, pw = 10, ph = 5;
+  kBevel(x0 - 16, y0 - 22, cols * pw + 32, rows * ph + 40, '#15191c', 1);
+  ctx.fillStyle = '#07090b'; ctx.fillRect(x0 - 8, y0 - 6, cols * pw + 16, rows * ph + 12);
+  ctx.strokeStyle = '#1e2428'; ctx.lineWidth = 2; for (let i = 0; i <= 8; i++) { const x = x0 - 8 + i * (cols * pw + 16) / 8; ctx.beginPath(); ctx.moveTo(x, y0 - 6); ctx.lineTo(x, y0 + rows * ph + 6); ctx.stroke(); }
+  kText(x0 - 10, y0 - 28, 'CRYO BAY 6-C — LOWER STACK — 2,400 BERTHS', '#8e897c', 11, 0.4);
+  ART.cryoStack = { x0, y0, cols, rows, pw, ph };
+  for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) { ctx.fillStyle = '#1b2a22'; ctx.fillRect(x0 + c * pw, y0 + r * ph, pw - 3, ph - 2); }
+}
+function drawAdjacentSections(ctx) {
+  // the sections above and below ours: same design bureau, mostly dark
+  const R2 = mulberry32(31);
+  for (const [y, h, label] of [[-330, 150, 'SECTION 05 — ACCESS SPINE'], [742 + 170, 240, '']]) {
+    if (!label && h) { ctx.fillStyle = '#121518'; ctx.fillRect(-900, y + 40, 3600, h); continue; }
+    ctx.fillStyle = '#14181b'; ctx.fillRect(-120, y, 2200, h);
+    for (let x = -120; x < 2080; x += 60) { ctx.fillStyle = shade('#181c20', R2() * 0.1 - 0.05); ctx.fillRect(x, y, 58, h); }
+    windowsGrid(ctx, R2, -100, y + 20, 2160, h - 40, 14, 18, 0.03, '#c8a46a');
+    kText(40, y + h - 12, label, '#8e897c', 13, 0.3);
+  }
 }
 
 function makeGrain(size = 256) {
@@ -2697,6 +2958,7 @@ function buildArt() {
     ART.rooms[r.id] = A;
     roomShell(r, A);
     ROOM_ART[r.id](r, A);
+    if (ROOM_DETAIL[r.id]) ROOM_DETAIL[r.id](r);
     // grime pass
     kStreaks(r.x0, r.y0 + 14, r.x1, r.fy, Math.round(r.w / 18), 0.14);
     const g = ctx.createLinearGradient(0, r.y0, 0, r.y0 + 40); g.addColorStop(0, 'rgba(0,0,0,0.45)'); g.addColorStop(1, 'rgba(0,0,0,0)');
@@ -2711,8 +2973,19 @@ function buildArt() {
   ART.EX = { x: -900, y: -330, w: 3600, h: 1230 };
   ART.exterior = mkCanvas(ART.EX.w, ART.EX.h);
   drawExterior(ART.exterior.getContext('2d'), ART.EX.x, ART.EX.y);
-  ART.colossus = mkCanvas(2600, 1200);
-  drawColossus(ART.colossus.getContext('2d'), 2600, 1200);
+  BG.layers = [
+    { c: mkCanvas(4000, 2400), s: 0.7, zp: 0.3, f: 0.08, cx: 2000, cy: 1000 },
+    { c: mkCanvas(3600, 2000), s: 0.95, zp: 0.55, f: 0.25, cx: 1800, cy: 1050 },
+  ];
+  BG.movers = []; BG.beacons = [];
+  // render each layer once at full size, then keep a half-resolution copy with the depth haze baked in
+  BG.layers.forEach((L, i) => {
+    const full = L.c, x = full.getContext('2d');
+    (i === 0 ? drawFarLayer : drawMidLayer)(x, full.width, full.height);
+    x.fillStyle = i === 0 ? 'rgba(4,5,5,0.3)' : 'rgba(4,5,5,0.42)'; x.fillRect(0, 0, full.width, full.height);
+    const half = mkCanvas(full.width / 2, full.height / 2); half.getContext('2d').drawImage(full, 0, 0, half.width, half.height);
+    L.c = half; L.half = 2;
+  });
   // 1× mip of the interior for zoomed-out views (big perf win on software rasterisers)
   ART.interior1 = mkCanvas(ART.IW, ART.IH);
   { const x = ART.interior1.getContext('2d'); x.imageSmoothingQuality = 'high'; x.drawImage(ART.interior, 0, 0, ART.IW, ART.IH); }
@@ -2755,6 +3028,8 @@ const FX = {
       p.t += dt;
       if (p.k === 'spark' || p.k === 'ichor') { p.vy += 260 * dt; p.x += p.vx * dt; p.y += p.vy * dt; }
       else if (p.k === 'foam') { p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= 0.95; p.vy += 30 * dt; }
+      else if (p.k === 'dust') { p.x += p.vx * dt; p.y += p.vy * dt; }
+      else if (p.k === 'drip') { p.vy += 200 * dt; p.y += p.vy * dt; if (p.y > p.floor) p.t = p.life; }
       else if (p.k === 'smoke') { p.x += p.vx * dt; p.y += p.vy * dt; const r = G.roomById[p.room]; if (p.y < r.y0 + 18) p.y = r.y0 + 18; p.s += dt * 6; }
       else if (p.k === 'atmos') { const dx = p.tx - p.x, dy = p.ty - p.y; const d = Math.hypot(dx, dy) + 1; const sp = 120 + 300 / Math.max(0.3, d / 60); p.x += (dx / d) * sp * dt; p.y += (dy / d) * sp * dt; if (d < 8) p.t = p.life; }
     }
@@ -2768,6 +3043,8 @@ const FX = {
       if (p.k === 'spark') { ctx.fillStyle = p.c; ctx.globalAlpha = a; ctx.fillRect(p.x, p.y, 1.4, 1.4); }
       else if (p.k === 'ichor') { ctx.fillStyle = '#2a2016'; ctx.globalAlpha = a; ctx.fillRect(p.x, p.y, 1.6, 1.6); }
       else if (p.k === 'foam') { ctx.fillStyle = p.fire ? '#c8b89a' : '#d9d6cc'; ctx.globalAlpha = a * 0.6; ctx.beginPath(); ctx.arc(p.x, p.y, p.s * (1 + p.t * 2), 0, 6.3); ctx.fill(); }
+      else if (p.k === 'dust') { ctx.fillStyle = '#8a877c'; ctx.globalAlpha = a * 0.6; ctx.fillRect(p.x, p.y, 1, 1); }
+      else if (p.k === 'drip') { ctx.fillStyle = '#9fb0b4'; ctx.globalAlpha = 0.5; ctx.fillRect(p.x, p.y, 0.8, 2); }
       else if (p.k === 'smoke') { ctx.globalAlpha = Math.min(1, a * 1.3, p.t * 2) * 0.55; ctx.drawImage(ART.smoke, p.x - p.s * 1.4, p.y - p.s * 1.4, p.s * 2.8, p.s * 2.8); }
       else if (p.k === 'atmos') { ctx.fillStyle = p.dbr ? '#3a3a36' : '#c8c6bc'; ctx.globalAlpha = 0.55 * a + (p.dbr ? 0.35 : 0); ctx.fillRect(p.x, p.y, p.dbr ? 3 : 1.4, p.dbr ? 2 : 1.4); }
       else if (p.k === 'tracer') { ctx.strokeStyle = '#ffe2a8'; ctx.globalAlpha = a * 0.8; ctx.lineWidth = 0.8; ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.tx, p.ty); ctx.stroke(); }
@@ -2826,8 +3103,7 @@ function render(dtReal) {
   ctx.setTransform(D, 0, 0, D, 0, 0);
   ctx.fillStyle = '#040505'; ctx.fillRect(0, 0, R.W, R.H);
   // parallax colossus
-  const pz = z * 0.55, px = R.W / 2 - (cam.x * 0.35) * pz - 1300 * pz * 0.5, py = R.H / 2 - (cam.y * 0.35) * pz - 520 * pz;
-  ctx.globalAlpha = 1; ctx.drawImage(ART.colossus, px, py, 2600 * pz, 1200 * pz);
+  drawBackground(ctx, z);
   // world
   const wx = R.W / 2 - cam.x * z + R.shx, wy = R.H / 2 - cam.y * z + R.shy;
   ctx.setTransform(z * D, 0, 0, z * D, wx * D, wy * D);
@@ -2857,6 +3133,32 @@ function render(dtReal) {
   drawPost(ctx);
 }
 
+// parallax layers of the rest of the ship (far → mid), with slow moving lights
+function bgXform(L, z) { const k = L.s * Math.pow(z / 0.7, L.zp); /* distant layers scale less with zoom */ return { k, ox: R.W / 2 - L.cx * k - (R.cam.x - 900) * z * L.f, oy: R.H / 2 - L.cy * k - (R.cam.y - 270) * z * L.f }; }
+function drawBackground(ctx, z) {
+  const t = G.t + performance.now() / 1000 * 0.2;
+  // the layers only change when the camera moves: cache them at half resolution
+  const key = `${Math.round(R.cam.x)}|${Math.round(R.cam.y)}|${R.cam.z.toFixed(3)}|${R.W}|${R.H}`;
+  if (!R.bgCache || R.bgCache.width !== Math.ceil(R.W / 2) || R.bgCache.height !== Math.ceil(R.H / 2)) { R.bgCache = document.createElement('canvas'); R.bgCache.width = Math.ceil(R.W / 2); R.bgCache.height = Math.ceil(R.H / 2); R.bgKey = ''; }
+  if (key !== R.bgKey) {
+    R.bgKey = key; const b = R.bgCache.getContext('2d');
+    b.setTransform(0.5, 0, 0, 0.5, 0, 0); b.fillStyle = '#040505'; b.fillRect(0, 0, R.W, R.H);
+    for (const L of BG.layers) { const X = bgXform(L, z); b.drawImage(L.c, X.ox, X.oy, L.c.width * L.half * X.k, L.c.height * L.half * X.k); }
+  }
+  ctx.drawImage(R.bgCache, 0, 0, R.W, R.H);
+  BG.layers.forEach((L, i) => {
+    const X = bgXform(L, z);
+    for (const m of BG.movers) if (m.layer === i) {
+      const p = (m.ph + t * m.sp) % 1; const x = X.ox + lerp(m.x0, m.x1, p) * X.k, y = X.oy + lerp(m.y0, m.y1, p) * X.k;
+      ctx.fillStyle = `rgba(${m.col},${m.tram ? 0.5 : 0.35})`; ctx.fillRect(x, y, Math.max(1, m.s * X.k * (m.tram ? 4 : 1)), Math.max(1, m.s * X.k));
+    }
+    for (const bc of BG.beacons) if (bc.layer === i) {
+      const on = bc.steady || ((t + bc.ph) % bc.per < 0.18 ? 0.85 : 0); if (!on) continue;
+      const x = X.ox + bc.x * X.k, y = X.oy + bc.y * X.k; ctx.fillStyle = `rgba(${bc.col},${on})`; ctx.fillRect(x - 0.8, y - 0.8, 1.6, 1.6);
+      if (!bc.steady) { ctx.fillStyle = `rgba(${bc.col},0.08)`; ctx.beginPath(); ctx.arc(x, y, 6, 0, 6.3); ctx.fill(); }
+    }
+  });
+}
 // draw only the visible part of a big pre-rendered world layer
 function blitWorld(ctx, img, wx, wy, ww, wh, scale, vx0, vy0, vx1, vy1) {
   const x0 = Math.max(wx, Math.floor(vx0) - 2), y0 = Math.max(wy, Math.floor(vy0) - 2);
@@ -2885,6 +3187,14 @@ function drawExteriorDynamic(ctx) {
   }
   // salvage fragment
   if (G.eva) { ctx.fillStyle = '#1c1d1b'; ctx.save(); ctx.translate(-560, -110); ctx.rotate(G.t * 0.02); ctx.fillRect(-60, -18, 120, 36); ctx.fillStyle = '#2b2620'; ctx.fillRect(-40, -12, 30, 24); ctx.restore(); }
+  // cryo lower stack: each lost colonist is one dark berth
+  if (ART.cryoStack) {
+    const S = ART.cryoStack; const lost = Math.min(S.cols * S.rows, Math.round(G.colonistsLost));
+    const warm = G.cryoHeat > 25; const blink = Math.floor(G.t * 2) % 2;
+    if (warm) { ctx.fillStyle = blink ? 'rgba(168,112,30,0.35)' : 'rgba(168,112,30,0.15)'; ctx.fillRect(S.x0, S.y0, S.cols * S.pw, S.rows * S.ph); }
+    ctx.fillStyle = '#070808';
+    for (let i = 0; i < lost; i++) { const k = (i * 7919) % (S.cols * S.rows); ctx.fillRect(S.x0 + (k % S.cols) * S.pw, S.y0 + Math.floor(k / S.cols) * S.ph, S.pw - 3, S.ph - 2); }
+  }
   // incoming debris streak
   if (G.meteor && G.meteor.t < G.meteor.dur) {
     const m = G.meteor, k = m.t / m.dur;
@@ -2906,6 +3216,7 @@ function drawRoomDynamic(ctx, r) {
   // screens
   for (const s of A.screens) {
     if (!pw || (flick && chance(0.3))) { ctx.fillStyle = '#060707'; ctx.fillRect(s.x, s.y, s.w, s.h); ctx.fillStyle = 'rgba(255,255,255,0.04)'; ctx.fillRect(s.x + 1, s.y + 1, s.w * 0.4, 1); continue; }
+    if (r.interference > 0.18 && chance(r.interference)) { ctx.fillStyle = '#0c0d0d'; ctx.fillRect(s.x, s.y, s.w, s.h); ctx.fillStyle = 'rgba(190,190,180,0.5)'; for (let k = 0; k < s.w * s.h / 12; k++) ctx.fillRect(s.x + rnd(s.w - 1), s.y + rnd(s.h - 1), 1, 0.7); continue; }
     const warn = r.integ < 50 || r.fire > 0 || r.breach > 0;
     ctx.fillStyle = '#0c120d'; ctx.fillRect(s.x, s.y, s.w, s.h);
     const col = warn && Math.floor(t * 2) % 2 ? '#b0702a' : '#6f8a62';
@@ -2982,6 +3293,20 @@ function drawRoomDynamic(ctx, r) {
     }
     if (r.contam > 0.25) { const dy = (t * 6 + r.x0) % 40; ctx.fillStyle = 'rgba(40,34,22,0.5)'; ctx.fillRect(r.vent + 3, r.y0 + 12 + dy, 1.2, 2.4); }
   }
+  // ship memory
+  drawScars(ctx, r);
+  // room ambience
+  if (r.id === 'reactor' && G.reactor.output > 20) { ctx.strokeStyle = `rgba(220,210,190,${0.04 + G.reactor.instability * 0.08})`; ctx.lineWidth = 1; for (let i = 0; i < 6; i++) { const x = 90 + i * 24; ctx.beginPath(); for (let y = r.y0 + 20; y < r.y0 + 60; y += 3) ctx.lineTo(x + Math.sin(y * 0.3 + t * 6 + i) * 1.5, y); ctx.stroke(); } }
+  if ((r.id === 'cryo' || r.id === 'hydro') && R.cam.z > 0.6) { ctx.fillStyle = r.id === 'cryo' ? 'rgba(170,190,200,0.05)' : 'rgba(170,180,150,0.04)'; for (let i = 0; i < 5; i++) { const mx = r.x0 + ((t * 8 + i * 170) % (r.w + 80)) - 40; ctx.beginPath(); ctx.ellipse(mx, r.id === 'cryo' ? r.fy - 6 : r.y0 + 28, 70, 9, 0, 0, 6.3); ctx.fill(); } }
+  if ((r.id === 'o2' || r.id === 'hydro' || r.id === 'cryo') && chance(0.03) && r.p > 40) FX.add({ k: 'drip', x: r.x0 + 20 + rnd(r.w - 40), y: r.y0 + 32, vy: 0, life: 3, t: 0, floor: r.fy });
+  // vent: flexing grille, dust and a swinging cable when something heavy moves in the duct
+  const ventAct = G.creatures.some((m) => m.alive && m.state === 'vent' && (m.ventRoom === r.id && !m.vto || (m.vto === r.id && m.vprog > 0.55) || (m.vfrom === r.id && m.vto && m.vprog < 0.35)));
+  if (ventAct) { r.cableSwing = Math.max(r.cableSwing || 0, 0.8); if (chance(0.25)) FX.add({ k: 'dust', x: r.vent + rnd(-8, 8), y: r.y0 + 11, vx: rnd(-4, 4), vy: rnd(5, 15), life: rnd(1.2, 2.2), t: 0 }); }
+  r.cableSwing = Math.max(0, (r.cableSwing || 0) - 0.006);
+  { const jx = ventAct ? Math.sin(t * 31) * 0.8 : 0, jy = ventAct ? Math.abs(Math.sin(t * 23)) * 1.2 : 0;
+    if (r.ventBent) { ctx.fillStyle = '#060707'; ctx.fillRect(r.vent - 10, r.y0 + 1, 20, 10); ctx.save(); ctx.translate(r.vent + 9, r.y0 + 2); ctx.rotate(1.1 + Math.sin(t * 2) * 0.03 * (1 + r.cableSwing * 4)); ctx.fillStyle = '#3b3d3a'; ctx.fillRect(0, 0, 18, 9); ctx.fillStyle = '#1d1e1c'; for (let k = 2; k < 16; k += 3) ctx.fillRect(k, 1, 1, 7); ctx.restore(); }
+    else if (ventAct) { ctx.fillStyle = '#060707'; ctx.fillRect(r.vent - 10, r.y0 + 1, 20, 10); ctx.fillStyle = '#3b3d3a'; ctx.fillRect(r.vent - 10 + jx, r.y0 + 1 + jy, 20, 10); ctx.fillStyle = '#1d1e1c'; for (let k = 2; k < 18; k += 3) ctx.fillRect(r.vent - 10 + jx + k, r.y0 + 2 + jy, 1, 8); } }
+  { const sw = Math.sin(t * 5.5) * (r.cableSwing || 0) * 9; ctx.strokeStyle = '#111'; ctx.lineWidth = 1.3; ctx.beginPath(); ctx.moveTo(r.vent - 34, r.y0 + 15); ctx.quadraticCurveTo(r.vent - 20 + sw, r.y0 + 32, r.vent - 4, r.y0 + 15); ctx.stroke(); }
   // blood
   for (const b of r.blood) {
     ctx.fillStyle = b.odd ? 'rgba(70,58,38,0.85)' : 'rgba(112,26,18,0.9)';
@@ -3088,6 +3413,7 @@ function drawEntities(ctx) {
     drawCrew(ctx, c);
   }
   for (const m of G.creatures) if (m.alive && m.state === 'room') drawCreature(ctx, m);
+  if (G.shadowPass && G.t - G.shadowPass.t < 0.45) { const sp = G.shadowPass, r = G.roomById[sp.room], k = (G.t - sp.t) / 0.45; ctx.globalAlpha = 0.55 * Math.sin(k * Math.PI); drawCreatureBody(ctx, sp.x + sp.dir * (k * 46 - 10), r.fy, G.t * 3, false, sp.dir, true, 'hunt'); ctx.globalAlpha = 1; }
   if (G.glimpse && G.t - G.glimpse.t < 0.5) { const r = G.roomById[G.glimpse.room]; ctx.globalAlpha = 0.85; drawCreatureBody(ctx, G.glimpse.x, r.fy, 0, false, 1); ctx.globalAlpha = 1; }
   // missing crew bodies discovered
   for (const c of G.crew) if (c.missing && c.bodyFound) { const r = G.roomById[c.bodyRoom]; drawBody(ctx, r.cx + (c.id % 3) * 30 - 30, r.fy, c); }
@@ -3097,90 +3423,35 @@ function drawBody(ctx, x, y, c) {
   ctx.fillStyle = PROF[c.prof].col; ctx.fillRect(x - 12, y - 5, 18, 5); ctx.fillStyle = SKIN[c.look.skin]; ctx.beginPath(); ctx.arc(x + 9, y - 3, 3, 0, 6.3); ctx.fill();
 }
 
-function drawCrew(ctx, c) {
-  const pc = PROF[c.prof]; const skin = SKIN[c.look.skin];
-  let x = c.x, y = c.y;
-  const sel = UI.sel && UI.sel.type === 'crew' && UI.sel.id === c.id;
-  const r = G.roomById[c.room];
-  if (!c.alive || c.down) {
-    // lying figure
-    const tw = c.down ? Math.sin(G.t * 6 + c.id) * 0.5 : 0;
-    ctx.save(); ctx.translate(x, y); ctx.scale(1.3, 1.3);
-    ctx.fillStyle = shade(pc.col, -0.3); ctx.fillRect(-13, -6 + tw, 20, 6);
-    ctx.fillStyle = '#25272a'; ctx.fillRect(-20, -4, 8, 4);
-    ctx.fillStyle = skin; ctx.beginPath(); ctx.arc(10, -3.5, 3.4, 0, 6.3); ctx.fill();
-    ctx.restore();
-    if (!c.alive) { ctx.fillStyle = 'rgba(58,14,10,0.8)'; ctx.beginPath(); ctx.ellipse(x, y + 0.5, 15, 2.2, 0, 0, 6.3); ctx.fill(); }
-    if (sel) selBracket(ctx, x, y - 8, 12);
-    return;
+function drawScars(ctx, r) {
+  if (!r.scars.length) return;
+  ctx.save(); ctx.beginPath(); ctx.rect(r.x0, r.y0, r.w, ROOM_H); ctx.clip();
+  for (const sc of r.scars) {
+    const rng = mulberry32(sc.seed | 0);
+    switch (sc.k) {
+      case 'scorch': { // blackened wall above where it burned, charred floor
+        ctx.fillStyle = 'rgba(6,5,4,0.85)'; ctx.beginPath(); ctx.ellipse(sc.x, r.fy + 0.5, 30 + sc.s * 16, 3, 0, 0, 6.3); ctx.fill();
+        { const hr = 70 + sc.s * 50, gt = ctx.createRadialGradient(sc.x, r.fy - hr * 0.5, hr * 0.3, sc.x, r.fy - hr * 0.5, hr); gt.addColorStop(0, 'rgba(110,60,25,0.0)'); gt.addColorStop(0.55, 'rgba(110,60,25,0.32)'); gt.addColorStop(1, 'rgba(110,60,25,0)'); ctx.fillStyle = gt; ctx.fillRect(sc.x - hr, r.fy - hr * 1.5, hr * 2, hr * 1.5); }
+        ctx.fillStyle = 'rgba(170,160,140,0.35)'; for (let i = 0; i < 10; i++) ctx.fillRect(sc.x - 30 + rng() * 60, r.fy - 20 - rng() * 70, 1.4, 1); // blistered paint
+        const h = 80 + sc.s * 60, g = ctx.createRadialGradient(sc.x, r.fy, 4, sc.x, r.fy - h * 0.4, h);
+        g.addColorStop(0, 'rgba(5,4,3,0.95)'); g.addColorStop(0.5, 'rgba(10,8,5,0.65)'); g.addColorStop(1, 'rgba(14,10,6,0)');
+        ctx.fillStyle = g; ctx.fillRect(sc.x - h, r.fy - h * 1.3, h * 2, h * 1.3);
+        ctx.fillStyle = 'rgba(30,22,14,0.5)'; for (let i = 0; i < 6; i++) ctx.fillRect(sc.x - 20 + rng() * 40, r.fy - 30 - rng() * 60, 1, 6 + rng() * 14);
+        break; }
+      case 'soot': { const g = ctx.createLinearGradient(0, r.y0, 0, r.y0 + 50); g.addColorStop(0, `rgba(10,9,8,${0.5 * sc.s})`); g.addColorStop(1, 'rgba(10,9,8,0)'); ctx.fillStyle = g; ctx.fillRect(r.x0, r.y0, r.w, 50); break; }
+      case 'melt': ctx.fillStyle = '#2a2620'; ctx.beginPath(); ctx.moveTo(sc.x, sc.y); ctx.quadraticCurveTo(sc.x + 10, sc.y + 8, sc.x + 18, sc.y + 2); ctx.lineTo(sc.x + 16, sc.y + 20); ctx.quadraticCurveTo(sc.x + 8, sc.y + 26, sc.x + 2, sc.y + 18); ctx.fill(); ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillRect(sc.x + 6, sc.y + 18, 1.5, 10); break;
+      case 'patch': { const w = 18 + sc.s * 10, h = 14 + sc.s * 8; // welded plate over a breach
+        ctx.fillStyle = '#5c625f'; ctx.fillRect(sc.x - w / 2, sc.y - h / 2, w, h); ctx.strokeStyle = '#6e5a3a'; ctx.lineWidth = 1.4; ctx.strokeRect(sc.x - w / 2, sc.y - h / 2, w, h);
+        ctx.fillStyle = '#2a2c2a'; for (const [bx, by] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) ctx.fillRect(sc.x + bx * (w / 2 - 3) - 0.8, sc.y + by * (h / 2 - 3) - 0.8, 1.6, 1.6);
+        ctx.fillStyle = 'rgba(200,190,160,0.25)'; ctx.fillRect(sc.x - w / 2, sc.y - h / 2, w, 1); break; }
+      case 'scratch': ctx.strokeStyle = 'rgba(170,165,150,0.45)'; ctx.lineWidth = 0.8; ctx.beginPath(); for (let i = 0; i < 3; i++) { ctx.moveTo(sc.x + i * 3, sc.y); ctx.lineTo(sc.x + i * 3 + 9, sc.y + 16); } ctx.stroke(); break;
+      case 'panel': ctx.fillStyle = '#4b5546'; ctx.fillRect(sc.x, sc.y, 18, 12); ctx.fillStyle = 'rgba(184,150,46,0.55)'; ctx.fillRect(sc.x - 2, sc.y + 2, 22, 2); ctx.fillRect(sc.x - 2, sc.y + 8, 22, 2); ctx.fillStyle = '#c9c3b2'; ctx.globalAlpha = 0.4; ctx.fillRect(sc.x + 4, sc.y + 4.5, 8, 1); ctx.globalAlpha = 1; break;
+      case 'weld': ctx.strokeStyle = 'rgba(150,120,80,0.6)'; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(sc.x, sc.y); for (let i = 1; i < 8; i++) ctx.lineTo(sc.x + i * 6, sc.y + (rng() - 0.5) * 3); ctx.stroke(); ctx.fillStyle = 'rgba(90,96,92,0.8)'; ctx.fillRect(sc.x + 4, sc.y - 10, 30, 9); ctx.strokeStyle = 'rgba(150,120,80,0.45)'; ctx.strokeRect(sc.x + 4, sc.y - 10, 30, 9); break;
+      case 'frost': ctx.fillStyle = 'rgba(190,200,205,0.12)'; for (let i = 0; i < 18; i++) ctx.fillRect(r.x0 + rng() * r.w, r.y0 + 20 + rng() * 80, 1, 10 + rng() * 30); ctx.fillStyle = 'rgba(190,200,205,0.08)'; ctx.fillRect(r.x0, r.fy - 6, r.w, 6); break;
+      case 'burnt': ctx.fillStyle = 'rgba(12,10,8,0.8)'; for (let i = 0; i < 14; i++) { ctx.beginPath(); ctx.ellipse(sc.x + (rng() - 0.5) * 50, r.y0 + 10 + rng() * 40, 1.5 + rng() * 3, 1 + rng() * 2, 0, 0, 6.3); ctx.fill(); } ctx.fillStyle = 'rgba(120,115,100,0.3)'; for (let i = 0; i < 10; i++) ctx.fillRect(sc.x + (rng() - 0.5) * 60, r.fy - rng() * 2, 2, 1); break;
+    }
   }
-  // sleeping in bunk
-  if (c.sleeping && c.atWork && c.room === 'quarters') {
-    const b = ART.rooms.quarters.bunks[c.id % ART.rooms.quarters.bunks.length];
-    ctx.fillStyle = '#5d5a52'; ctx.fillRect(b.x - 20, b.y - 4, 30, 5);
-    ctx.fillStyle = skin; ctx.beginPath(); ctx.arc(b.x - 25, b.y - 3, 3.2, 0, 6.3); ctx.fill();
-    if (sel) selBracket(ctx, b.x - 10, b.y - 8, 12);
-    return;
-  }
-  const f = c.face; const moving = c.moving; const ph = c.phase;
-  const climbing = !!c.climb;
-  const sw = moving && !climbing ? Math.sin(ph) * 0.55 : 0;
-  ctx.save(); ctx.translate(x, y); ctx.scale(1.3, 1.3);
-  if (c.hitFlash > 0) { ctx.translate(rnd(-1, 1), 0); }
-  const dark = (col) => shade(col, -0.15);
-  // legs
-  const legCol = c.prof === 'Security' ? '#2a3036' : c.prof === 'Officer' ? '#23282f' : c.prof === 'Medic' || c.prof === 'Scientist' ? '#3a3b3a' : c.prof === 'Engineer' ? '#45443a' : shade(pc.col, -0.35);
-  ctx.fillStyle = legCol;
-  if (climbing) { const k = Math.sin(c.climb.t * 8); ctx.fillRect(-4, -11 + k * 2, 3, 11); ctx.fillRect(1, -11 - k * 2, 3, 11); }
-  else {
-    ctx.save(); ctx.translate(-1.5, -11); ctx.rotate(sw); ctx.fillRect(-1.6, 0, 3.2, 11); ctx.restore();
-    ctx.save(); ctx.translate(1.5, -11); ctx.rotate(-sw); ctx.fillRect(-1.6, 0, 3.2, 11); ctx.restore();
-    ctx.fillStyle = '#151515'; ctx.fillRect(-4 + Math.sin(sw) * 5, -1.5, 4, 1.5); ctx.fillRect(Math.sin(-sw) * 5, -1.5, 4, 1.5);
-  }
-  // torso
-  const torso = c.prof === 'Medic' ? '#a9a598' : c.prof === 'Scientist' ? '#b3ae9f' : c.prof === 'Engineer' ? '#6b6a52' : pc.col;
-  ctx.fillStyle = torso; ctx.fillRect(-4.5, -22, 9, 11.5);
-  if (c.prof === 'Scientist') { ctx.fillRect(-5, -12, 10, 6); } // coat skirt
-  if (c.prof === 'Medic') { ctx.fillStyle = PAL.green; ctx.fillRect(-4.5, -18, 9, 2); }
-  if (c.prof === 'Engineer' || c.prof === 'Technician') { ctx.fillStyle = PAL.yellowD; ctx.fillRect(-4.5, -13, 9, 1.6); }
-  if (c.prof === 'Security') { ctx.fillStyle = '#1e2429'; ctx.fillRect(-5.5, -22, 11, 6); }
-  if (c.prof === 'Officer') { ctx.fillStyle = '#6b6650'; ctx.fillRect(f > 0 ? 1 : -3, -20, 2, 1.5); }
-  // back rim
-  ctx.fillStyle = 'rgba(220,214,196,0.25)'; ctx.fillRect(f > 0 ? -4.5 : 3.8, -22, 0.7, 11);
-  // arms
-  ctx.fillStyle = dark(torso);
-  const working = c.atWork && c.task && ['repair', 'power', 'seal', 'extinguish', 'treat', 'decon', 'door', 'restart', 'reactor', 'scan', 'bloodtest'].includes(c.task.type);
-  const fighting = c.task && c.task.type === 'fight' && c.armed;
-  if (climbing) { const k = Math.sin(c.climb.t * 8); ctx.fillRect(-6, -30 - k * 2, 2.4, 10); ctx.fillRect(3.6, -30 + k * 2, 2.4, 10); }
-  else if (fighting || (c.armed && c.task && c.task.type === 'security' && G.alertLevel === 2)) {
-    ctx.fillRect(f > 0 ? 0 : -9, -20, 9, 2.6);
-    ctx.fillStyle = '#121314'; ctx.fillRect(f > 0 ? 2 : -16, -21, 14, 2.4); ctx.fillRect(f > 0 ? 4 : -8, -19, 3, 3);
-  } else if (working) {
-    const k = Math.sin((c.workAnim || 0) * 9) * 1.5;
-    ctx.save(); ctx.translate(f * 2, -21); ctx.rotate(f * (-1.1 + k * 0.1)); ctx.fillRect(-1.2, 0, 2.4, 10); ctx.restore();
-    ctx.save(); ctx.translate(-f * 2, -21); ctx.rotate(f * (-0.7 - k * 0.1)); ctx.fillRect(-1.2, 0, 2.4, 9); ctx.restore();
-    if (c.task.type === 'extinguish') { ctx.fillStyle = PAL.red; ctx.fillRect(f * 6 - 2, -18, 4, 7); }
-  } else {
-    ctx.save(); ctx.translate(-2.5 * f, -21); ctx.rotate(-sw * 0.8); ctx.fillRect(-1.2, 0, 2.4, 10); ctx.restore();
-    ctx.save(); ctx.translate(2.5 * f, -21); ctx.rotate(sw * 0.8); ctx.fillRect(-1.2, 0, 2.4, 10); ctx.restore();
-    if (c.armed) { ctx.fillStyle = '#121314'; ctx.save(); ctx.translate(0, -18); ctx.rotate(f * 0.9); ctx.fillRect(-1, -8, 2.2, 14); ctx.restore(); }
-  }
-  // head & headgear
-  const hy = -26.5;
-  ctx.fillStyle = skin; ctx.beginPath(); ctx.arc(f * 0.6, hy, 3.6, 0, 6.3); ctx.fill();
-  switch (c.prof) {
-    case 'Engineer': ctx.fillStyle = PAL.yellow; ctx.beginPath(); ctx.arc(0, hy - 0.8, 4.3, Math.PI, 0); ctx.fill(); ctx.fillRect(-5, hy - 1, 10, 1.4); ctx.fillStyle = '#e8e2c8'; ctx.fillRect(f * 3, hy - 3.5, 1.5, 1.5); break;
-    case 'Technician': ctx.fillStyle = '#3c4636'; ctx.beginPath(); ctx.arc(0, hy - 1, 4, Math.PI, 0); ctx.fill(); ctx.fillStyle = '#151515'; ctx.fillRect(f > 0 ? 0 : -4, hy - 1, 4, 1.6); break;
-    case 'Security': ctx.fillStyle = '#3a454e'; ctx.beginPath(); ctx.arc(0, hy - 0.2, 5, Math.PI * 0.9, Math.PI * 2.1); ctx.fill(); ctx.fillStyle = '#0d0f10'; ctx.fillRect(f > 0 ? 0.5 : -4.5, hy - 1.5, 4, 2.6); break;
-    case 'Medic': ctx.fillStyle = '#c3bfb2'; ctx.beginPath(); ctx.arc(0, hy - 1.4, 3.9, Math.PI, 0); ctx.fill(); break;
-    case 'Officer': ctx.fillStyle = '#20262d'; ctx.fillRect(-4.5, hy - 5, 9, 2.6); ctx.fillRect(f > 0 ? 0 : -6, hy - 2.8, 6, 1.2); break;
-    case 'Scientist': ctx.fillStyle = HAIR[c.look.hairC]; ctx.beginPath(); ctx.arc(-f * 0.5, hy - 1, 3.9, Math.PI * 0.95, Math.PI * 2.05); ctx.fill(); if (c.look.hair > 2) ctx.fillRect(-f * 3.5 - 1, hy - 1, 2.5, 6); break;
-  }
-  // helmet lamp in dark
-  if (!r.powered || !r.observed) { ctx.fillStyle = '#f2ead0'; ctx.fillRect(f * 3.5 - 0.7, hy - 1.5, 1.4, 1.4); }
   ctx.restore();
-  if (c.hitFlash > 0) { ctx.fillStyle = 'rgba(160,30,20,0.35)'; ctx.fillRect(x - 8, y - 40, 16, 40); }
-  if (sel) selBracket(ctx, x, y - 20, 23);
 }
 function selBracket(ctx, x, y, s) {
   ctx.strokeStyle = 'rgba(232,226,206,0.9)'; ctx.lineWidth = 1 / R.cam.z * 1.2;
@@ -3190,12 +3461,27 @@ function selBracket(ctx, x, y, s) {
   ctx.stroke();
 }
 
+function creatureVisibility(m, r) {
+  // unobserved rooms: the organism exists only where a helmet lamp happens to point
+  if (r.observed && r.powered) return 1;
+  let v = r.observed ? 0.35 : 0;
+  for (const c of G.crew) {
+    if (!c.alive || c.down || c.room !== r.id) continue;
+    const d = Math.abs(c.x - m.x), ahead = Math.sign(m.x - c.x) === c.face;
+    if (ahead) v = Math.max(v, clamp((160 - d) / 70, 0, 1)); else v = Math.max(v, clamp((40 - d) / 30, 0, 1));
+  }
+  for (const f of FX.flashes) if (Math.abs(f.x - m.x) < f.r && Math.abs(f.y - m.y) < 80) v = 1;
+  return v;
+}
 function drawCreature(ctx, m) {
   const r = G.roomById[m.room];
+  const vis = creatureVisibility(m, r); if (vis <= 0.02) return;
+  ctx.globalAlpha = vis;
   let y = r.fy;
   if (m.emergeT > 0) y = lerp(r.fy, r.y0 + 20, m.emergeT / 0.9);
   const lunge = m.lunge > 0 ? (m.lunge -= 1 / 60, m.face * 10) : 0;
   drawCreatureBody(ctx, m.x + lunge, y, m.phase, false, m.face, m.moving, m.mode);
+  ctx.globalAlpha = 1;
 }
 function drawCreatureBody(ctx, x, y, ph, dead, face = 1, moving = false, mode = '') {
   ctx.save(); ctx.translate(x, y); ctx.scale(1.25, 1.25);
@@ -3209,7 +3495,8 @@ function drawCreatureBody(ctx, x, y, ph, dead, face = 1, moving = false, mode = 
   ctx.lineWidth = 3.2;
   for (const s of [1, -1]) { const k = st * s; ctx.beginPath(); ctx.moveTo(-2, -26 - bob); ctx.lineTo(-6 + k * 6, -13); ctx.lineTo(2 + k * 8, -6); ctx.lineTo(-1 + k * 9, 0); ctx.stroke(); }
   // torso: long, hunched forward
-  ctx.lineWidth = 7; ctx.beginPath(); ctx.moveTo(-3, -26 - bob); ctx.quadraticCurveTo(0, -46 - bob, 13, -44 - bob); ctx.stroke();
+  ctx.lineWidth = 8.5; ctx.beginPath(); ctx.moveTo(-3, -26 - bob); ctx.quadraticCurveTo(0, -46 - bob, 13, -44 - bob); ctx.stroke();
+  ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(-1, -30 - bob); ctx.quadraticCurveTo(4, -50 - bob, 11, -48 - bob); ctx.stroke(); // compressed shoulder mass
   ctx.lineWidth = 5; ctx.beginPath(); ctx.moveTo(10, -44 - bob); ctx.quadraticCurveTo(16, -46 - bob, 20, -41 - bob); ctx.stroke();
   // head: low, elongated, eyeless
   ctx.fillStyle = body; ctx.beginPath(); ctx.ellipse(22, -40 - bob, 6.5, 3.4, 0.45, 0, 6.3); ctx.fill();
@@ -3236,7 +3523,7 @@ function lampIntensity(r, l) {
   if (r.interference > 0.15) k *= chance(r.interference * 0.4) ? 0.05 : 1 - r.interference * 0.3;
   if (G.brownout) k *= 0.7 + Math.sin(G.t * 23 + l.ph) * 0.15;
   if (r.integ < 40) k *= chance(0.04) ? 0.2 : 0.85;
-  if (G.alertLevel === 2) k *= 0.62;
+  if (localAlarm(r)) k *= 0.62;
   if (nightFactor() && (r.group === 'HAB' || r.id === 'mess')) k *= 0.45;
   return k;
 }
@@ -3247,12 +3534,13 @@ function drawLighting(visible) {
   m.clearRect(0, 0, R.mask.width, R.mask.height);
   m.setTransform(z * s, 0, 0, z * s, (R.W / 2 - cam.x * z + R.shx) * s, (R.H / 2 - cam.y * z + R.shy) * s);
   // exterior ambient
-  m.fillStyle = 'rgba(0,0,0,0.25)'; m.fillRect(-1000, -400, 3800, 1400);
+  m.fillStyle = 'rgba(0,0,0,0.12)'; m.fillRect(-1000, -400, 3800, 1400);
   for (const r of visible) {
     let a;
-    if (!r.observed) a = 0.985;
-    else if (!r.powered) a = 0.93;
-    else a = 0.7 + (G.alertLevel === 2 ? 0.08 : 0) + nightFactor() * (r.group === 'HAB' ? 0.12 : 0.04);
+    if (!r.observed) a = 0.9;
+    else if (!r.powered) a = 0.86;
+    else a = 0.7 + (localAlarm(r) ? 0.08 : 0) + nightFactor() * (r.group === 'HAB' ? 0.12 : 0.04);
+    if (r.feedCollapse > 0) a = r.feedCollapse > 0.45 ? 0.3 : 0.99;
     if (r.p < 30) a = Math.min(0.99, a + 0.04);
     a = Math.min(0.99, a + r.fire * 0.12);
     m.fillStyle = `rgba(0,0,0,${a})`; m.fillRect(r.x0 - 6, r.y0, r.w + 12, ROOM_H);
@@ -3268,11 +3556,24 @@ function drawLighting(visible) {
         const k = lampIntensity(r, l); cut(l.x, l.y + 14, l.r, 0.9 * k); if (k > 0.2) cut(l.x, r.fy - 20, l.r * 0.8, 0.35 * k);
       }
       if (r.powered) for (const sc of A.screens) cut(sc.x + sc.w / 2, sc.y + sc.h / 2 + 6, 22, 0.28);
-      if (!r.powered || G.alertLevel === 2) for (const st of A.strips) cut(st.x, st.y, 22, 0.35);
+      if (!r.powered || localAlarm(r)) for (const st of A.strips) cut(st.x, st.y, 22, r.powered ? 0.35 : 0.5);
+      if (!r.powered) {
+        // dying ballast: a lamp stutters now and then; sparks briefly light the room
+        if (r.flick > 0 || chance(0.004)) { const l = A.lights[Math.floor(G.t * 3) % A.lights.length]; if (chance(0.4)) cut(l.x, l.y + 14, l.r * 0.7, 0.45); }
+        for (const sc of A.screens) cut(sc.x + sc.w, sc.y + sc.h, 8, 0.25); // standby LEDs
+        if (r.breach > 0) cut(r.breachX, r.breachY, 60, 0.3); // cold starlight through the hole
+      }
+      if (r.breach > 0) cut(r.breachX, r.breachY + 10, 80, 0.4);
       if (A.core) { const o = G.reactor.output / 132; cut(A.core.x, A.core.y + 10, 130, 0.75 * o); }
       for (const fx of r.fireXs) cut(fx, r.fy - 20, 70 + r.fire * 110, 0.85 * (0.85 + Math.sin(G.t * 13 + fx) * 0.15));
       if (G.alertLevel >= 1 && roomAlarm(r)) { const a = G.t * 4; cut(r.cx + Math.cos(a) * 60, r.y0 + 30, 70, 0.35); }
       if (A.windows) for (const w of A.windows) cut(w.x + w.w / 2, w.y + w.h / 2, 50, 0.12);
+    }
+    // light leaking through open doors from a lit neighbour
+    if (!r.powered || !r.observed) for (const e of G.adj[r.id]) {
+      const o = G.roomById[e.to], d = e.door; if (!o.powered || d.anim < 0.1) continue;
+      if (d.hatch) { cut(d.x, o.deck < r.deck ? r.y0 + 6 : r.fy - 4, 50, 0.4 * d.anim); }
+      else cut(d.x + (r.cx > d.x ? 8 : -8), r.fy - 26, 70, 0.45 * d.anim);
     }
     // crew torches (always — the only eyes in dead rooms)
     for (const c of G.crew) {
@@ -3292,6 +3593,11 @@ function drawLighting(visible) {
   for (const f of FX.flashes) cut(f.x, f.y, f.r, f.a * (1 - f.t / f.life));
   m.globalAlpha = 1; m.globalCompositeOperation = 'source-over';
 }
+function localAlarm(r) { // red emergency light only where the emergency is (and right next to it)
+  if (roomAlarm(r)) return true;
+  if (G.alertLevel < 2) return false;
+  return G.adj[r.id].some((e) => { const o = G.roomById[e.to]; return o.fire > 0.05 || o.breach > 0 || o.venting || G.t - o.lastCreatureSeen < 20; });
+}
 function roomAlarm(r) { return r.fire > 0 || r.breach > 0 || r.p < 70 || r.venting || (G.t - r.lastCreatureSeen < 20) || r.elecFault || (r.id === 'reactor' && (G.reactor.instability > 0.4 || G.reactor.needsRestart)); }
 
 function glow(ctx, key, x, y, rad, a) { if (a <= 0.01) return; ctx.globalAlpha = Math.min(1, a); ctx.drawImage(ART.lightC[key], x - rad, y - rad, rad * 2, rad * 2); }
@@ -3305,12 +3611,17 @@ function drawGlows(ctx, visible) {
       const k = lampIntensity(r, l); glow(ctx, 'lamp', l.x, l.y + 12, l.r * 0.7, 0.1 * k);
     }
     const local = roomAlarm(r);
-    if (G.alertLevel === 2 || !r.powered) {
-      const pulse = 0.5 + 0.5 * Math.sin(t * (local ? 4 : 2));
-      for (const st of A.strips) glow(ctx, 'red', st.x, st.y - 6, local ? 70 : 40, (local ? 0.3 : 0.1) * (0.5 + pulse * 0.5) * (r.powered ? 1 : 0.8));
-      if (local && r.powered) glow(ctx, 'red', r.cx, r.y0 + 30, r.w * 0.6, 0.12 + pulse * 0.12);
+    const red = localAlarm(r);
+    const emergency = red && (r.fire > 0.05 || r.breach > 0 || r.venting || r.p < 70 || G.t - r.lastCreatureSeen < 20 || G.reactor.needsRestart && r.id === 'reactor' || !local);
+    if (emergency || !r.powered) {
+      const pulse = 0.5 + 0.5 * Math.sin(t * (emergency ? 4 : 1.5));
+      for (const st of A.strips) glow(ctx, 'red', st.x, st.y - 6, emergency ? 70 : 34, (emergency ? 0.3 : 0.09) * (0.5 + pulse * 0.5));
+      if (emergency && r.powered && local) glow(ctx, 'red', r.cx, r.y0 + 30, r.w * 0.6, 0.1 + pulse * 0.1);
     }
-    if (local && G.alertLevel >= 1) { const a = t * 4; glow(ctx, G.alertLevel === 2 ? 'red' : 'amber', r.cx + Math.cos(a) * 60, r.y0 + 26, 80, 0.35); }
+    if (red) { const a = t * 4; glow(ctx, emergency ? 'red' : 'amber', r.cx + Math.cos(a) * 60, r.y0 + 26, 80, emergency ? 0.35 : 0.28); }
+    else if (r.integ < 50 || r.elecFault || r.leak) { const a = t * 3; glow(ctx, 'amber', r.cx + Math.cos(a) * 50, r.y0 + 26, 60, 0.18); } // yellow warning: subtle
+    if (!r.powered) for (const sc of A.screens) glow(ctx, Math.floor(t * 0.8 + sc.x) % 3 ? 'red' : 'amber', sc.x + sc.w, sc.y + sc.h, 7, 0.5); // battery-backed standby LEDs
+    if (r.breach > 0) glow(ctx, 'cold', r.breachX, r.breachY, 80 + r.breach * 60, 0.3);
     if (A.core) { const o = G.reactor.output / 132; glow(ctx, G.reactor.instability > 0.3 ? 'amber' : 'core', A.core.x, A.core.y, 90, 0.25 * o); }
     for (const fx of r.fireXs) glow(ctx, 'fire', fx + Math.sin(t * 11) * 4, r.fy - 25, 90 + r.fire * 140, 0.55 * r.fire + 0.15 + Math.sin(t * 17 + fx) * 0.06);
     if (r.p < 35) glow(ctx, 'cold', r.cx, r.cy, r.w * 0.7, 0.12);
@@ -3440,6 +3751,273 @@ function drawPost(ctx) {
   if (G.blackout) { ctx.fillStyle = 'rgba(0,0,0,0.25)'; ctx.fillRect(0, 0, W, H); }
 }
 
+// ---- sprites.js ----
+// ============================================================================
+// SPRITES — articulated procedural crew. Small, readable, hand-made feel.
+// Local units: feet at (0,0), ~31 units tall, drawn ×1.3. Forward = +x
+// (the context is mirrored for left-facing crew).
+// ============================================================================
+
+const OUTFIT = {
+  Engineer: { torso: '#5f5d48', legs: '#45443a', accent: '#a8902e', belt: '#2a2620' },
+  Technician: { torso: '#4f5c46', legs: '#3f4a38', accent: '#8a7a3e', belt: '#2a2a22' },
+  Medic: { torso: '#6d6e69', legs: '#3a3b3a', accent: '#b2ae9f', belt: '#4a4237' },
+  Security: { torso: '#2a3036', legs: '#262b30', accent: '#46525c', belt: '#1a1e21' },
+  Scientist: { torso: '#3d4044', legs: '#34363a', accent: '#b3ae9f', belt: '#2a2a2a' },
+  Officer: { torso: '#262d37', legs: '#20252c', accent: '#8e897c', belt: '#15181c' },
+};
+
+function seg(ctx, x, y, a, len, w, col) { // a: 0 = straight down, + = forward
+  const ex = x + Math.sin(a) * len, ey = y + Math.cos(a) * len;
+  ctx.strokeStyle = col; ctx.lineWidth = w; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(ex, ey); ctx.stroke();
+  return [ex, ey];
+}
+
+// ---------------------------------------------------------------------------
+// Pose selection from simulation state
+// ---------------------------------------------------------------------------
+function crewPose(c) {
+  const t = G.t, ph = c.phase, task = c.task ? c.task.type : null, r = G.roomById[c.room];
+  const P = { lean: 0, bob: 0, crouch: 0, hipL: 0, kneeL: 0.1, hipR: 0, kneeR: 0.1, shF: 0.08, elF: 0.15, shB: -0.05, elB: 0.15, look: 0, prop: null, kneel: false, seated: false, bubble: false };
+  const monster = G.creatures.some((m) => m.alive && m.room === c.room && m.state === 'room');
+  const working = c.atWork && !c.moving;
+  if (c.moving && !c.climb) {
+    const run = speedOf(c) > 70; const limp = c.hp < 40;
+    const A = run ? 0.8 : 0.5;
+    P.hipL = Math.sin(ph) * A; P.hipR = Math.sin(ph + Math.PI) * A * (limp ? 0.55 : 1);
+    P.kneeL = 0.12 + Math.max(0, -Math.sin(ph - 0.7)) * (run ? 1.1 : 0.7);
+    P.kneeR = 0.12 + Math.max(0, -Math.sin(ph + Math.PI - 0.7)) * (run ? 1.1 : 0.7) * (limp ? 0.5 : 1);
+    P.bob = Math.abs(Math.cos(ph)) * (run ? 1.1 : 0.6) + (limp && Math.sin(ph) > 0 ? 0.8 : 0);
+    P.lean = run ? 0.22 : 0.05;
+    P.shF = -Math.sin(ph) * (run ? 0.9 : 0.45); P.elF = run ? 1.4 : 0.3;
+    P.shB = Math.sin(ph) * (run ? 0.9 : 0.45); P.elB = run ? 1.4 : 0.3;
+    if (limp) { P.shF = 0.5; P.elF = 1.9; } // hand pressed to the wound
+    if (c.panicT > 0 || task === 'panic') { P.shF = 2.6 + Math.sin(t * 9) * 0.3; P.elF = 0.6; P.shB = 2.3 + Math.cos(t * 8) * 0.3; P.elB = 0.8; P.lean = 0.3; }
+    if (c.armed && (task === 'fight' || G.alertLevel === 2)) { P.shF = 0.9; P.elF = 1.2; P.shB = 0.6; P.elB = 1.5; P.prop = 'rifle_port'; }
+    return P;
+  }
+  // idle breathing + glances
+  P.bob = Math.sin(t * 1.8 + c.id) * 0.25;
+  P.look = Math.sin(t * 0.23 + c.id * 3.1) > 0.92 ? -1 : 0;
+  if (c.react && c.react.t > 0) { P.look = c.react.dir === 1 ? 0 : -1; P.lean = -0.12; P.shF = 0.5; P.elF = 1.3; }
+  // fear: crouch and cover when the thing is in the room and they cannot fight
+  if ((monster && !c.armed) || (c.trapped && roomDanger(r) >= 2) || (c.stress > 80 && !r.powered)) {
+    P.crouch = 4.5; P.lean = -0.15; P.hipL = 0.9; P.kneeL = -1.6; P.hipR = 0.6; P.kneeR = -1.2;
+    P.shF = 2.4 + Math.sin(t * 20) * 0.05; P.elF = 2.0; P.shB = 2.2; P.elB = 2.1; P.look = 0;
+    return P;
+  }
+  if (task === 'fight' && c.armed) {
+    const recoil = c.fireT > 0.3 ? 0.25 : 0;
+    P.shF = 1.55 - recoil; P.elF = 0.1; P.shB = 1.2; P.elB = 0.7; P.prop = 'rifle_aim'; P.lean = 0.05 - recoil * 0.3; P.hipL = 0.25; P.hipR = -0.2;
+    return P;
+  }
+  if (c.armed && (task === 'security' || G.alertLevel === 2)) { P.shF = 0.9; P.elF = 1.2; P.shB = 0.6; P.elB = 1.5; P.prop = 'rifle_port'; }
+  if (!working || !task) {
+    if (c.social && c.social.t > 0) { P.bubble = c.social.speaking; if (c.social.speaking) { P.shF = 0.6 + Math.sin(t * 4 + c.id) * 0.35; P.elF = 1.2 + Math.sin(t * 3) * 0.3; } }
+    return P;
+  }
+  const w = c.workAnim || 0;
+  switch (task) {
+    case 'repair': case 'power': case 'duty':
+      if (task === 'duty' && !['Engineer', 'Technician'].includes(c.prof)) { // console work
+        if (['bridge', 'security', 'reactor', 'quarantine', 'medbay', 'o2'].includes(c.room)) { P.shF = 1.15; P.elF = 0.9 + Math.sin(w * 7) * 0.12; P.shB = 1.0; P.elB = 1.0 + Math.cos(w * 6) * 0.12; P.lean = 0.08; }
+        else if (c.social && c.social.t > 0) { P.bubble = c.social.speaking; P.shF = 0.6 + Math.sin(t * 4) * 0.3; P.elF = 1.2; }
+        break;
+      }
+      P.shF = 1.35 + Math.sin(w * 8) * 0.15; P.elF = 0.5; P.shB = 1.1; P.elB = 0.8; P.lean = 0.12; P.prop = task === 'power' ? 'probe' : 'wrench';
+      if (task === 'duty' && Math.sin(w * 0.4 + c.id) < 0) { P.crouch = 3; P.hipL = 1.0; P.kneeL = -1.4; P.hipR = 0.2; P.kneeR = -0.4; P.shF = 1.6; }
+      break;
+    case 'seal':
+      P.kneel = true; P.crouch = 4; P.hipL = 1.3; P.kneeL = -1.5; P.hipR = -0.1; P.kneeR = -1.6; P.shF = 1.9; P.elF = 0.4; P.shB = 1.6; P.elB = 0.6; P.prop = 'torch'; P.lean = 0.15; break;
+    case 'extinguish': case 'decon':
+      P.shF = 1.3; P.elF = 0.3; P.shB = 1.0; P.elB = 0.9; P.lean = 0.1; P.hipL = 0.35; P.hipR = -0.25; P.prop = task === 'decon' ? 'sprayer' : 'extinguisher'; break;
+    case 'treat': case 'scan': case 'bloodtest':
+      if (task === 'treat') { P.kneel = true; P.crouch = 4; P.hipL = 1.3; P.kneeL = -1.5; P.hipR = -0.1; P.kneeR = -1.6; P.shF = 1.3 + Math.sin(w * 3) * 0.1; P.elF = 0.6; P.shB = 1.1; P.elB = 0.8; P.prop = 'medkit'; }
+      else { P.shF = 1.2; P.elF = 1.0 + Math.sin(w * 6) * 0.1; P.shB = 1.0; P.elB = 1.0; }
+      break;
+    case 'reactor': case 'restart': case 'security': case 'investigate':
+      if (task === 'investigate') { P.shF = 1.2; P.elF = 0.4; P.look = Math.sin(w * 0.8) > 0 ? 0 : -1; P.prop = 'torch_hand'; }
+      else { P.shF = 1.15; P.elF = 0.9 + Math.sin(w * 7) * 0.12; P.shB = 1.0; P.elB = 1.0 + Math.cos(w * 6) * 0.12; P.lean = 0.08; }
+      break;
+    case 'eat':
+      P.seated = true; P.crouch = 5; P.hipL = 1.5; P.kneeL = -1.5; P.hipR = 1.4; P.kneeR = -1.45;
+      { const bite = (Math.sin(w * 1.3 + c.id) + 1) / 2; P.shF = 0.6 + bite * 1.3; P.elF = 0.5 + bite * 1.8; P.shB = 1.0; P.elB = 1.1; }
+      if (c.social && c.social.cards) { P.shF = 1.2; P.elF = 1.1 + Math.sin(w * 2) * 0.2; }
+      P.bubble = c.social && c.social.speaking;
+      break;
+    case 'rest': P.seated = true; P.crouch = 5; P.hipL = 1.5; P.kneeL = -1.5; P.hipR = 1.4; P.kneeR = -1.45; P.lean = -0.15; P.shF = 0.3; P.elF = 1.4; break;
+    case 'door': P.shF = 1.3 + Math.sin(w * 5) * 0.4; P.elF = 0.6 + Math.cos(w * 5) * 0.4; P.shB = 1.1 + Math.cos(w * 5) * 0.4; P.elB = 0.8; P.lean = 0.15; P.hipL = 0.35; P.hipR = -0.3; break;
+    case 'hold': if (c.quarantined) { P.seated = true; P.crouch = 5; P.hipL = 1.5; P.kneeL = -1.5; P.hipR = 1.4; P.kneeR = -1.45; P.lean = 0.2; P.shF = 0.9; P.elF = 1.6; } break;
+  }
+  return P;
+}
+
+// ---------------------------------------------------------------------------
+function drawHair(ctx, c, hx, hy) {
+  const col = HAIR[c.look.hairC]; ctx.fillStyle = col;
+  switch (c.look.hair) {
+    case 0: ctx.beginPath(); ctx.arc(hx - 0.3, hy - 0.4, 3.75, Math.PI * 1.02, Math.PI * 1.98); ctx.fill(); break;
+    case 1: ctx.beginPath(); ctx.arc(hx - 0.5, hy - 0.6, 4, Math.PI * 0.95, Math.PI * 2.0); ctx.fill(); ctx.fillRect(hx - 4.2, hy - 1, 1.6, 2.4); break;
+    case 2: ctx.beginPath(); ctx.arc(hx - 0.5, hy - 0.5, 4.1, Math.PI * 0.85, Math.PI * 2.0); ctx.fill(); ctx.fillRect(hx - 4.5, hy - 1, 2.4, 4.6); break;
+    case 3: ctx.beginPath(); ctx.arc(hx - 0.4, hy - 0.6, 4, Math.PI * 0.95, Math.PI * 2.0); ctx.fill(); ctx.beginPath(); ctx.arc(hx - 3.8, hy - 2.6, 1.9, 0, 6.3); ctx.fill(); break;
+    default: ctx.beginPath(); ctx.arc(hx - 0.6, hy - 0.8, 4.8, Math.PI * 0.8, Math.PI * 2.1); ctx.fill(); ctx.beginPath(); ctx.arc(hx - 3.6, hy + 0.6, 2.2, 0, 6.3); ctx.fill(); break;
+  }
+}
+function drawHeadgear(ctx, c, hx, hy) {
+  switch (c.prof) {
+    case 'Engineer':
+      ctx.fillStyle = '#b8962e'; ctx.beginPath(); ctx.arc(hx - 0.2, hy - 0.9, 4.4, Math.PI, 0); ctx.fill(); ctx.fillRect(hx - 4.8, hy - 1.1, 10.4, 1.3);
+      ctx.fillStyle = '#7a6420'; ctx.fillRect(hx - 0.5, hy - 5.3, 1, 4.2);
+      ctx.fillStyle = '#e8e2c8'; ctx.fillRect(hx + 3.2, hy - 3.2, 1.4, 1.4); break;
+    case 'Technician':
+      ctx.fillStyle = '#3c4636'; ctx.beginPath(); ctx.arc(hx - 0.3, hy - 1, 4, Math.PI, 0); ctx.fill(); ctx.fillRect(hx, hy - 1.6, 5.5, 1.1);
+      ctx.fillStyle = '#121212'; ctx.fillRect(hx - 2.5, hy - 2.6, 6, 1.3); ctx.fillStyle = '#5b6a6a'; ctx.fillRect(hx + 1.2, hy - 2.5, 1.6, 1.1); break;
+    case 'Security':
+      ctx.fillStyle = '#3a454e'; ctx.beginPath(); ctx.arc(hx - 0.2, hy - 0.4, 4.9, Math.PI * 0.85, Math.PI * 2.15); ctx.fill();
+      ctx.fillStyle = '#4c5963'; ctx.fillRect(hx - 4.4, hy - 4, 7, 1.1);
+      ctx.fillStyle = '#0c0e10'; ctx.fillRect(hx + 0.6, hy - 1.8, 4, 2.5); ctx.fillStyle = 'rgba(160,180,190,0.35)'; ctx.fillRect(hx + 1.3, hy - 1.5, 1.6, 0.6); break;
+    case 'Medic':
+      drawHair(ctx, c, hx, hy); ctx.fillStyle = '#c3bfb2'; ctx.beginPath(); ctx.arc(hx - 0.2, hy - 1.4, 3.9, Math.PI, 0); ctx.fill(); break;
+    case 'Officer':
+      drawHair(ctx, c, hx, hy); ctx.fillStyle = '#20262d'; ctx.fillRect(hx - 4.2, hy - 5, 8.6, 2.6); ctx.fillRect(hx, hy - 2.7, 5.6, 1.1); ctx.fillStyle = '#8e897c'; ctx.fillRect(hx - 1, hy - 4.4, 1.6, 1); break;
+    default: drawHair(ctx, c, hx, hy);
+  }
+}
+function drawProp(ctx, prop, hx, hy, t, c) {
+  ctx.save(); ctx.translate(hx, hy);
+  switch (prop) {
+    case 'wrench': ctx.rotate(-0.6 + Math.sin(t * 8) * 0.3); ctx.fillStyle = '#7a7c78'; ctx.fillRect(-0.5, -4, 1.2, 5); ctx.fillRect(-1.3, -5, 2.8, 1.4); break;
+    case 'probe': ctx.fillStyle = '#b8962e'; ctx.fillRect(0, -1, 3.5, 2); ctx.fillStyle = '#111'; ctx.fillRect(3.4, -0.4, 2, 0.8); break;
+    case 'torch': ctx.fillStyle = '#3a3a36'; ctx.fillRect(0, -1, 4, 2); ctx.fillStyle = '#fff3d0'; ctx.fillRect(4, -0.6, 1.4, 1.2); break;
+    case 'torch_hand': ctx.fillStyle = '#2c2c2a'; ctx.fillRect(-0.5, -1, 4.5, 2); ctx.fillStyle = '#f2ead0'; ctx.fillRect(3.8, -0.8, 0.9, 1.6); break;
+    case 'extinguisher': case 'sprayer':
+      ctx.fillStyle = prop === 'sprayer' ? '#6a6c58' : PAL.red; ctx.fillRect(-2.2, -1, 4.2, 8); ctx.fillStyle = '#1a1a1a'; ctx.fillRect(-1, -2.3, 2, 1.4); ctx.fillRect(1.5, -2, 4, 1); break;
+    case 'medkit': ctx.fillStyle = '#b2ae9f'; ctx.fillRect(-1, 0, 4, 3); ctx.fillStyle = PAL.green; ctx.fillRect(0.4, 1.1, 1.4, 0.8); break;
+    case 'rifle_aim': ctx.fillStyle = '#141617'; ctx.fillRect(-4, -1.2, 15, 2.2); ctx.fillRect(-2, 0.6, 2, 2.6); ctx.fillRect(4, 0.6, 1.5, 2.2); ctx.fillStyle = '#2b3136'; ctx.fillRect(1, -2.2, 4, 1); break;
+    case 'rifle_port': ctx.rotate(-0.75); ctx.fillStyle = '#141617'; ctx.fillRect(-6, -1, 14, 2); ctx.fillRect(-2, 0.8, 2, 2.3); break;
+  }
+  ctx.restore();
+}
+
+// ---------------------------------------------------------------------------
+function drawCrew(ctx, c) {
+  const skin = SKIN[c.look.skin]; const O = OUTFIT[c.prof];
+  const x = c.x, y = c.y; const t = G.t;
+  const sel = UI.sel && UI.sel.type === 'crew' && UI.sel.id === c.id;
+  const r = G.roomById[c.room];
+  if (!c.alive || c.down) return drawLying(ctx, c, sel);
+  if (c.sleeping && c.atWork && c.room === 'quarters') {
+    const b = ART.rooms.quarters.bunks[c.id % ART.rooms.quarters.bunks.length];
+    ctx.fillStyle = skin; ctx.beginPath(); ctx.arc(b.x - 27, b.y - 3.4, 3.2, 0, 6.3); ctx.fill();
+    ctx.fillStyle = HAIR[c.look.hairC]; ctx.beginPath(); ctx.arc(b.x - 28.4, b.y - 4, 3, Math.PI * 0.6, Math.PI * 1.7); ctx.fill();
+    ctx.fillStyle = '#4e5148'; ctx.beginPath(); ctx.moveTo(b.x - 24, b.y - 1); ctx.quadraticCurveTo(b.x - 10, b.y - 7.5 - Math.sin(t * 1.4 + c.id) * 0.4, b.x + 12, b.y - 1); ctx.fill(); // blanket rises with breath
+    ctx.fillStyle = '#3e4139'; ctx.fillRect(b.x - 18, b.y - 3.5, 1, 3);
+    if (sel) selBracket(ctx, b.x - 8, b.y - 8, 12);
+    return;
+  }
+  ctx.save(); ctx.translate(x, y + 0.5);
+  // contact shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.45)'; ctx.beginPath(); ctx.ellipse(0, 0, 8, 1.6, 0, 0, 6.3); ctx.fill();
+  ctx.scale(1.3 * c.face, 1.3);
+  if (c.hitFlash > 0) ctx.translate(rnd(-0.8, 0.8), 0);
+  if (c.climb) { drawClimbing(ctx, c, O, skin); ctx.restore(); if (sel) selBracket(ctx, x, y - 20, 23); return; }
+  const P = crewPose(c);
+  const hipY = -12 + P.crouch - P.bob * 0.4;
+  // legs (far then near)
+  const leg = (hip, knee, col, near) => {
+    const [kx, ky] = seg(ctx, near ? 0.4 : -0.4, hipY, hip, 6.2, 3.1, col);
+    const [fx, fy] = seg(ctx, kx, ky, hip + knee * (P.seated || P.kneel || P.crouch > 2 ? 1 : -1), 6.2, 2.7, col);
+    ctx.fillStyle = '#151515'; ctx.fillRect(fx - 1.4, Math.min(fy, 0) - 1.6, 4.2, 2); // boot
+  };
+  ctx.save(); ctx.translate(0, 0);
+  leg(P.hipR, P.kneeR, shade(O.legs, -0.25), false);
+  // torso frame (rotates with lean around the hip)
+  ctx.save(); ctx.translate(0, hipY); ctx.rotate(P.lean);
+  const T = -11; // shoulder height relative to hip
+  const shoulder = [0.6, T + 1];
+  // back arm
+  const arm = (sh, el, col, front) => {
+    const [ex, ey] = seg(ctx, shoulder[0] + (front ? 0.6 : -0.8), shoulder[1], sh, 5, 2.6, col);
+    const [hx2, hy2] = seg(ctx, ex, ey, sh + el, 4.6, 2.2, col);
+    ctx.fillStyle = skin; ctx.beginPath(); ctx.arc(hx2, hy2, 1.15, 0, 6.3); ctx.fill();
+    return [hx2, hy2];
+  };
+  const sleeve = c.prof === 'Scientist' ? '#a8a394' : c.prof === 'Medic' ? '#5e5f5a' : O.torso;
+  arm(P.shB, P.elB, shade(sleeve, -0.28), false);
+  // torso
+  ctx.fillStyle = O.torso;
+  ctx.beginPath(); ctx.moveTo(-3.6, 0.5); ctx.lineTo(-4.4, T + 1.5); ctx.quadraticCurveTo(-4.2, T - 0.4, -2, T - 0.5); ctx.lineTo(3.2, T - 0.5); ctx.quadraticCurveTo(4.8, T, 4.6, T + 2); ctx.lineTo(3.8, 0.5); ctx.closePath(); ctx.fill();
+  // profession detailing
+  switch (c.prof) {
+    case 'Engineer': ctx.fillStyle = O.accent; ctx.fillRect(-4.2, T + 4, 8.7, 1.1); ctx.fillStyle = O.belt; ctx.fillRect(-3.8, -1.6, 7.8, 1.8); ctx.fillStyle = '#3e3a2c'; ctx.fillRect(1.6, -1.8, 2.4, 2.8); ctx.fillRect(-3.4, -1.8, 2, 2.4); ctx.fillStyle = '#6c6e6a'; ctx.fillRect(2.5, -3.6, 0.7, 2.2); break;
+    case 'Technician': ctx.fillStyle = shade(O.torso, -0.2); ctx.fillRect(-0.3, T, 0.7, 11); ctx.fillStyle = O.belt; ctx.fillRect(-3.8, -1.6, 7.8, 1.6); ctx.fillStyle = O.accent; ctx.fillRect(2, -1.5, 2, 1.3); ctx.fillStyle = '#2f3a2a'; ctx.fillRect(1.6, T + 3, 2.2, 2); break;
+    case 'Medic': ctx.fillStyle = O.accent; ctx.beginPath(); ctx.moveTo(-3.8, -0.5); ctx.lineTo(-4.2, T + 1.5); ctx.lineTo(4.2, T + 1.5); ctx.lineTo(3.6, -0.5); ctx.fill(); ctx.strokeStyle = '#4a4237'; ctx.lineWidth = 0.9; ctx.beginPath(); ctx.moveTo(3.2, T); ctx.lineTo(-3.6, -1); ctx.stroke(); ctx.fillStyle = '#4a4237'; ctx.fillRect(-5, -2.5, 3, 3); ctx.fillStyle = PAL.green; ctx.fillRect(-0.6, T + 2.6, 2.6, 0.9); break;
+    case 'Security': ctx.fillStyle = O.accent; ctx.fillRect(-3.4, T + 1, 7.6, 6.4); ctx.fillStyle = shade(O.accent, 0.18); ctx.fillRect(-3.4, T + 1, 7.6, 0.8); ctx.fillStyle = '#1a1e21'; ctx.fillRect(-3.6, -2, 7.8, 1.6); ctx.fillRect(-0.4, T + 7.4, 1, 3.6); ctx.fillStyle = '#3a444c'; ctx.beginPath(); ctx.arc(-1.8, T + 0.6, 2.4, Math.PI, 0); ctx.fill();
+      if (!P.prop && c.armed) { ctx.save(); ctx.translate(-3, T + 4); ctx.rotate(0.9); ctx.fillStyle = '#141617'; ctx.fillRect(-7, -0.9, 13, 1.8); ctx.restore(); } break;
+    case 'Scientist': ctx.fillStyle = O.accent; ctx.beginPath(); ctx.moveTo(-4.4, T + 1.5); ctx.lineTo(-4.6, 4.2); ctx.lineTo(0.2, 4.2); ctx.lineTo(0.6, T + 1); ctx.lineTo(-2, T - 0.4); ctx.fill(); ctx.beginPath(); ctx.moveTo(2.6, T - 0.4); ctx.lineTo(4.6, T + 1.8); ctx.lineTo(4.4, 3); ctx.lineTo(2.6, 3); ctx.fill(); ctx.fillStyle = '#c8c3b4'; ctx.fillRect(2.8, T + 3.2, 1.4, 1.8); break;
+    case 'Officer': ctx.fillStyle = shade(O.torso, 0.15); ctx.beginPath(); ctx.moveTo(1.5, T - 0.5); ctx.lineTo(3.4, T + 3); ctx.lineTo(2.2, T + 3); ctx.fill(); ctx.fillStyle = O.accent; ctx.fillRect(-3, T - 0.6, 2.6, 0.8); ctx.fillStyle = O.belt; ctx.fillRect(-3.6, -1.4, 7.6, 1.2); ctx.fillStyle = '#6b6650'; ctx.fillRect(2.6, T + 4, 1.2, 0.8); break;
+  }
+  // rim light on the back edge
+  ctx.fillStyle = 'rgba(225,218,198,0.22)'; ctx.fillRect(-4.3, T + 1.2, 0.6, 10);
+  // head
+  const hx = 0.8, hy = T - 4.2 + (P.look ? 0 : 0);
+  ctx.fillStyle = shade(skin, -0.2); ctx.fillRect(-0.4, T - 1.6, 2.2, 2);
+  ctx.save(); if (P.look === -1) { ctx.translate(hx, 0); ctx.scale(-1, 1); ctx.translate(-hx, 0); }
+  ctx.fillStyle = skin; ctx.beginPath(); ctx.ellipse(hx, hy, 3.5, 3.8, 0, 0, 6.3); ctx.fill();
+  ctx.fillStyle = 'rgba(0,0,0,0.22)'; ctx.beginPath(); ctx.ellipse(hx - 1.2, hy + 0.3, 2.2, 3.4, 0, 0, 6.3); ctx.fill(); // jaw shade
+  ctx.fillStyle = '#16120f'; ctx.fillRect(hx + 2, hy - 0.6, 0.9, 0.9); // eye
+  ctx.fillStyle = shade(skin, -0.25); ctx.fillRect(hx + 3.2, hy + 0.4, 0.6, 0.9); // nose
+  drawHeadgear(ctx, c, hx, hy);
+  ctx.restore();
+  // front arm (+ prop)
+  const [fx, fy] = arm(P.shF, P.elF, shade(sleeve, -0.08), true);
+  if (P.prop) drawProp(ctx, P.prop, fx, fy, c.workAnim || t, c);
+  ctx.restore(); // torso
+  leg(P.hipL, P.kneeL, O.legs, true);
+  ctx.restore();
+  // helmet / hand lamp in dark rooms
+  ctx.restore();
+  if (!r.powered || !r.observed) { const [lx, ly] = [x + c.face * 4.5, y - (P.seated ? 28 : 34) + P.crouch * 1.3]; ctx.fillStyle = '#f2ead0'; ctx.fillRect(lx - 0.8, ly - 0.8, 1.6, 1.6); }
+  if (c.hitFlash > 0) { ctx.fillStyle = 'rgba(160,30,20,0.35)'; ctx.fillRect(x - 8, y - 40, 16, 40); }
+  if (P.bubble && R.cam.z > 1.05) { ctx.fillStyle = 'rgba(201,195,178,0.55)'; for (let i = 0; i < 3; i++) if ((t * 2 + i) % 3 < 2) ctx.fillRect(x + c.face * 6 + i * 2.2, y - 46, 1.2, 1.2); }
+  if (sel) selBracket(ctx, x, y - 20, 23);
+}
+
+function drawClimbing(ctx, c, O, skin) {
+  const k = Math.sin(c.climb.t * 8);
+  ctx.strokeStyle = O.legs; ctx.lineWidth = 3; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(-1.5, -12); ctx.lineTo(-2, -5 + k * 2); ctx.lineTo(-2, 0 + k * 2); ctx.moveTo(1.5, -12); ctx.lineTo(2, -5 - k * 2); ctx.lineTo(2, 0 - k * 2); ctx.stroke();
+  ctx.fillStyle = O.torso; ctx.fillRect(-4, -23, 8, 11.5);
+  if (c.prof === 'Engineer' || c.prof === 'Technician') { ctx.fillStyle = O.belt; ctx.fillRect(-4, -13.5, 8, 1.6); }
+  ctx.strokeStyle = shade(O.torso, -0.1); ctx.lineWidth = 2.4;
+  ctx.beginPath(); ctx.moveTo(-3.5, -22); ctx.lineTo(-5, -27 - k * 2); ctx.moveTo(3.5, -22); ctx.lineTo(5, -27 + k * 2); ctx.stroke();
+  ctx.fillStyle = skin; ctx.beginPath(); ctx.arc(-5, -28 - k * 2, 1.1, 0, 6.3); ctx.arc(5, -28 + k * 2, 1.1, 0, 6.3); ctx.fill();
+  ctx.fillStyle = HAIR[c.look.hairC]; ctx.beginPath(); ctx.arc(0, -26.5, 3.7, 0, 6.3); ctx.fill();
+  if (c.prof === 'Engineer') { ctx.fillStyle = '#b8962e'; ctx.beginPath(); ctx.arc(0, -27.3, 4.2, Math.PI, 0); ctx.fill(); }
+  if (c.prof === 'Security') { ctx.fillStyle = '#3a454e'; ctx.beginPath(); ctx.arc(0, -26.8, 4.6, 0, 6.3); ctx.fill(); }
+}
+
+function drawLying(ctx, c, sel) {
+  const O = OUTFIT[c.prof]; const skin = SKIN[c.look.skin];
+  const x = c.x, y = c.y; const tw = c.down ? Math.sin(G.t * 5 + c.id) * 0.4 : 0;
+  ctx.save(); ctx.translate(x, y); ctx.scale(1.3 * (c.id % 2 ? 1 : -1), 1.3);
+  if (!c.alive) { ctx.fillStyle = 'rgba(96,20,14,0.85)'; ctx.beginPath(); ctx.ellipse(1, 0.2, 12, 1.6, 0, 0, 6.3); ctx.fill(); }
+  ctx.strokeStyle = O.legs; ctx.lineWidth = 2.8; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(-3, -2.2); ctx.lineTo(-9, -1.6); ctx.lineTo(-14, -1.4); ctx.moveTo(-3, -2.6); ctx.lineTo(-8.5, -4.2); ctx.lineTo(-13, -2); ctx.stroke();
+  ctx.fillStyle = '#151515'; ctx.fillRect(-15.5, -3, 2, 2.6);
+  ctx.fillStyle = O.torso; ctx.fillRect(-3.5, -5, 11, 4.6);
+  if (c.prof === 'Scientist' || c.prof === 'Medic') { ctx.fillStyle = O.accent; ctx.fillRect(-3.5, -5, 9, 2.2); }
+  ctx.strokeStyle = shade(O.torso, -0.1); ctx.lineWidth = 2.2;
+  ctx.beginPath(); ctx.moveTo(5, -4.5); ctx.lineTo(9, -7 + tw); ctx.lineTo(13, -6 + tw * 2); ctx.stroke(); // reaching arm
+  ctx.fillStyle = skin; ctx.beginPath(); ctx.arc(13.3, -6 + tw * 2, 1.1, 0, 6.3); ctx.fill();
+  ctx.beginPath(); ctx.arc(10, -2.6, 3.2, 0, 6.3); ctx.fill();
+  if (c.prof === 'Engineer') { ctx.fillStyle = '#b8962e'; ctx.beginPath(); ctx.arc(14.5, -1.8, 2.8, 0, 6.3); ctx.fill(); } // helmet knocked off
+  if (c.prof === 'Security') { ctx.fillStyle = '#3a454e'; ctx.beginPath(); ctx.arc(10.5, -3, 3.6, Math.PI * 0.5, Math.PI * 1.6); ctx.fill(); }
+  ctx.restore();
+  if (sel) selBracket(ctx, x, y - 8, 12);
+}
+
 // ---- audio.js ----
 // ============================================================================
 // AUDIO — procedural WebAudio. Restrained: silence is a tool.
@@ -3451,9 +4029,11 @@ const AUDIO = {
     try {
       const C = window.AudioContext || window.webkitAudioContext; if (!C) return;
       const ctx = this.ctx = new C();
-      this.master = ctx.createGain(); this.master.gain.value = 0.8;
+      this.master = ctx.createGain(); this.master.gain.value = this.vol;
       const comp = ctx.createDynamicsCompressor(); comp.threshold.value = -18; comp.ratio.value = 4;
-      this.master.connect(comp); comp.connect(ctx.destination);
+      // world muffle: as the room you are looking at loses pressure, sound thins out
+      this.muffle = ctx.createBiquadFilter(); this.muffle.type = 'lowpass'; this.muffle.frequency.value = 18000; this.muffle.Q.value = 0.5;
+      this.master.connect(this.muffle); this.muffle.connect(comp); comp.connect(ctx.destination);
       // noise buffers
       const len = ctx.sampleRate * 2;
       this.white = ctx.createBuffer(1, len, ctx.sampleRate); const w = this.white.getChannelData(0); for (let i = 0; i < len; i++) w[i] = Math.random() * 2 - 1;
@@ -3482,13 +4062,24 @@ const AUDIO = {
       this.windG = ctx.createGain(); this.windG.gain.value = 0;
       const ws = this.loopNoise(this.white); this.windF = ctx.createBiquadFilter(); this.windF.type = 'bandpass'; this.windF.frequency.value = 900; this.windF.Q.value = 1.5;
       ws.connect(this.windF); this.windF.connect(this.windG); this.windG.connect(this.master);
+      // late-watch tension drone (phase 4+): two close low tones beating, very quiet
+      this.tensionG = ctx.createGain(); this.tensionG.gain.value = 0;
+      const t1 = ctx.createOscillator(); t1.frequency.value = 36.7; const t2 = ctx.createOscillator(); t2.frequency.value = 38.1; t2.type = 'triangle';
+      const tl = ctx.createBiquadFilter(); tl.type = 'lowpass'; tl.frequency.value = 160; t1.connect(tl); t2.connect(tl); tl.connect(this.tensionG); this.tensionG.connect(this.master); t1.start(); t2.start();
+      // local machinery bed of the room in view (stops dead when its power goes)
+      this.roomG = ctx.createGain(); this.roomG.gain.value = 0;
+      const rs = this.loopNoise(this.brown); this.roomF = ctx.createBiquadFilter(); this.roomF.type = 'bandpass'; this.roomF.frequency.value = 160; this.roomF.Q.value = 2;
+      rs.connect(this.roomF); this.roomF.connect(this.roomG); this.roomG.connect(this.master);
+      this.nextTick = 3; this.nextThunk = 25; this.stepT = 0; this.breathT = 0;
       this.on = true; this.nextGroan = 20; this.nextKnock = 8; this.alarmT = 0; this.beepT = 0;
     } catch (e) { console.warn('audio init failed', e); }
   },
   loopNoise(buf) { const s = this.ctx.createBufferSource(); s.buffer = buf; s.loop = true; s.start(); return s; },
   now() { return this.ctx.currentTime; },
   ok() { return this.on && !this.muted && this.ctx && this.ctx.state === 'running'; },
-  toggleMute() { this.muted = !this.muted; if (this.master) this.master.gain.setTargetAtTime(this.muted ? 0 : 0.8, this.now(), 0.05); return this.muted; },
+  vol: 0.8,
+  setVolume(v) { this.vol = v; if (this.master && !this.muted) this.master.gain.setTargetAtTime(v, this.now(), 0.05); },
+  toggleMute() { this.muted = !this.muted; if (this.master) this.master.gain.setTargetAtTime(this.muted ? 0 : this.vol, this.now(), 0.05); return this.muted; },
   pan(x) { if (!this.ctx || !this.ctx.createStereoPanner) return null; const p = this.ctx.createStereoPanner(); p.pan.value = clamp(((x - R.cam.x) * R.cam.z) / (R.W / 2), -1, 1) * 0.8; return p; },
   dist(x, y) { // attenuation from camera framing
     const [sx, sy] = w2s(x, y); const off = Math.max(0, Math.abs(sx - R.W / 2) - R.W / 2, Math.abs(sy - R.H / 2) - R.H / 2);
@@ -3549,6 +4140,13 @@ const AUDIO = {
   airlockCycle() { this.noise(4, { vol: 0.12, freq: 500, q: 0.8, f2: 150, attack: 0.3, x: 100, y: 100 }); },
   klaxon() { this.tone(330, 0.55, { type: 'square', vol: 0.025, filter: 900, f2: 250 }); },
   chime() { this.tone(660, 0.6, { vol: 0.03 }); setTimeout(() => this.tone(495, 0.9, { vol: 0.03 }), 220); },
+  tick(x) { this.noise(0.03, { vol: 0.05, freq: rnd(2500, 4500), q: 8, x: x ?? rnd(0, SHIP_W), y: 200 }); },
+  thunk() { this.noise(0.5, { vol: 0.08, type: 'lowpass', freq: 220, f2: 80, buf: 'brown' }); this.tone(rnd(45, 60), 0.6, { vol: 0.05, f2: 35 }); },
+  step(c) { this.noise(0.035, { vol: 0.03, type: 'lowpass', freq: 900, x: c.x, y: c.y }); },
+  breath(m) { this.noise(rnd(0.9, 1.4), { vol: 0.06, freq: rnd(260, 420), q: 1.5, f2: rnd(150, 220), x: m.x, y: m.y, buf: 'brown', attack: 0.4 }); },
+  rattle(r) { for (let i = 0; i < 3; i++) setTimeout(() => this.noise(0.04, { vol: 0.06, freq: rnd(1200, 2500), q: 5, x: r.breachX, y: r.breachY }), i * rnd(40, 90)); },
+  podAlarm() { for (let i = 0; i < 4; i++) setTimeout(() => this.tone(1180, 0.08, { type: 'square', vol: 0.012, filter: 2500, x: 1400, y: 450 }), i * 260); },
+  watchChange() { this.chime(); },
   beep() { this.tone(1400, 0.06, { type: 'square', vol: 0.012, filter: 3000 }); },
 
   // ---- ambient driver ------------------------------------------------------
@@ -3556,7 +4154,7 @@ const AUDIO = {
     if (!this.on || !this.ctx) return;
     const t = this.now();
     const out = G.reactor.output / 132;
-    this.droneG.gain.setTargetAtTime(this.muted ? 0 : 0.03 + out * 0.07, t, 0.4);
+    this.droneG.gain.setTargetAtTime(this.muted ? 0 : (out < 0.05 ? 0.004 : 0.03 + out * 0.07), t, out < 0.05 ? 1.2 : 0.4);
     const inst = G.reactor.instability;
     this.d1.frequency.setTargetAtTime(30 + out * 11 + (inst > 0.3 ? Math.sin(G.t * 3) * inst * 3 : 0), t, 0.3);
     this.d2.frequency.setTargetAtTime(30.6 + out * 11.1, t, 0.3);
@@ -3571,20 +4169,38 @@ const AUDIO = {
     let wind = 0; for (const r of G.rooms) if ((r.breach > 0 || r.venting) && r.p > 2) wind = Math.max(wind, (r.p / 101) * (r.venting ? 1 : r.breach) * this.dist(r.cx, r.cy));
     this.windG.gain.setTargetAtTime(wind * 0.18, t, 0.2);
     this.windF.frequency.setTargetAtTime(500 + wind * 900, t, 0.3);
+    // what the camera is looking at drives local sound and muffling
+    const fr = R.cam.z > 0.8 ? roomAt(R.cam.x, R.cam.y) : null;
+    const pr = fr ? fr.p : 101;
+    this.muffle.frequency.setTargetAtTime(pr > 70 ? 18000 : 300 + (pr / 70) * 6000, t, 0.25);
+    this.roomG.gain.setTargetAtTime(fr && fr.powered ? 0.035 * Math.min(1.4, R.cam.z) : 0, t, fr && fr.powered ? 0.6 : 0.15);
+    if (fr) this.roomF.frequency.setTargetAtTime({ reactor: 90, o2: 220, hydro: 300, cryo: 140, workshop: 180 }[fr.id] || 160, t, 0.5);
+    const dark = G.blackout || (fr && !fr.powered);
+    // silence is the horror: when machinery stops, the hull ticks and settles
+    this.nextTick -= dt;
+    if (this.nextTick <= 0) { this.nextTick = dark ? rnd(1.5, 5) : rnd(8, 20); if (dark || chance(0.3)) this.tick(fr ? rnd(fr.x0, fr.x1) : undefined); }
+    this.nextThunk -= dt;
+    if (this.nextThunk <= 0) { this.nextThunk = rnd(35, 90); if (!dark && G.phase < 4) this.thunk(); }
+    this.tensionG.gain.setTargetAtTime(G.phase >= 4 ? 0.012 + (Math.sin(G.t * 0.05) > 0.6 ? 0.012 : 0) : 0, t, 3);
+    // footsteps up close; organism breath only when it is close to what you are looking at
+    if (R.cam.z > 1.3) { this.stepT -= dt; if (this.stepT <= 0) { const mv = G.crew.filter((c) => c.alive && c.moving && !c.climb && Math.abs(c.x - R.cam.x) < 400 && Math.abs(c.y - R.cam.y) < 200); if (mv.length) { const c = pick(mv); this.step(c); this.stepT = speedOf(c) > 70 ? 0.18 : 0.3; } else this.stepT = 0.3; } }
+    this.breathT -= dt;
+    if (this.breathT <= 0) { this.breathT = rnd(2.5, 5); const m = G.creatures.find((m) => m.alive && m.state === 'room' && Math.abs(m.x - R.cam.x) < 260 && Math.abs(m.y - R.cam.y) < 160); if (m && R.cam.z > 1) this.breath(m); }
+    for (const r of G.rooms) if (r.breach > 0 && r.p > 10 && chance(dt * 0.6)) this.rattle(r);
     // ship noises
     this.nextGroan -= dt; this.nextKnock -= dt;
     if (this.nextGroan <= 0) { this.nextGroan = rnd(30, 80) * (G.res.hull < 70 ? 0.6 : 1) * (G.phase >= 3 ? 0.8 : 1); this.groan(0.5 + (100 - G.res.hull) / 100); }
     if (this.nextKnock <= 0) { this.nextKnock = rnd(12, 30); if (life || chance(0.4)) this.knock(); }
     // alarms
     this.alarmT -= dt;
-    if (G.alertLevel === 2 && this.alarmT <= 0) { this.alarmT = 2.6; this.klaxon(); }
+    if (G.blackout || (G.supply < 1 && G.battery <= 0)) { if (this.alarmT <= 0) { this.alarmT = 7; this.tone(2600, 0.05, { type: 'square', vol: 0.006, filter: 4000 }); } } // alarms need power too: only a battery chirp
+    else if (G.alertLevel === 2 && this.alarmT <= 0) { this.alarmT = 2.6; this.klaxon(); }
     else if (G.alertLevel === 1 && this.alarmT <= 0) { this.alarmT = 9; this.chime(); }
     this.beepT -= dt;
     if (this.beepT <= 0 && G.rooms.some((r) => r.p < 60 && r.p > 2)) { this.beepT = 0.5; this.beep(); }
     // creature presence
     for (const m of G.creatures) {
       if (!m.alive) continue;
-      if (m.state === 'room' && chance(dt * 0.25)) { const r = G.roomById[m.room]; this.noise(rnd(0.6, 1.2), { vol: 0.05, freq: rnd(180, 320), q: 5, x: m.x, y: r.cy, buf: 'brown', attack: 0.3 }); }
       if (m.state === 'vent' && m.vto && chance(dt * 0.5)) { const r = G.roomById[m.vto]; this.ductScrape(r); }
     }
   },
@@ -3645,7 +4261,7 @@ const EVENTS = {
     run() {
       const c = pick(G.crew.filter((x) => crewAvailable(x) && x.hp > 70)); if (!c) return;
       const kind = pick(['burn', 'fall', 'fever', 'fever', 'crush']);
-      if (kind === 'fever') { c.fever = 220; c.hp -= 10; logEvent('warn', `${c.name} reporting fever and chills. Probably the recycled air. Probably.`, c.room); }
+      if (kind === 'fever') { hint('infection', c.room); c.fever = 220; c.hp -= 10; logEvent('warn', `${c.name} reporting fever and chills. Probably the recycled air. Probably.`, c.room); }
       else if (kind === 'fall') { hurt(c, rint(25, 40), 'fall from ladder'); logEvent('warn', `${c.name} fell from a ladder in ${crewRoom(c).short}.`, c.room); }
       else if (kind === 'burn') { hurt(c, rint(20, 32), 'steam burn'); logEvent('warn', `${c.name} scalded by a steam line in ${crewRoom(c).short}.`, c.room); }
       else { hurt(c, rint(35, 55), 'crushed hand'); logEvent('warn', `${c.name} caught a hand in a hatch mechanism. Bad.`, c.room); }
@@ -3679,6 +4295,7 @@ const EVENTS = {
     phase: 3, w: () => (G.crew.some((c) => c.alive && c.infection && c.infection.stage >= 1) || (G.foodTheft || 0) > 2 ? 1.1 : 0),
     run() {
       const inf = G.crew.filter((c) => c.alive && c.infection && c.infection.stage >= 1);
+      hint('infection');
       const r = rint(0, 2);
       if (r === 0 || !inf.length) {
         const excess = Math.round(20 + inf.length * 25 + (G.foodTheft || 0) * 4);
@@ -3753,13 +4370,56 @@ function offerSalvage() {
   });
 }
 
+
+// ---------------------------------------------------------------------------
+// Flavour: cheap ambiguity. Most strange things are NOT the organism.
+// ---------------------------------------------------------------------------
+const SHIPWIDE = [
+  [1, 'SHIP BAND: Section 05 reports watch change complete. All nominal.'],
+  [1, 'MAINTENANCE REQUEST: Deck 42 coolant gantry, valve 9. Unacknowledged for two watches.'],
+  [1, 'SHIP BAND: Hab Ring C requests spare filter cartridges. None available.'],
+  [2, 'INCOMING: SECTION 11 CAMERA NETWORK OFFLINE. Cause unknown.'],
+  [2, 'SHIP BAND: Section 09 reports a micrometeor shower aft. No casualties.'],
+  [3, 'DISTRESS BURST: HAB RING C — 0.4 seconds. No voice. Not repeated.'],
+  [3, 'SHIP BAND: Section 11 not answering the watch-change ping.'],
+  [4, 'SHIP BAND: "...if anyone on six can hear this, seal your ducts. Seal your—" (carrier lost)'],
+  [4, 'MAINTENANCE REQUEST: Deck 42 — request withdrawn. No reason given.'],
+  [5, 'SHIP BAND: automated message. Sections 09 through 12 have entered isolation protocol.'],
+];
+const FLAVOUR = {
+  bang() { AUDIO.impact(0.22); G.shake = Math.max(G.shake, 0.8); logEvent('info', 'Distant impact registered somewhere aft. Not this section.', null, { cat: 'system' }); },
+  flicker() { const r = pick(G.rooms.filter((x) => x.powered)); if (r) { r.flick = 1.6; AUDIO.roomPowerDown(r); } },
+  galley() { const r = G.roomById.mess; damageRoom(r, 4); const c = G.crew.find((x) => crewAvailable(x) && x.room === 'mess'); logEvent('info', c ? `${c.name} kicks the ration dispenser. It hums, then gives up.` : 'MESS: ration dispenser fault.', 'mess', { cat: 'crew' }); },
+  smell() {
+    const real = G.nestRoom && chance(0.5); const r = real ? G.roomById[G.nestRoom] : pick(G.rooms);
+    const c = G.crew.find((x) => crewAvailable(x) && x.room === r.id) || G.crew.find(crewAvailable);
+    if (c) logEvent('story', `${c.name}: "Something smells off around ${r.short}. Like a bad filter. Or meat."`, r.id, { cat: 'crew' });
+  },
+  panel() { const r = pick(G.rooms); r.cableSwing = 1; AUDIO.knock(r.vent); setTimeout(() => AUDIO.knock(r.vent), 900); crewReact(r.id, r.vent, 0.5); logEvent('info', `Loose duct panel rattling above ${r.short}. Logged for maintenance.`, r.id, { cat: 'system' }); },
+  falseMotion() {
+    if (!G.sensors) return; const r = pick(G.rooms.filter((x) => !G.crew.some((c) => c.alive && c.room === x.id))); if (!r) return;
+    r.ghost = G.t + 7; logEvent('warn', `MOTION — ${r.short}. Brief.`, r.id, { cat: 'security' });
+    G.delayedLogs.push({ t: G.t + 22, fn: () => logEvent('info', `Sensor diagnostic: ${r.short} motion trigger traced to a thermal expansion pop. Probably.`, r.id, { cat: 'security' }) });
+  },
+  radio() { AUDIO.staticBurst(0.6); const opts = SHIPWIDE.filter(([p]) => p <= G.phase); const m = pick(opts.slice(-4)); logEvent(m[0] >= 3 ? 'warn' : 'info', m[1], null, { cat: 'system', story: m[0] >= 3 }); },
+  drip() { logEvent('info', 'REACTOR: condensate dripping from coolant manifold B. Within tolerance.', 'reactor', { cat: 'system' }); },
+  podAlarm() { AUDIO.podAlarm(); logEvent('info', `CRYO BAY: berth 6-C-${rint(1000, 3400)} momentary thermal alarm. Self-cleared.`, 'cryo', { cat: 'system' }); },
+};
+function runFlavour() {
+  const k = weighted([
+    { w: 1, v: 'bang' }, { w: 1, v: 'flicker' }, { w: 0.6, v: 'galley' }, { w: G.phase >= 2 ? 0.8 : 0, v: 'smell' },
+    { w: G.phase >= 2 ? 1 : 0.3, v: 'panel' }, { w: G.phase >= 3 ? 0.8 : 0, v: 'falseMotion' }, { w: 1.4, v: 'radio' }, { w: 0.5, v: 'drip' }, { w: 0.7, v: 'podAlarm' },
+  ]);
+  if (k) FLAVOUR[k]();
+}
+
 function makeDirector() {
   const D = {
     next: 30, beats: {}, flags: {},
     flag(k) { this.flags[k] = (this.flags[k] || 0) + 1; if (k === 'emerge' || k === 'creature') this.flags.lastCreatureT = G.t; },
     beat(id, cond, fn) { if (!this.beats[id] && cond()) { this.beats[id] = G.t; fn(); } },
     update(dt) {
-      const t = G.t;
+      const t = G.dirT;
       // phase
       let ph = 1; for (const p of PHASES) if (t >= p.t) ph = p.id;
       if (G.firstSighting && ph < 4) ph = 4;
@@ -3771,10 +4431,10 @@ function makeDirector() {
       if (G.pendingMissing) for (const p of G.pendingMissing) if (!p.done && t >= p.t) { p.done = true; const c = G.crew[p.id]; if (c.alive) { c.alive = false; c.deadAt = t; c.deathCause = 'taken'; c.unconfirmed = true; G.deaths++; if (!G.sensors) logEvent('warn', `${c.name} has not checked in since ${fmtClock(c.missingAt || p.t).str}. Last known: ${G.roomById[c.lastSeenRoom || c.room].short}.`, null, { story: true }); } }
 
       // ---- beats (tutorial calm → first fright) ----
-      this.beat('o2filter', () => t > 18, () => { const r = G.roomById.o2; r.integ = 68; logEvent('warn', 'O2 PROCESSING: electrolysis stack 2 efficiency falling. Filter fouling.', 'o2'); logEvent('hint', 'Select a crew member (left list or click them), then RIGHT-CLICK a room for orders. Engineers and technicians repair fastest.'); });
-      this.beat('cut', () => t > 58, () => { const c = G.crew.find((x) => x.first === 'Kit') || pick(G.crew); hurt(c, 34, 'laceration'); logEvent('warn', `${c.name} gashed a hand on a hydroponics tray bracket. Bleeding.`, c.room); logEvent('hint', 'Medics treat the injured automatically when idle. Select a crew member to see vitals, skills and relationships.'); });
-      this.beat('door', () => t > 96, () => { const d = G.doorById.d_mes_hyd; d.jammed = true; d.anim = 1; logEvent('warn', `DOOR FAULT: ${doorLabel(d)} jammed OPEN.`, 'mess'); logEvent('hint', 'Click a door to open / close / lock / seal it remotely. Doors need power. Jammed doors free up when an adjacent room is repaired.'); });
-      this.beat('powerhint', () => t > 125, () => logEvent('hint', 'POWER panel (right): reactor output vs demand. If generation falls short, batteries drain, then breakers trip. You choose what goes dark. Keep an operator in the REACTOR.'));
+      this.beat('o2filter', () => t > 18, () => { const r = G.roomById.o2; r.integ = 68; logEvent('warn', 'O2 PROCESSING: electrolysis stack 2 efficiency falling. Filter fouling.', 'o2');  });
+      this.beat('cut', () => t > (G.tut && G.tut.finished && G.tutDone ? 150 : 58), () => { const c = G.crew.find((x) => x.first === 'Kit') || pick(G.crew); hurt(c, 34, 'laceration'); logEvent('warn', `${c.name} gashed a hand on a hydroponics tray bracket. Bleeding.`, c.room);  });
+      this.beat('door', () => t > 96, () => { const d = G.doorById.d_mes_hyd; d.jammed = true; d.anim = 1; logEvent('warn', `DOOR FAULT: ${doorLabel(d)} jammed OPEN.`, 'mess');  });
+      
       this.beat('coolant', () => t > 168, () => EVENTS.coolant_leak.run());
       this.beat('meteor1', () => t > 240, () => EVENTS.meteor.run({ room: chance(0.6) ? 'workshop' : 'reactor', seed: true, size: 0.38 }));
       this.beat('salvage', () => t > 440 && (activeCrises() < 2 || t > 560), () => offerSalvage());
@@ -3793,15 +4453,18 @@ function makeDirector() {
         G.reactor.instability = Math.min(0.9, G.reactor.instability + 0.5); EVENTS.meteor.run({ size: 0.3 });
         for (const m of G.creatures) if (m.alive) { m.stalk = false; m.hunger = 90; }
       });
-      if (G.firstFright && G.firstFright.step === 1 && t > G.firstFright.t + 8) {
+      if (G.firstFright && G.firstFright.step === 1 && G.t > G.firstFright.t + 8) {
         G.firstFright.step = 2; const r = G.roomById[G.firstFright.room];
-        r.ghost = t + 14;
+        r.ghost = G.t + 14; hint('motion', r.id);
         if (G.sensors) logEvent('crit', `UNIDENTIFIED MOTION — ${DECK_NAME[r.deck]} / ${r.short}. Life signs: ${r.lifeSigns + 1}.`, r.id, { story: true });
         else logEvent('warn', `Something knocked twice inside ${r.short}. Then nothing.`, r.id, { story: true });
         AUDIO.knock(r.vent);
         if (UI.autoPause) UI.autoPause('UNIDENTIFIED MOTION');
       }
 
+      // ---- flavour (not part of the crisis budget) ----
+      this.flavT = (this.flavT ?? 40) - dt;
+      if (this.flavT <= 0 && t > 30) { this.flavT = rnd(35, 75); runFlavour(); }
       // ---- random systemic events ----
       this.next -= dt;
       if (this.next <= 0 && t > 140) {
@@ -3843,7 +4506,7 @@ function resolveMeteor(m) {
   if (chance(0.5)) r.cameraOK = false;
   if (G.eva) for (const id of G.eva.ids) if (G.crew[id].eva && chance(0.3)) { hurt(G.crew[id], 25, 'debris strike during EVA'); logEvent('crit', `${G.crew[id].name} hit by debris on EVA.`, 'airlock'); }
   logEvent('crit', `IMPACT — ${DECK_NAME[r.deck]} / ${r.short}. Hull breached. Pressure falling.`, r.id, { story: true });
-  if (!G._breachHint) { G._breachHint = true; logEvent('hint', 'Air is escaping through every OPEN door connected to the breach. Close or seal doors around it, then send someone with a rebreather (engineer / technician / security) to SEAL BREACH.'); }
+  hint('breach', r.id);
   if (UI.autoPause && size > 0.25) UI.autoPause('HULL BREACH');
   if (m.seed && !G.nestRoom) {
     seedContamination(r, 'meteor');
@@ -3858,27 +4521,52 @@ function resolveMeteor(m) {
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
+const BAR_TIPS = {
+  PRESSURE: 'Room atmospheric pressure (normal 101 kPa). Below ~50 kPa crew start suffocating; below ~15 kPa it is effectively vacuum.',
+  OXYGEN: 'Breathable oxygen (pressure × O2 fraction, normal 21%). Below 15% crew lose blood oxygen.',
+  TEMP: 'Room temperature. Fire heats rooms past 70°C (heat injuries); vacuum and dead life support make them freeze.',
+  INTEGRITY: 'Condition of the room machinery. Low integrity cuts output, causes electrical faults and jams doors. REPAIR uses spare parts.',
+  FIRE: 'Fire intensity. Grows with oxygen, spreads through open doors, damages equipment.',
+  HEALTH: 'Below 15 the crew member goes down and needs a medic. At 0 they are dead. Permanently.',
+  'BLOOD O2': 'Blood oxygen. Drains in thin or poisoned air; at 0 health drops fast.',
+  REBREATHER: 'Seconds of emergency air (engineers, technicians, security). Refills in the airlock or workshop.',
+  STRESS: 'Fear and strain. High stress means slower work, refusals and panic.',
+  MORALE: 'Long-term outlook. Falls with deaths, hunger, darkness and grief.',
+  FATIGUE: 'Tiredness. Crew sleep on their watch rotation.',
+  'CORE TEMP': 'Body temperature from the biomonitor (needs SENSORS). Fevers have many causes.',
+};
 const UI = {
   sel: null, hoverRoom: null, hoverCrew: null, hoverDoor: null, speed: 1, prevSpeed: 1, autoPauseOn: true, uiT: 0,
   init() {
     this.buildTop(); this.buildRoster(); this.buildPower(); this.bindInput();
     $('btnHelp').onclick = () => this.toggleHelp();
+    // tooltips: any element with data-tip (or title on panels), shown fast and styled
+    const tip = $('tip');
+    document.addEventListener('mouseover', (e) => { const t = e.target.closest('[data-tip]'); if (!t) { tip.style.display = 'none'; return; } tip.textContent = t.dataset.tip; tip.style.display = 'block'; });
+    document.addEventListener('mousemove', (e) => { if (tip.style.display === 'block') { tip.style.left = Math.min(e.clientX + 14, window.innerWidth - 290) + 'px'; tip.style.top = Math.min(e.clientY + 16, window.innerHeight - 80) + 'px'; } });
     $('helpClose').onclick = () => this.toggleHelp(false);
     for (const b of document.querySelectorAll('[data-speed]')) b.onclick = () => this.setSpeed(+b.dataset.speed);
     $('btnMute').onclick = () => { const m = AUDIO.toggleMute(); $('btnMute').textContent = m ? 'SOUND OFF' : 'SOUND ON'; };
     $('chkAuto').onchange = (e) => { this.autoPauseOn = e.target.checked; };
+    $('logTabs').addEventListener('click', (e) => {
+      const b = e.target.closest('button[data-f]'); if (!b) return;
+      this.logFilter = b.dataset.f; for (const x of $('logTabs').children) x.classList.toggle('on', x === b);
+      for (const el of $('log').children) { const ok = this.logFilter === 'all' || (this.logFilter === 'crit' ? el.classList.contains('crit') : el.classList.contains('c-' + this.logFilter)); el.style.display = ok ? '' : 'none'; }
+      $('log').scrollTop = $('log').scrollHeight;
+    });
     $('log').addEventListener('click', (e) => { const el = e.target.closest('[data-room]'); if (el) this.focusRoom(el.dataset.room, true); });
     $('alerts').addEventListener('click', (e) => { const el = e.target.closest('[data-room]'); if (el) this.focusRoom(el.dataset.room, true); });
   },
   // ---------------------------------------------------------------- top bar
   buildTop() {
     const res = [['pow', 'POWER'], ['bat', 'BATTERY'], ['o2', 'O2 RESERVE'], ['food', 'FOOD'], ['water', 'WATER'], ['med', 'MEDICAL'], ['parts', 'PARTS'], ['hull', 'HULL'], ['mor', 'MORALE'], ['col', 'COLONISTS']];
-    $('gauges').innerHTML = res.map(([k, l]) => `<div class="g" id="g_${k}"><div class="gl">${l}</div><div class="gv" id="gv_${k}">—</div><div class="gb"><i id="gb_${k}"></i></div></div>`).join('');
+    const TIPS = { pow: 'Reactor output / total demand of the buses that are switched on (MW). If output is lower, the battery drains.', bat: 'Battery charge. Covers a power deficit for a while; at 0% breakers start shedding buses.', o2: 'Stored ship oxygen. Vents draw from it to refill and scrub compartments. An open breach drains it.', food: 'Food stores. Hydroponics grows more when powered and tended. Arrow shows the trend.', water: 'Potable water. Reclaimed by life support and hydroponics.', med: 'Medical supplies. Used by treatment and blood tests.', parts: 'Spare parts. Used by repairs (1 per ~14% integrity) and breach patches (2). The workshop fabricates more when crewed.', hull: 'Overall hull integrity. Impacts reduce it, patches restore some.', mor: 'Average crew morale. Low morale means refusals, mistakes and fights.', col: 'Colonists asleep in Cryo Bay 6-C. If the CRYO bus loses power, pods warm and sleepers begin to die.' };
+    $('gauges').innerHTML = res.map(([k, l]) => `<div class="g" id="g_${k}" data-tip="${TIPS[k]}"><div class="gl">${l}</div><div class="gv" id="gv_${k}">—</div><div class="gb"><i id="gb_${k}"></i></div></div>`).join('');
   },
   updateTop() {
     const c = fmtClock(G.t);
     $('clock').textContent = `DAY ${c.day} ${c.str}${nightFactor() ? ' NIGHT' : ''}`;
-    $('phase').textContent = `${fmtT(G.t)} / ${fmtT(ARC_LENGTH).slice(2)}`;
+    $('phase').textContent = G.tut && G.tut.active ? 'FIRST WATCH CHECKS' : `${fmtT(G.dirT)} / ${fmtT(ARC_LENGTH).slice(2)}`;
     const set = (k, v, frac, lvl, title) => {
       $('gv_' + k).textContent = v; const b = $('gb_' + k); b.style.width = clamp(frac, 0, 1) * 100 + '%';
       $('g_' + k).className = 'g ' + (lvl || ''); if (title) $('g_' + k).title = title;
@@ -4000,7 +4688,7 @@ const UI = {
   },
   // ------------------------------------------------------------------ power
   buildPower() {
-    $('groups').innerHTML = GROUPS.map((g) => `<div class="pg" id="pg_${g.id}" title="${esc(g.desc)}"><button class="tog" data-g="${g.id}" ${g.essential ? 'disabled' : ''}></button><span class="pn">${g.name}</span><span class="pd">${g.demand} MW</span></div>`).join('');
+    $('groups').innerHTML = GROUPS.map((g) => `<div class="pg" id="pg_${g.id}" data-tip="${esc(g.desc)}"><button class="tog" data-g="${g.id}" ${g.essential ? 'disabled' : ''}></button><span class="pn">${g.name}</span><span class="pd">${g.demand} MW</span></div>`).join('');
     $('groups').addEventListener('click', (e) => { const b = e.target.closest('button[data-g]'); if (!b) return; const g = G.groups[b.dataset.g]; setGroup(g.id, !g.on); this.updatePower(); });
   },
   updatePower() {
@@ -4024,9 +4712,12 @@ const UI = {
   },
   // ------------------------------------------------------------------ log
   onLog(e) {
+    if (e.sev === 'hint') return; // hints are toasts now
     const el = document.createElement('div');
-    el.className = 'le ' + e.sev; if (e.room) el.dataset.room = e.room;
-    el.innerHTML = e.sev === 'phase' ? `<span class="ph">${esc(e.text)}</span>` : `<span class="lt">${e.clock}</span>${esc(e.text)}`;
+    const glyph = { system: '·', crew: '●', medical: '+', security: '◉', door: '▮' }[e.cat] || '·';
+    el.className = `le ${e.sev} c-${e.cat}`; if (e.room) el.dataset.room = e.room;
+    el.innerHTML = `<span class="lt">${e.clock}</span><span class="lg">${e.sev === 'crit' ? '!' : glyph}</span>${esc(e.text)}`;
+    if (this.logFilter && this.logFilter !== 'all' && !(this.logFilter === 'crit' ? e.sev === 'crit' : e.cat === this.logFilter)) el.style.display = 'none';
     const log = $('log'); log.appendChild(el);
     while (log.children.length > 120) log.removeChild(log.firstChild);
     log.scrollTop = log.scrollHeight;
@@ -4042,7 +4733,7 @@ const UI = {
     if (this.sel.type === 'crew') this.crewPanel(G.crew[this.sel.id], force);
     else if (this.sel.type === 'room') this.roomPanel(G.roomById[this.sel.id], force);
   },
-  bar(label, v, max, cls = '', txt) { const f = clamp(v / max, 0, 1); return `<div class="br ${cls}"><span>${label}</span><i><b style="width:${f * 100}%"></b></i><em>${txt ?? Math.round(v)}</em></div>`; },
+  bar(label, v, max, cls = '', txt) { const f = clamp(v / max, 0, 1); return `<div class="br ${cls}" data-tip="${BAR_TIPS[label] || ''}"><span>${label}</span><i><b style="width:${f * 100}%"></b></i><em>${txt ?? Math.round(v)}</em></div>`; },
   crewPanel(c, force) {
     const box = $('ctx'); const key = 'crew' + c.id;
     const known = (G.sensors || crewRoom(c)?.observed) && c.alive && !c.missing;
@@ -4054,10 +4745,10 @@ const UI = {
           <div><div class="nm">${esc(fullName(c))}</div><div class="pf">${c.prof.toUpperCase()} · WATCH ${'ABC'[c.watch]}</div>
           <div class="tr">${c.traits.map((t) => `<span title="${esc(TRAIT_INFO[t])}">${t}</span>`).join('')}</div>
           <div class="st" id="cStat"></div></div></div>
-        <p class="bio">${esc(c.bio)}</p>
         <div id="cVitals"></div>
         <div class="sk">${SKILLS.map((k) => `<div><span>${SKILL_NAME[k]}</span><i class="pips">${[1, 2, 3, 4, 5].map((n) => `<b class="${n <= c.skills[k] ? 'f' : ''}"></b>`).join('')}</i></div>`).join('')}</div>
         <ul class="rel">${rels}</ul>
+        <p class="bio">${esc(c.bio)}</p>
         <div id="cTests" class="dim"></div>
         <div class="ph2">ORDERS</div>
         <div class="btns" id="cOrders"></div>
@@ -4200,7 +4891,7 @@ const UI = {
       if (down) {
         const dx = e.clientX - down.x, dy = e.clientY - down.y;
         if (Math.abs(dx) + Math.abs(dy) > 5) down.moved = true;
-        if (down.moved && (down.b === 0 || down.b === 1)) { R.cam.tx = down.cx - dx / R.cam.z; R.cam.ty = down.cy - dy / R.cam.z; R.cam.x = R.cam.tx; R.cam.y = R.cam.ty; }
+        if (down.moved && (down.b === 0 || down.b === 1)) { if (G.tut) G.tut.flags.cam = true; R.cam.tx = down.cx - dx / R.cam.z; R.cam.ty = down.cy - dy / R.cam.z; R.cam.x = R.cam.tx; R.cam.y = R.cam.ty; }
       }
       if (e.target === cv) {
         const p = this.pick(e.clientX, e.clientY);
@@ -4220,7 +4911,7 @@ const UI = {
       } else if (d.b === 2) this.contextMenu(p, e.clientX, e.clientY);
     });
     cv.addEventListener('wheel', (e) => {
-      e.preventDefault();
+      e.preventDefault(); if (G.tut) G.tut.flags.cam = true;
       const [wx, wy] = s2w(e.clientX, e.clientY);
       const nz = clamp(R.cam.tz * Math.pow(1.0015, -e.deltaY), 0.32, 3);
       R.cam.tz = nz;
@@ -4244,6 +4935,7 @@ const UI = {
   },
   panKeys(dt) {
     const k = this.keys || {}; const s = 700 * dt / R.cam.z;
+    if (G.tut && (k.w || k.a || k.s || k.d || k.q || k.e || k.arrowup || k.arrowdown || k.arrowleft || k.arrowright)) G.tut.flags.cam = true;
     if (k.w || k.arrowup) R.cam.ty -= s; if (k.s || k.arrowdown) R.cam.ty += s; if (k.a || k.arrowleft) R.cam.tx -= s; if (k.d || k.arrowright) R.cam.tx += s;
     if (k.q) R.cam.tz = clamp(R.cam.tz * (1 - dt * 1.5), 0.32, 3); if (k.e) R.cam.tz = clamp(R.cam.tz * (1 + dt * 1.5), 0.32, 3);
   },
@@ -4361,12 +5053,275 @@ function drawPortrait(cv, c) {
   // headgear
   if (c.prof === 'Officer') { x.fillStyle = '#20262d'; x.fillRect(24, 24, 36, 8); x.fillRect(22, 31, 40, 3); }
   if (c.prof === 'Engineer') { x.fillStyle = PAL.yellow; x.beginPath(); x.ellipse(42, 30, 18, 12, 0, Math.PI, 0); x.fill(); x.fillRect(22, 29, 40, 3); }
+  // profession gear, matching the sprite
+  if (c.prof === 'Security') { x.fillStyle = '#46525c'; x.fillRect(14, 80, 56, 24); x.fillStyle = '#5a6670'; x.fillRect(14, 80, 56, 3); x.fillStyle = '#3a454e'; x.beginPath(); x.ellipse(42, 30, 19, 13, 0, Math.PI, 0); x.fill(); x.fillRect(22, 28, 40, 4); }
+  if (c.prof === 'Scientist') { x.fillStyle = '#c4bfae'; x.beginPath(); x.moveTo(8, h); x.lineTo(30, 74); x.lineTo(37, 92); x.lineTo(30, h); x.fill(); x.beginPath(); x.moveTo(76, h); x.lineTo(54, 74); x.lineTo(47, 92); x.lineTo(54, h); x.fill(); x.fillStyle = '#d8d2c0'; x.fillRect(58, 90, 7, 5); }
+  if (c.prof === 'Officer') { x.fillStyle = '#3a4350'; x.beginPath(); x.moveTo(30, 72); x.lineTo(42, 86); x.lineTo(54, 72); x.lineTo(50, 70); x.lineTo(42, 80); x.lineTo(34, 70); x.fill(); x.fillStyle = '#8e897c'; x.fillRect(12, 80, 12, 2); x.fillRect(60, 80, 12, 2); }
+  if (c.prof === 'Technician') { x.fillStyle = '#121212'; x.fillRect(26, 30, 32, 5); x.fillStyle = '#5b6a6a'; x.fillRect(30, 31, 9, 3); x.fillRect(45, 31, 9, 3); }
+  if (c.prof === 'Engineer') { x.fillStyle = '#a8902e'; x.fillRect(10, 92, 64, 3); }
+  if (c.prof === 'Medic') { x.fillStyle = '#4a4237'; x.save(); x.translate(42, 88); x.rotate(-0.6); x.fillRect(-30, -2, 60, 4); x.restore(); }
+  // age / wear hints from the roster
+  if (c.traits.includes('Natural Leader') || c.title === 'Dr.') { x.strokeStyle = 'rgba(0,0,0,0.25)'; x.lineWidth = 0.8; x.beginPath(); x.moveTo(33, 50); x.lineTo(36, 52); x.moveTo(51, 50); x.lineTo(48, 52); x.stroke(); }
+  // key light from the left, shadow on the right
+  const lg = x.createLinearGradient(0, 0, w, 0); lg.addColorStop(0, 'rgba(255,240,210,0.06)'); lg.addColorStop(0.6, 'rgba(0,0,0,0)'); lg.addColorStop(1, 'rgba(0,0,0,0.35)'); x.fillStyle = lg; x.fillRect(0, 0, w, h);
   // id strip
   x.fillStyle = 'rgba(0,0,0,0.6)'; x.fillRect(0, h - 12, w, 12);
   x.fillStyle = '#8e897c'; x.font = '8px "DejaVu Sans Mono", monospace'; x.fillText(`ID ${String(6000 + c.id * 37).padStart(5, '0')}`, 4, h - 3);
   if (!c.alive) { x.fillStyle = 'rgba(10,10,10,0.6)'; x.fillRect(0, 0, w, h); x.strokeStyle = '#a8281f'; x.lineWidth = 2; x.beginPath(); x.moveTo(6, 6); x.lineTo(w - 6, h - 18); x.stroke(); }
   // desaturate slightly
   x.globalCompositeOperation = 'color'; x.fillStyle = 'rgba(90,90,85,0.35)'; x.fillRect(0, 0, w, h); x.globalCompositeOperation = 'source-over';
+}
+
+// ---- tutorial.js ----
+// ============================================================================
+// TUTORIAL ("FIRST WATCH") + contextual hints + settings
+// Teaches through real actions on the live simulation. While it runs the
+// event director is suspended (G.dirT does not advance), so no horror fires.
+// ============================================================================
+
+const SETTINGS = { hints: true, autoPause: true, volume: 0.8 };
+function loadSettings() {
+  try { Object.assign(SETTINGS, JSON.parse(localStorage.getItem('longwatch.settings') || '{}')); } catch (e) { /* storage blocked */ }
+}
+function saveSettings() { try { localStorage.setItem('longwatch.settings', JSON.stringify(SETTINGS)); } catch (e) { /* ignore */ } }
+
+// ---------------------------------------------------------------------------
+// Contextual hints — once each, short, dismissible, never spammy
+// ---------------------------------------------------------------------------
+const HINTS = {
+  fire: 'Fire eats oxygen and wrecks equipment. Send crew to EXTINGUISH, or seal and VENT the room. Powered fire doors close by themselves.',
+  breach: 'Seal the bulkheads around a breach first, then send someone with a rebreather (engineer, technician or security) to SEAL BREACH. Open vents keep pumping air out.',
+  deficit: 'Power deficit. The battery buys time. Shut down non-essential buses in POWER DISTRIBUTION before the breakers choose for you.',
+  trip: 'A tripped bus stays dark until you switch it back ON, and it will trip again unless generation covers demand.',
+  camera: 'No camera does not mean empty. If SENSORS are powered you still get life signs and motion. Send someone in to see.',
+  refusal: 'Frightened crew can refuse dangerous orders. Select them and press INSIST to force it, at a cost to stress and morale.',
+  infection: 'Symptoms are clues, not proof. Fevers have ordinary causes too. SCAN, OBSERVE, QUESTION or QUARANTINE: select the crew member.',
+  down: 'A downed crew member bleeds out slowly. Medics treat automatically when free, or select a medic and right-click the casualty.',
+  panic: 'Panicking crew ignore orders until it passes. Leaders, calm crew and rest help them recover.',
+  scram: 'The reactor has SCRAMed. Send an engineer to RESTART REACTOR (right-click the Reactor). You are on batteries.',
+  organism: 'You have seen it. Armed security can drive it off. A sealed room can be VENTED with it inside. It lives in the ducts between rooms.',
+  motion: 'Motion in a room nobody should be in. You decide whether to send someone, and who.',
+  quarantine: 'Quarantine doors only stay locked while the SECURITY bus is powered.',
+};
+function hint(id, roomId) {
+  G.hintsShown = G.hintsShown || {};
+  if (G.hintsShown[id] || G.ffwd || !G.started) return;
+  G.hintsShown[id] = true;
+  if (!SETTINGS.hints || (G.tut && G.tut.active)) return;
+  const text = HINTS[id] || id;
+  const box = document.getElementById('hints');
+  if (!box) return;
+  const el = document.createElement('div');
+  el.className = 'hintToast';
+  el.innerHTML = `<span class="hk">TIP</span><span class="ht">${esc(text)}</span><button class="hx" title="Dismiss">×</button>`;
+  el.querySelector('.hx').onclick = (e) => { e.stopPropagation(); el.remove(); };
+  if (roomId) { el.style.cursor = 'pointer'; el.onclick = () => UI.focusRoom(roomId, true); }
+  box.appendChild(el);
+  while (box.children.length > 2) box.removeChild(box.firstChild);
+  setTimeout(() => el.remove(), 16000);
+}
+
+// ---------------------------------------------------------------------------
+// FIRST WATCH tutorial
+// ---------------------------------------------------------------------------
+const TUT = {
+  steps: [],
+  init() {
+    G.tut = { active: false, i: 0, sub: 0, t: 0, flags: {} };
+    this.steps = [
+      {
+        id: 'look', label: 'Look around',
+        text: () => (G.tut.sub < 5 ? [
+          ['YOU ARE WATCH OFFICER FOR SECTION 06.', 'Keep the section powered, pressurised and alive.'],
+          ['CREW', 'Twelve people are awake on this watch. Their health, oxygen and stress are listed here.'],
+          ['SHIP RESOURCES', 'Power, stored oxygen, food, water, spares, hull, morale, and the colonists asleep below.'],
+          ['POWER DISTRIBUTION', 'What the reactor makes, and what you choose to spend it on.'],
+          ['EVENT LOG', 'Confirms what happened. Click a line to jump to the room.'],
+        ][G.tut.sub] : ['LOOK AROUND', 'Mouse wheel zooms. Drag (or WASD) to pan. Try it.']),
+        focus: () => [{ world: 'ship' }, { dom: '#left' }, { dom: '#gauges' }, { dom: '#powerPanel' }, { dom: '#logWrap' }, { world: 'ship' }][Math.min(5, G.tut.sub)],
+        tick(dt) { if (G.tut.sub < 5) { G.tut.t += dt; if (G.tut.t > 3.6) { G.tut.t = 0; G.tut.sub++; } } },
+        done: () => G.tut.sub >= 5 && G.tut.flags.cam,
+        pre: () => { G.tut.flags.cam = false; },
+      },
+      {
+        id: 'room', label: 'Inspect a room',
+        text: () => (UI.sel && UI.sel.type === 'room' && UI.sel.id === 'o2'
+          ? ['ROOM STATUS', 'Pressure and oxygen keep crew alive. Integrity is the machinery. Power and camera decide whether you can see in. Crew present are listed below.']
+          : ['INSPECT A ROOM', 'Click OXYGEN PROCESSING to inspect its condition.']),
+        focus: () => (UI.sel && UI.sel.type === 'room' && UI.sel.id === 'o2' ? { dom: '#ctx' } : { world: 'o2' }),
+        cont: () => UI.sel && UI.sel.type === 'room' && UI.sel.id === 'o2',
+        done: () => G.tut.flags.cont,
+      },
+      {
+        id: 'crew', label: 'Select crew',
+        text: () => (UI.sel && UI.sel.type === 'crew'
+          ? ['CREW FILE', `Profession, current job, health, stress, traits and relationships. Experienced crew are valuable. Death is permanent.`]
+          : ['SELECT CREW', 'Every crew member has a profession, skills, traits and relationships. Click INES HARPER in the crew list (or on the ship).']),
+        focus: () => (UI.sel && UI.sel.type === 'crew' ? { dom: '#ctx' } : { dom: '#cr_2' }),
+        cont: () => UI.sel && UI.sel.type === 'crew',
+        done: () => G.tut.flags.cont,
+      },
+      {
+        id: 'order', label: 'Repair a fault',
+        pre: () => {
+          const r = G.roomById.hydro; r.integ = 78;
+          logEvent('warn', 'HYDROPONICS: circulation pump filter requires service.', 'hydro', { cat: 'system' });
+        },
+        text: () => {
+          const ordered = G.crew.some((c) => c.alive && c.task && c.task.type === 'repair' && c.task.room === 'hydro');
+          if (ordered) return ['ORDERS ARE PHYSICAL', 'Crew walk there: through doors, up ladders, past hazards. Distance and closed doors cost time. Watch them work.'];
+          const sel = UI.sel && UI.sel.type === 'crew' ? G.crew[UI.sel.id] : null;
+          if (!sel) return ['GIVE AN ORDER', 'Select an engineer first: INES HARPER is one.'];
+          return ['GIVE AN ORDER', `${sel.first} is selected. RIGHT-CLICK the HYDROPONICS room and choose REPAIR.`];
+        },
+        focus: () => (UI.sel && UI.sel.type === 'crew' ? { world: 'hydro' } : { dom: '#cr_2' }),
+        done: () => G.roomById.hydro.integ >= 99 || (G.tut.flags.orderT && G.t - G.tut.flags.orderT > 30),
+        tick() { if (!G.tut.flags.orderT && G.crew.some((c) => c.task && c.task.type === 'repair' && c.task.room === 'hydro')) G.tut.flags.orderT = G.t; },
+      },
+      {
+        id: 'power', label: 'Balance power',
+        pre: () => { G.tutCap = 98; G.battery = Math.min(G.battery, 55); logEvent('warn', 'REACTOR: output reduced for scheduled turbine inspection. Running short.', 'reactor', { cat: 'system' }); },
+        text: () => {
+          if (!G.tut.flags.habOff && G.groups.HAB.on) return ['POWER', 'The reactor cannot always power everything. Demand is higher than output and the battery is draining. Switch HABITATION OFF.'];
+          G.tut.flags.habOff = true;
+          if (!G.groups.HAB.on) return ['CONSEQUENCES', 'Quarters and the mess go dark and demand drops. LIFE SUPPORT, MEDICAL, SECURITY and SENSORS all depend on power too. Inspection done: switch HABITATION back ON.'];
+          return ['RESTORED', 'Good.'];
+        },
+        tick() { if (G.tut.flags.habOff && !G.tut.flags.capOff && !G.groups.HAB.on) { G.tut.flags.capT = (G.tut.flags.capT || 0) + 1; } if (G.tut.flags.habOff) G.tutCap = 0; },
+        focus: () => ({ dom: G.tut.flags.habOff && !G.groups.HAB.on ? '#pg_HAB' : '#pg_HAB' }),
+        done: () => G.tut.flags.habOff && G.groups.HAB.on,
+        post: () => { G.tutCap = 0; },
+      },
+      {
+        id: 'leak', label: 'Seal a leak',
+        pre: () => {
+          const r = G.roomById.airlock; breachRoom(r, 0.07, 24); r.breachY = r.y0 + 90; r.tutLeak = true;
+          G.res.hull = Math.min(100, G.res.hull + 1);
+          const d = G.doorById.d_air_sec; d.mode = 'open'; d.anim = 1; d.override = G.t + 9999;
+          logEvent('warn', 'AIRLOCK: outer hatch gasket leaking. Pressure dropping.', 'airlock', { cat: 'system' });
+        },
+        text: () => (G.doorById.d_air_sec.mode === 'open'
+          ? ['BULKHEADS', 'Open doors spread pressure loss. Bulkheads contain it. Click the door between AIRLOCK and SECURITY and CLOSE it.']
+          : ['CONTAINED', 'Pressure loss is now limited to the airlock. Powered doors close themselves on a big pressure drop, but not when the power is out. A technician will reseat the gasket.']),
+        focus: () => ({ door: 'd_air_sec' }),
+        tick() {
+          const d = G.doorById.d_air_sec;
+          if (d.mode !== 'open' && !G.tut.flags.sealedT) G.tut.flags.sealedT = G.t;
+          if (G.tut.flags.sealedT && G.t - G.tut.flags.sealedT > 7 && G.roomById.airlock.breach > 0) { G.roomById.airlock.breach = 0; G.roomById.airlock.scars.push({ k: 'patch', x: 24, y: G.roomById.airlock.y0 + 90 }); logEvent('info', 'AIRLOCK gasket reseated. Pressure recovering.', 'airlock'); }
+        },
+        done: () => G.tut.flags.sealedT && G.roomById.airlock.breach === 0 && G.t - G.tut.flags.sealedT > 9,
+        post: () => { G.doorById.d_air_sec.override = 0; G.roomById.airlock.tutLeak = false; },
+      },
+      {
+        id: 'camera', label: 'Restore camera',
+        pre: () => { const r = G.roomById.cryo; r.cameraOK = false; r.tutCam = true; },
+        text: () => ['INFORMATION', 'Without power and cameras you lose sight of a room. Sensors still count life signs: here, 0. During real emergencies you may have to send crew into rooms you cannot see.'],
+        focus: () => ({ world: 'cryo' }),
+        cont: () => true,
+        done: () => G.tut.flags.cont,
+        post: () => { const r = G.roomById.cryo; r.cameraOK = true; r.tutCam = false; logEvent('info', 'CRYO BAY camera feed restored.', 'cryo'); },
+      },
+    ];
+  },
+  start() {
+    G.tut.active = true; G.tut.i = 0; this.begin();
+    document.getElementById('tutList').style.display = 'block';
+    this.renderList();
+  },
+  begin() {
+    const s = this.steps[G.tut.i]; G.tut.sub = 0; G.tut.t = 0; G.tut.flags.cont = false; G.tut.flags.orderT = 0;
+    if (s.pre) s.pre();
+    this.renderList();
+  },
+  next() {
+    const s = this.steps[G.tut.i]; if (s.post) s.post();
+    G.tut.i++; AUDIO.ack();
+    if (G.tut.i >= this.steps.length) return this.finish();
+    this.begin();
+  },
+  skip() { if (!G.tut.active) return; const s = this.steps[G.tut.i]; if (s && s.post) s.post(); G.tutCap = 0; this.finish(true); },
+  finish(skipped) {
+    G.tut.active = false; G.tut.finished = true;
+    document.getElementById('tutBox').style.display = 'none';
+    document.getElementById('tutFrame').style.display = 'none';
+    // routine continues from a short way into the watch; tutorial beats are not repeated
+    G.dirT = Math.max(G.dirT, skipped ? 30 : 100);
+    G.tutDone = !skipped; G.director.flavT = 45; G.director.next = 60;
+    for (const b of ['o2filter', 'door', 'powerhint']) G.director.beats[b] = G.t;
+    this.renderList(true);
+    const ban = document.getElementById('banner');
+    ban.innerHTML = `<b>WATCH INITIALISED</b><span>Keep the ship running. Respond to alerts. Pause (SPACE) whenever you need time to think.</span>`;
+    ban.classList.add('show'); setTimeout(() => ban.classList.remove('show'), 6500);
+    logEvent('story', 'First-watch checks complete. Routine operations.', null, { cat: 'system' });
+    setTimeout(() => { document.getElementById('tutList').classList.add('collapsed'); }, 2500);
+  },
+  update(dt) {
+    if (!G.tut || !G.tut.active) return;
+    const s = this.steps[G.tut.i];
+    if (s.tick) s.tick(dt);
+    if (s.done()) this.next();
+  },
+  renderList(final) {
+    const el = document.getElementById('tutItems'); if (!el) return;
+    el.innerHTML = this.steps.map((s, i) => `<div class="ti ${i < G.tut.i || final ? 'ok' : i === G.tut.i && G.tut.active ? 'cur' : ''}" data-i="${i}"><i>${i < G.tut.i || final ? '✓' : ''}</i>${s.label}</div>`).join('');
+  },
+  // called each UI tick: callout text + highlight frame
+  present() {
+    const box = document.getElementById('tutBox'), fr = document.getElementById('tutFrame');
+    if (!G.tut || !G.tut.active) { box.style.display = 'none'; fr.style.display = 'none'; return; }
+    const s = this.steps[G.tut.i];
+    const [title, body] = s.text();
+    const showCont = s.cont && s.cont();
+    const html = `<div class="tt">${esc(title)}</div><div class="tb">${esc(body)}</div><div class="tf">${showCont ? '<button id="tutCont">CONTINUE</button>' : ''}<button id="tutSkip" class="lnk">skip tutorial</button><span class="tn">${G.tut.i + 1}/${this.steps.length}</span></div>`;
+    if (box.dataset.h !== html) { box.innerHTML = html; box.dataset.h = html; const c = document.getElementById('tutCont'); if (c) c.onclick = () => { G.tut.flags.cont = true; }; document.getElementById('tutSkip').onclick = () => this.skip(); }
+    box.style.display = 'block';
+    // highlight rect
+    const f = s.focus(); let rect = null;
+    // bring world targets into the visible part of the ship view (once per target)
+    const fkey = G.tut.i + ':' + (f.world || f.door || f.dom);
+    if (fkey !== this.lastFocus) {
+      this.lastFocus = fkey;
+      if (f.world && f.world !== 'ship') { const r = G.roomById[f.world]; R.cam.tx = r.cx + 60 / R.cam.tz; R.cam.ty = r.cy + 40 / R.cam.tz; }
+      else if (f.door) { const d = G.doorById[f.door]; R.cam.tx = d.x + 150; R.cam.ty = G.roomById[d.a].cy + 60; R.cam.tz = Math.max(R.cam.tz, 0.9); }
+    }
+    if (f.dom) { const t = document.querySelector(f.dom); if (t) { const b = t.getBoundingClientRect(); rect = { x: b.left, y: b.top, w: b.width, h: b.height }; } }
+    else if (f.world) {
+      let x0, y0, x1, y1;
+      if (f.world === 'ship') { x0 = -10; y0 = -10; x1 = SHIP_W + 10; y1 = DECK_TOP[2] + ROOM_H + 10; } else { const r = G.roomById[f.world]; x0 = r.x0; y0 = r.y0; x1 = r.x1; y1 = r.y1; }
+      const [a, b] = w2s(x0, y0), [c, d] = w2s(x1, y1); rect = { x: a, y: b, w: c - a, h: d - b };
+    } else if (f.door) { const d = G.doorById[f.door]; const yy = d.hatch ? d.y : G.roomById[d.a].fy - 25; const [a, b] = w2s(d.x, yy); rect = { x: a - 22, y: b - 40, w: 44, h: 80 }; }
+    if (rect) {
+      fr.style.display = 'block'; fr.style.left = rect.x - 4 + 'px'; fr.style.top = rect.y - 4 + 'px'; fr.style.width = rect.w + 8 + 'px'; fr.style.height = rect.h + 8 + 'px';
+      // place the callout beside the target, clamped to the ship view
+      const bw = 340, bh = box.offsetHeight || 120; const W = window.innerWidth, H = window.innerHeight;
+      let bx, by;
+      if (rect.x > W * 0.6) { bx = rect.x - bw - 18; by = rect.y + 10; }
+      else if (rect.x + rect.w < W * 0.3) { bx = rect.x + rect.w + 18; by = rect.y + 10; }
+      else if (rect.y > H * 0.5) { bx = rect.x + rect.w / 2 - bw / 2; by = rect.y - bh - 18; }
+      else { bx = rect.x + rect.w / 2 - bw / 2; by = rect.y + rect.h + 18; }
+      if (f.world === 'ship' || rect.h > H * 0.5) { bx = W / 2 - bw / 2; by = 96; }
+      box.style.left = clamp(bx, 8, W - bw - 8) + 'px'; box.style.top = clamp(by, 56, H - bh - 8) + 'px';
+    } else fr.style.display = 'none';
+  },
+};
+
+// settings popover
+function initSettings() {
+  const pop = document.getElementById('settings');
+  document.getElementById('btnSettings').onclick = (e) => { e.stopPropagation(); pop.style.display = pop.style.display === 'block' ? 'none' : 'block'; };
+  document.addEventListener('click', (e) => { if (!pop.contains(e.target) && e.target.id !== 'btnSettings') pop.style.display = 'none'; });
+  const hintsCb = document.getElementById('setHints'), apCb = document.getElementById('chkAuto'), vol = document.getElementById('setVol');
+  hintsCb.checked = SETTINGS.hints; apCb.checked = SETTINGS.autoPause; vol.value = SETTINGS.volume;
+  UI.autoPauseOn = SETTINGS.autoPause;
+  hintsCb.onchange = () => { SETTINGS.hints = hintsCb.checked; saveSettings(); if (!SETTINGS.hints) document.getElementById('hints').innerHTML = ''; };
+  apCb.onchange = () => { SETTINGS.autoPause = apCb.checked; UI.autoPauseOn = apCb.checked; saveSettings(); };
+  vol.oninput = () => { SETTINGS.volume = +vol.value; AUDIO.setVolume(SETTINGS.volume); saveSettings(); };
+  document.getElementById('tutItems').addEventListener('click', (e) => {
+    const it = e.target.closest('.ti'); if (!it) return;
+    const s = TUT.steps[+it.dataset.i]; const f = s.focus ? s.focus() : null;
+    if (f && f.world && f.world !== 'ship') UI.focusRoom(f.world); else if (f && f.door) UI.focusRoom(G.doorById[f.door].a); else if (f && f.world === 'ship') UI.fitShip();
+  });
+  document.getElementById('tutHead').onclick = () => document.getElementById('tutList').classList.toggle('collapsed');
 }
 
 // ---- main.js ----
@@ -4376,19 +5331,22 @@ function drawPortrait(cv, c) {
 
 function newGame(seed) {
   RNG = mulberry32(seed ?? ((Date.now() ^ 0x5f3759df) >>> 0));
-  Object.assign(G, { t: 0, log: [], story: [], deaths: 0, phase: 1, shake: 0, started: false, over: false, logId: 0,
+  Object.assign(G, { t: 0, dirT: 0, tutCap: 0, hintsShown: {}, log: [], story: [], deaths: 0, phase: 1, shake: 0, started: false, over: false, logId: 0,
     meteor: null, nestRoom: null, firstSighting: 0, delayedLogs: [], pendingMissing: [], foodTheft: 0, infectedEver: 0, creaturesKilled: 0, fab: 0 });
   initShip(); initCrew(); initThreat();
   const extra = +(new URLSearchParams(location.search).get('crew') || 0);
   for (let i = G.crew.length; i < extra; i++) { const src = G.crew[i % 12]; const c = JSON.parse(JSON.stringify(src)); Object.assign(c, { id: i, name: src.first + ' ' + src.last + ' ' + (i + 1), rel: [], task: null, path: [], infection: null }); c.x = rnd(G.roomById[c.duty].x0 + 40, G.roomById[c.duty].x1 - 40); G.crew.push(c); }
   G.director = makeDirector();
+  TUT.init();
   // settle observation/power before first frame
   updatePower(0.01); updateObservation(0.01);
 }
 
 function simStep(dt) {
   G.t += dt;
+  if (!(G.tut && G.tut.active)) G.dirT += dt;
   G.director.update(dt);
+  TUT.update(dt);
   updatePower(dt);
   updateAtmosphere(dt);
   updateFire(dt);
@@ -4409,7 +5367,7 @@ function checkEnd() {
   const alive = G.crew.filter((c) => c.alive && !c.missing).length;
   if (alive === 0) endGame('lost', 'Nobody left awake in Section 6.');
   else if (G.res.hull <= 0) endGame('lost', 'The frame of Section 6 let go.');
-  else if (G.t >= ARC_LENGTH) endGame('survived', 'The next watch is thawed.');
+  else if (G.dirT >= ARC_LENGTH) endGame('survived', 'The next watch is thawed.');
 }
 
 function endGame(kind, line) {
@@ -4450,7 +5408,7 @@ function frame(ts) {
   try { render(dtReal); } catch (e) { console.error(e); }
   AUDIO.update(dtReal);
   uiAcc += dtReal;
-  if (uiAcc > 0.15) { uiAcc = 0; UI.updateTop(); UI.updateRoster(); UI.updatePower(); UI.updateAlerts(); UI.renderCtx(false); }
+  if (uiAcc > 0.15) { uiAcc = 0; TUT.present(); UI.updateTop(); UI.updateRoster(); UI.updatePower(); UI.updateAlerts(); UI.renderCtx(false); }
   requestAnimationFrame(frame);
 }
 
@@ -4458,22 +5416,25 @@ function boot() {
   const params = new URLSearchParams(location.search);
   const seed = params.has('seed') ? +params.get('seed') : undefined;
   newGame(seed);
-  buildArt(); initRender(); UI.init();
+  loadSettings();
+  buildArt(); initRender(); UI.init(); initSettings(); AUDIO.setVolume(SETTINGS.volume);
   document.getElementById('fxGrain').style.backgroundImage = `url(${ART.grain.toDataURL()})`;
   UI.fitShip(); R.cam.x = R.cam.tx; R.cam.y = R.cam.ty; R.cam.z = R.cam.tz;
-  $('btnStart').onclick = () => start();
+  $('btnStart').onclick = () => start(true);
+  $('btnStartSkip').onclick = () => start(false);
   $('btnRestart').onclick = () => location.reload();
-  if (params.has('autostart')) start();
-  if (params.has('t')) { start(); G.fastForward(+params.get('t')); }
+  if (params.has('autostart')) start(params.has('tutorial'));
+  if (params.has('t')) { start(false); G.fastForward(+params.get('t')); }
   requestAnimationFrame(frame);
 }
-function start() {
+function start(tutorial) {
   if (G.started) return;
   AUDIO.init(); if (AUDIO.ctx && AUDIO.ctx.state === 'suspended') AUDIO.ctx.resume();
   $('title').style.display = 'none';
   G.started = true;
-  logEvent('story', 'Watch handover complete. Section 6 nominal. 2,400 colonists in stasis. 14 years to landfall.', null, { story: true });
-  logEvent('hint', 'Take a minute. Click crew and rooms to learn the section. SPACE pauses. Mouse wheel zooms; drag or WASD pans.');
+  logEvent('story', 'Watch handover complete. Section 6 nominal. 2,400 colonists in stasis. 14 years to landfall.', null, { story: true, cat: 'system' });
+  if (tutorial) TUT.start(); else { G.tut.finished = true; document.getElementById('tutList').style.display = 'none'; }
+  AUDIO.watchChange && AUDIO.watchChange();
   UI.updateTop();
 }
 window.addEventListener('load', boot);

@@ -5,27 +5,52 @@
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
+const BAR_TIPS = {
+  PRESSURE: 'Room atmospheric pressure (normal 101 kPa). Below ~50 kPa crew start suffocating; below ~15 kPa it is effectively vacuum.',
+  OXYGEN: 'Breathable oxygen (pressure × O2 fraction, normal 21%). Below 15% crew lose blood oxygen.',
+  TEMP: 'Room temperature. Fire heats rooms past 70°C (heat injuries); vacuum and dead life support make them freeze.',
+  INTEGRITY: 'Condition of the room machinery. Low integrity cuts output, causes electrical faults and jams doors. REPAIR uses spare parts.',
+  FIRE: 'Fire intensity. Grows with oxygen, spreads through open doors, damages equipment.',
+  HEALTH: 'Below 15 the crew member goes down and needs a medic. At 0 they are dead. Permanently.',
+  'BLOOD O2': 'Blood oxygen. Drains in thin or poisoned air; at 0 health drops fast.',
+  REBREATHER: 'Seconds of emergency air (engineers, technicians, security). Refills in the airlock or workshop.',
+  STRESS: 'Fear and strain. High stress means slower work, refusals and panic.',
+  MORALE: 'Long-term outlook. Falls with deaths, hunger, darkness and grief.',
+  FATIGUE: 'Tiredness. Crew sleep on their watch rotation.',
+  'CORE TEMP': 'Body temperature from the biomonitor (needs SENSORS). Fevers have many causes.',
+};
 const UI = {
   sel: null, hoverRoom: null, hoverCrew: null, hoverDoor: null, speed: 1, prevSpeed: 1, autoPauseOn: true, uiT: 0,
   init() {
     this.buildTop(); this.buildRoster(); this.buildPower(); this.bindInput();
     $('btnHelp').onclick = () => this.toggleHelp();
+    // tooltips: any element with data-tip (or title on panels), shown fast and styled
+    const tip = $('tip');
+    document.addEventListener('mouseover', (e) => { const t = e.target.closest('[data-tip]'); if (!t) { tip.style.display = 'none'; return; } tip.textContent = t.dataset.tip; tip.style.display = 'block'; });
+    document.addEventListener('mousemove', (e) => { if (tip.style.display === 'block') { tip.style.left = Math.min(e.clientX + 14, window.innerWidth - 290) + 'px'; tip.style.top = Math.min(e.clientY + 16, window.innerHeight - 80) + 'px'; } });
     $('helpClose').onclick = () => this.toggleHelp(false);
     for (const b of document.querySelectorAll('[data-speed]')) b.onclick = () => this.setSpeed(+b.dataset.speed);
     $('btnMute').onclick = () => { const m = AUDIO.toggleMute(); $('btnMute').textContent = m ? 'SOUND OFF' : 'SOUND ON'; };
     $('chkAuto').onchange = (e) => { this.autoPauseOn = e.target.checked; };
+    $('logTabs').addEventListener('click', (e) => {
+      const b = e.target.closest('button[data-f]'); if (!b) return;
+      this.logFilter = b.dataset.f; for (const x of $('logTabs').children) x.classList.toggle('on', x === b);
+      for (const el of $('log').children) { const ok = this.logFilter === 'all' || (this.logFilter === 'crit' ? el.classList.contains('crit') : el.classList.contains('c-' + this.logFilter)); el.style.display = ok ? '' : 'none'; }
+      $('log').scrollTop = $('log').scrollHeight;
+    });
     $('log').addEventListener('click', (e) => { const el = e.target.closest('[data-room]'); if (el) this.focusRoom(el.dataset.room, true); });
     $('alerts').addEventListener('click', (e) => { const el = e.target.closest('[data-room]'); if (el) this.focusRoom(el.dataset.room, true); });
   },
   // ---------------------------------------------------------------- top bar
   buildTop() {
     const res = [['pow', 'POWER'], ['bat', 'BATTERY'], ['o2', 'O2 RESERVE'], ['food', 'FOOD'], ['water', 'WATER'], ['med', 'MEDICAL'], ['parts', 'PARTS'], ['hull', 'HULL'], ['mor', 'MORALE'], ['col', 'COLONISTS']];
-    $('gauges').innerHTML = res.map(([k, l]) => `<div class="g" id="g_${k}"><div class="gl">${l}</div><div class="gv" id="gv_${k}">—</div><div class="gb"><i id="gb_${k}"></i></div></div>`).join('');
+    const TIPS = { pow: 'Reactor output / total demand of the buses that are switched on (MW). If output is lower, the battery drains.', bat: 'Battery charge. Covers a power deficit for a while; at 0% breakers start shedding buses.', o2: 'Stored ship oxygen. Vents draw from it to refill and scrub compartments. An open breach drains it.', food: 'Food stores. Hydroponics grows more when powered and tended. Arrow shows the trend.', water: 'Potable water. Reclaimed by life support and hydroponics.', med: 'Medical supplies. Used by treatment and blood tests.', parts: 'Spare parts. Used by repairs (1 per ~14% integrity) and breach patches (2). The workshop fabricates more when crewed.', hull: 'Overall hull integrity. Impacts reduce it, patches restore some.', mor: 'Average crew morale. Low morale means refusals, mistakes and fights.', col: 'Colonists asleep in Cryo Bay 6-C. If the CRYO bus loses power, pods warm and sleepers begin to die.' };
+    $('gauges').innerHTML = res.map(([k, l]) => `<div class="g" id="g_${k}" data-tip="${TIPS[k]}"><div class="gl">${l}</div><div class="gv" id="gv_${k}">—</div><div class="gb"><i id="gb_${k}"></i></div></div>`).join('');
   },
   updateTop() {
     const c = fmtClock(G.t);
     $('clock').textContent = `DAY ${c.day} ${c.str}${nightFactor() ? ' NIGHT' : ''}`;
-    $('phase').textContent = `${fmtT(G.t)} / ${fmtT(ARC_LENGTH).slice(2)}`;
+    $('phase').textContent = G.tut && G.tut.active ? 'FIRST WATCH CHECKS' : `${fmtT(G.dirT)} / ${fmtT(ARC_LENGTH).slice(2)}`;
     const set = (k, v, frac, lvl, title) => {
       $('gv_' + k).textContent = v; const b = $('gb_' + k); b.style.width = clamp(frac, 0, 1) * 100 + '%';
       $('g_' + k).className = 'g ' + (lvl || ''); if (title) $('g_' + k).title = title;
@@ -147,7 +172,7 @@ const UI = {
   },
   // ------------------------------------------------------------------ power
   buildPower() {
-    $('groups').innerHTML = GROUPS.map((g) => `<div class="pg" id="pg_${g.id}" title="${esc(g.desc)}"><button class="tog" data-g="${g.id}" ${g.essential ? 'disabled' : ''}></button><span class="pn">${g.name}</span><span class="pd">${g.demand} MW</span></div>`).join('');
+    $('groups').innerHTML = GROUPS.map((g) => `<div class="pg" id="pg_${g.id}" data-tip="${esc(g.desc)}"><button class="tog" data-g="${g.id}" ${g.essential ? 'disabled' : ''}></button><span class="pn">${g.name}</span><span class="pd">${g.demand} MW</span></div>`).join('');
     $('groups').addEventListener('click', (e) => { const b = e.target.closest('button[data-g]'); if (!b) return; const g = G.groups[b.dataset.g]; setGroup(g.id, !g.on); this.updatePower(); });
   },
   updatePower() {
@@ -171,9 +196,12 @@ const UI = {
   },
   // ------------------------------------------------------------------ log
   onLog(e) {
+    if (e.sev === 'hint') return; // hints are toasts now
     const el = document.createElement('div');
-    el.className = 'le ' + e.sev; if (e.room) el.dataset.room = e.room;
-    el.innerHTML = e.sev === 'phase' ? `<span class="ph">${esc(e.text)}</span>` : `<span class="lt">${e.clock}</span>${esc(e.text)}`;
+    const glyph = { system: '·', crew: '●', medical: '+', security: '◉', door: '▮' }[e.cat] || '·';
+    el.className = `le ${e.sev} c-${e.cat}`; if (e.room) el.dataset.room = e.room;
+    el.innerHTML = `<span class="lt">${e.clock}</span><span class="lg">${e.sev === 'crit' ? '!' : glyph}</span>${esc(e.text)}`;
+    if (this.logFilter && this.logFilter !== 'all' && !(this.logFilter === 'crit' ? e.sev === 'crit' : e.cat === this.logFilter)) el.style.display = 'none';
     const log = $('log'); log.appendChild(el);
     while (log.children.length > 120) log.removeChild(log.firstChild);
     log.scrollTop = log.scrollHeight;
@@ -189,7 +217,7 @@ const UI = {
     if (this.sel.type === 'crew') this.crewPanel(G.crew[this.sel.id], force);
     else if (this.sel.type === 'room') this.roomPanel(G.roomById[this.sel.id], force);
   },
-  bar(label, v, max, cls = '', txt) { const f = clamp(v / max, 0, 1); return `<div class="br ${cls}"><span>${label}</span><i><b style="width:${f * 100}%"></b></i><em>${txt ?? Math.round(v)}</em></div>`; },
+  bar(label, v, max, cls = '', txt) { const f = clamp(v / max, 0, 1); return `<div class="br ${cls}" data-tip="${BAR_TIPS[label] || ''}"><span>${label}</span><i><b style="width:${f * 100}%"></b></i><em>${txt ?? Math.round(v)}</em></div>`; },
   crewPanel(c, force) {
     const box = $('ctx'); const key = 'crew' + c.id;
     const known = (G.sensors || crewRoom(c)?.observed) && c.alive && !c.missing;
@@ -201,10 +229,10 @@ const UI = {
           <div><div class="nm">${esc(fullName(c))}</div><div class="pf">${c.prof.toUpperCase()} · WATCH ${'ABC'[c.watch]}</div>
           <div class="tr">${c.traits.map((t) => `<span title="${esc(TRAIT_INFO[t])}">${t}</span>`).join('')}</div>
           <div class="st" id="cStat"></div></div></div>
-        <p class="bio">${esc(c.bio)}</p>
         <div id="cVitals"></div>
         <div class="sk">${SKILLS.map((k) => `<div><span>${SKILL_NAME[k]}</span><i class="pips">${[1, 2, 3, 4, 5].map((n) => `<b class="${n <= c.skills[k] ? 'f' : ''}"></b>`).join('')}</i></div>`).join('')}</div>
         <ul class="rel">${rels}</ul>
+        <p class="bio">${esc(c.bio)}</p>
         <div id="cTests" class="dim"></div>
         <div class="ph2">ORDERS</div>
         <div class="btns" id="cOrders"></div>
@@ -347,7 +375,7 @@ const UI = {
       if (down) {
         const dx = e.clientX - down.x, dy = e.clientY - down.y;
         if (Math.abs(dx) + Math.abs(dy) > 5) down.moved = true;
-        if (down.moved && (down.b === 0 || down.b === 1)) { R.cam.tx = down.cx - dx / R.cam.z; R.cam.ty = down.cy - dy / R.cam.z; R.cam.x = R.cam.tx; R.cam.y = R.cam.ty; }
+        if (down.moved && (down.b === 0 || down.b === 1)) { if (G.tut) G.tut.flags.cam = true; R.cam.tx = down.cx - dx / R.cam.z; R.cam.ty = down.cy - dy / R.cam.z; R.cam.x = R.cam.tx; R.cam.y = R.cam.ty; }
       }
       if (e.target === cv) {
         const p = this.pick(e.clientX, e.clientY);
@@ -367,7 +395,7 @@ const UI = {
       } else if (d.b === 2) this.contextMenu(p, e.clientX, e.clientY);
     });
     cv.addEventListener('wheel', (e) => {
-      e.preventDefault();
+      e.preventDefault(); if (G.tut) G.tut.flags.cam = true;
       const [wx, wy] = s2w(e.clientX, e.clientY);
       const nz = clamp(R.cam.tz * Math.pow(1.0015, -e.deltaY), 0.32, 3);
       R.cam.tz = nz;
@@ -391,6 +419,7 @@ const UI = {
   },
   panKeys(dt) {
     const k = this.keys || {}; const s = 700 * dt / R.cam.z;
+    if (G.tut && (k.w || k.a || k.s || k.d || k.q || k.e || k.arrowup || k.arrowdown || k.arrowleft || k.arrowright)) G.tut.flags.cam = true;
     if (k.w || k.arrowup) R.cam.ty -= s; if (k.s || k.arrowdown) R.cam.ty += s; if (k.a || k.arrowleft) R.cam.tx -= s; if (k.d || k.arrowright) R.cam.tx += s;
     if (k.q) R.cam.tz = clamp(R.cam.tz * (1 - dt * 1.5), 0.32, 3); if (k.e) R.cam.tz = clamp(R.cam.tz * (1 + dt * 1.5), 0.32, 3);
   },
@@ -508,6 +537,17 @@ function drawPortrait(cv, c) {
   // headgear
   if (c.prof === 'Officer') { x.fillStyle = '#20262d'; x.fillRect(24, 24, 36, 8); x.fillRect(22, 31, 40, 3); }
   if (c.prof === 'Engineer') { x.fillStyle = PAL.yellow; x.beginPath(); x.ellipse(42, 30, 18, 12, 0, Math.PI, 0); x.fill(); x.fillRect(22, 29, 40, 3); }
+  // profession gear, matching the sprite
+  if (c.prof === 'Security') { x.fillStyle = '#46525c'; x.fillRect(14, 80, 56, 24); x.fillStyle = '#5a6670'; x.fillRect(14, 80, 56, 3); x.fillStyle = '#3a454e'; x.beginPath(); x.ellipse(42, 30, 19, 13, 0, Math.PI, 0); x.fill(); x.fillRect(22, 28, 40, 4); }
+  if (c.prof === 'Scientist') { x.fillStyle = '#c4bfae'; x.beginPath(); x.moveTo(8, h); x.lineTo(30, 74); x.lineTo(37, 92); x.lineTo(30, h); x.fill(); x.beginPath(); x.moveTo(76, h); x.lineTo(54, 74); x.lineTo(47, 92); x.lineTo(54, h); x.fill(); x.fillStyle = '#d8d2c0'; x.fillRect(58, 90, 7, 5); }
+  if (c.prof === 'Officer') { x.fillStyle = '#3a4350'; x.beginPath(); x.moveTo(30, 72); x.lineTo(42, 86); x.lineTo(54, 72); x.lineTo(50, 70); x.lineTo(42, 80); x.lineTo(34, 70); x.fill(); x.fillStyle = '#8e897c'; x.fillRect(12, 80, 12, 2); x.fillRect(60, 80, 12, 2); }
+  if (c.prof === 'Technician') { x.fillStyle = '#121212'; x.fillRect(26, 30, 32, 5); x.fillStyle = '#5b6a6a'; x.fillRect(30, 31, 9, 3); x.fillRect(45, 31, 9, 3); }
+  if (c.prof === 'Engineer') { x.fillStyle = '#a8902e'; x.fillRect(10, 92, 64, 3); }
+  if (c.prof === 'Medic') { x.fillStyle = '#4a4237'; x.save(); x.translate(42, 88); x.rotate(-0.6); x.fillRect(-30, -2, 60, 4); x.restore(); }
+  // age / wear hints from the roster
+  if (c.traits.includes('Natural Leader') || c.title === 'Dr.') { x.strokeStyle = 'rgba(0,0,0,0.25)'; x.lineWidth = 0.8; x.beginPath(); x.moveTo(33, 50); x.lineTo(36, 52); x.moveTo(51, 50); x.lineTo(48, 52); x.stroke(); }
+  // key light from the left, shadow on the right
+  const lg = x.createLinearGradient(0, 0, w, 0); lg.addColorStop(0, 'rgba(255,240,210,0.06)'); lg.addColorStop(0.6, 'rgba(0,0,0,0)'); lg.addColorStop(1, 'rgba(0,0,0,0.35)'); x.fillStyle = lg; x.fillRect(0, 0, w, h);
   // id strip
   x.fillStyle = 'rgba(0,0,0,0.6)'; x.fillRect(0, h - 12, w, 12);
   x.fillStyle = '#8e897c'; x.font = '8px "DejaVu Sans Mono", monospace'; x.fillText(`ID ${String(6000 + c.id * 37).padStart(5, '0')}`, 4, h - 3);

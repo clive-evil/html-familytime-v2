@@ -5,19 +5,22 @@
 
 function newGame(seed) {
   RNG = mulberry32(seed ?? ((Date.now() ^ 0x5f3759df) >>> 0));
-  Object.assign(G, { t: 0, log: [], story: [], deaths: 0, phase: 1, shake: 0, started: false, over: false, logId: 0,
+  Object.assign(G, { t: 0, dirT: 0, tutCap: 0, hintsShown: {}, log: [], story: [], deaths: 0, phase: 1, shake: 0, started: false, over: false, logId: 0,
     meteor: null, nestRoom: null, firstSighting: 0, delayedLogs: [], pendingMissing: [], foodTheft: 0, infectedEver: 0, creaturesKilled: 0, fab: 0 });
   initShip(); initCrew(); initThreat();
   const extra = +(new URLSearchParams(location.search).get('crew') || 0);
   for (let i = G.crew.length; i < extra; i++) { const src = G.crew[i % 12]; const c = JSON.parse(JSON.stringify(src)); Object.assign(c, { id: i, name: src.first + ' ' + src.last + ' ' + (i + 1), rel: [], task: null, path: [], infection: null }); c.x = rnd(G.roomById[c.duty].x0 + 40, G.roomById[c.duty].x1 - 40); G.crew.push(c); }
   G.director = makeDirector();
+  TUT.init();
   // settle observation/power before first frame
   updatePower(0.01); updateObservation(0.01);
 }
 
 function simStep(dt) {
   G.t += dt;
+  if (!(G.tut && G.tut.active)) G.dirT += dt;
   G.director.update(dt);
+  TUT.update(dt);
   updatePower(dt);
   updateAtmosphere(dt);
   updateFire(dt);
@@ -38,7 +41,7 @@ function checkEnd() {
   const alive = G.crew.filter((c) => c.alive && !c.missing).length;
   if (alive === 0) endGame('lost', 'Nobody left awake in Section 6.');
   else if (G.res.hull <= 0) endGame('lost', 'The frame of Section 6 let go.');
-  else if (G.t >= ARC_LENGTH) endGame('survived', 'The next watch is thawed.');
+  else if (G.dirT >= ARC_LENGTH) endGame('survived', 'The next watch is thawed.');
 }
 
 function endGame(kind, line) {
@@ -79,7 +82,7 @@ function frame(ts) {
   try { render(dtReal); } catch (e) { console.error(e); }
   AUDIO.update(dtReal);
   uiAcc += dtReal;
-  if (uiAcc > 0.15) { uiAcc = 0; UI.updateTop(); UI.updateRoster(); UI.updatePower(); UI.updateAlerts(); UI.renderCtx(false); }
+  if (uiAcc > 0.15) { uiAcc = 0; TUT.present(); UI.updateTop(); UI.updateRoster(); UI.updatePower(); UI.updateAlerts(); UI.renderCtx(false); }
   requestAnimationFrame(frame);
 }
 
@@ -87,22 +90,25 @@ function boot() {
   const params = new URLSearchParams(location.search);
   const seed = params.has('seed') ? +params.get('seed') : undefined;
   newGame(seed);
-  buildArt(); initRender(); UI.init();
+  loadSettings();
+  buildArt(); initRender(); UI.init(); initSettings(); AUDIO.setVolume(SETTINGS.volume);
   document.getElementById('fxGrain').style.backgroundImage = `url(${ART.grain.toDataURL()})`;
   UI.fitShip(); R.cam.x = R.cam.tx; R.cam.y = R.cam.ty; R.cam.z = R.cam.tz;
-  $('btnStart').onclick = () => start();
+  $('btnStart').onclick = () => start(true);
+  $('btnStartSkip').onclick = () => start(false);
   $('btnRestart').onclick = () => location.reload();
-  if (params.has('autostart')) start();
-  if (params.has('t')) { start(); G.fastForward(+params.get('t')); }
+  if (params.has('autostart')) start(params.has('tutorial'));
+  if (params.has('t')) { start(false); G.fastForward(+params.get('t')); }
   requestAnimationFrame(frame);
 }
-function start() {
+function start(tutorial) {
   if (G.started) return;
   AUDIO.init(); if (AUDIO.ctx && AUDIO.ctx.state === 'suspended') AUDIO.ctx.resume();
   $('title').style.display = 'none';
   G.started = true;
-  logEvent('story', 'Watch handover complete. Section 6 nominal. 2,400 colonists in stasis. 14 years to landfall.', null, { story: true });
-  logEvent('hint', 'Take a minute. Click crew and rooms to learn the section. SPACE pauses. Mouse wheel zooms; drag or WASD pans.');
+  logEvent('story', 'Watch handover complete. Section 6 nominal. 2,400 colonists in stasis. 14 years to landfall.', null, { story: true, cat: 'system' });
+  if (tutorial) TUT.start(); else { G.tut.finished = true; document.getElementById('tutList').style.display = 'none'; }
+  AUDIO.watchChange && AUDIO.watchChange();
   UI.updateTop();
 }
 window.addEventListener('load', boot);

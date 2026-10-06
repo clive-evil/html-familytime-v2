@@ -17,11 +17,22 @@
   <div id="gauges"></div>
   <div class="tc">
     <button data-speed="0" title="Pause (Space)">❚❚</button><button data-speed="1" title="1× (1)">1×</button><button data-speed="2" title="2× (2)">2×</button><button data-speed="4" title="4× (3)">4×</button>
-    <label class="ap" title="Pause automatically when something critical happens"><input type="checkbox" id="chkAuto" checked> AUTO-PAUSE</label>
-    <button id="btnMute" title="M">SOUND ON</button><button id="btnHelp" title="H">HELP</button>
+    <button id="btnMute" data-tip="Mute / unmute (M)">SOUND ON</button><button id="btnSettings" data-tip="Settings: hints, auto-pause, volume">SETTINGS</button><button id="btnHelp" data-tip="Operations manual (H)">? HELP</button>
   </div>
 </header>
 <div id="alerts"></div>
+<div id="settings" class="pop">
+  <div class="ph">SETTINGS</div>
+  <label><input type="checkbox" id="setHints" checked> Tutorial hints</label>
+  <label><input type="checkbox" id="chkAuto" checked> Auto-pause on critical events</label>
+  <label class="vol">Volume <input type="range" id="setVol" min="0" max="1" step="0.05" value="0.8"></label>
+</div>
+<div id="hints"></div>
+<div id="banner"></div>
+<div id="tutFrame"></div>
+<div id="tutBox"></div>
+<div id="tutList"><div class="ph" id="tutHead">FIRST WATCH <span class="dim">▾</span></div><div id="tutItems"></div></div>
+<div id="tip"></div>
 <div id="pauseBanner">PAUSED <span id="pauseReason"></span></div>
 
 <aside id="left" class="panel">
@@ -45,7 +56,7 @@
   </div>
 </aside>
 
-<section id="logWrap" class="panel"><div class="ph">EVENT LOG</div><div id="log"></div></section>
+<section id="logWrap" class="panel"><div class="ph">EVENT LOG <span id="logTabs"><button data-f="all" class="on">ALL</button><button data-f="crit">! CRITICAL</button><button data-f="crew">● CREW</button><button data-f="medical">+ MEDICAL</button><button data-f="security">◉ SECURITY</button><button data-f="system">· SYSTEM</button><button data-f="door">▮ DOORS</button></span></div><div id="log"></div></section>
 
 <div id="menu"></div>
 
@@ -55,6 +66,7 @@
   <div class="ph">OPERATIONS MANUAL — WATCH OFFICER <button id="helpClose">CLOSE</button></div>
   <div class="cols">
   <div>
+  <h4>FIRST WATCH</h4><p>New players: BEGIN WATCH starts a short guided first watch (skippable). Tips appear the first time something new happens; switch them off in SETTINGS. Hover any number for an explanation.</p>
   <h4>CAMERA</h4><p>Mouse wheel / Q E: zoom. Left-drag, middle-drag or WASD / arrows: pan. F: focus selection. 0 / Home: whole section.</p>
   <h4>TIME</h4><p>SPACE pause · 1 = 1× · 2 = 2× · 3 = 4×. Auto-pause stops the clock on critical events. Orders can be given while paused.</p>
   <h4>CREW</h4><p>Click a crew member (or their row) to select. <b>Right-click a room</b> for orders: move, repair, extinguish, seal breach, restore power, investigate, decontaminate, operate reactor, man security, rest, treat. Right-click another crew member to treat, observe or escort. TAB cycles crew.</p>
@@ -69,12 +81,19 @@
 </div></div>
 
 <div id="title" class="modal show"><div class="box title">
-  <div class="kick">CSV ARDENT VOW · COLONY TRANSIT YEAR 87 · SECTION 06</div>
+  <div class="intro">
+    <div class="l l1">CSV ARDENT VOW</div>
+    <div class="l l2">COLONY TRANSIT YEAR 87</div>
+    <div class="l l3">POPULATION: 2,412 &nbsp;·&nbsp; AWAKE: 12</div>
+    <div class="l l4">DISTANCE TO LANDFALL: 14 YEARS</div>
+    <div class="l l5">SECTION 06 — WATCH CHANGE</div>
+  </div>
   <h1>THE LONG WATCH</h1>
-  <p>Twelve crew are awake to keep Section 6 alive. Below them, two thousand four hundred colonists sleep in the cryo bay. Fourteen years to landfall.</p>
-  <p>You are the watch officer. Power, air, food, doors, people. Keep the metal city running until the next watch is thawed.</p>
-  <p class="dim">Headphones recommended. Best at 1920×1080. Press H in-game for the manual.</p>
-  <button id="btnStart">BEGIN WATCH</button>
+  <div class="startb">
+    <button id="btnStart">BEGIN WATCH</button>
+    <button id="btnStartSkip" class="lnk">begin without tutorial</button>
+  </div>
+  <p class="dim small">Headphones recommended · desktop browser · press H for the manual at any time</p>
 </div></div>
 
 <div id="end" class="modal"><div class="box wide">

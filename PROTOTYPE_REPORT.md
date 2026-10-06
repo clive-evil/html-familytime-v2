@@ -3,7 +3,7 @@
 **Build:** `dist/ColonyShipHorror.html` (single file, ~280 KB, no external assets, CDNs or fonts — runs from `file://`)
 **Premise:** you are the watch officer of Section 6 of the colony ship *CSV Ardent Vow*. Twelve crew are awake; 2,400 colonists sleep in the cryo bay below them. It starts as a colony-management sim. Over ~28 minutes, failures interact, information disappears, something gets into the ducts, and somebody aboard is no longer who they were.
 
-Screenshots: `docs/screenshots/` · Visual language (written before any code): `docs/VISUAL_LANGUAGE.md`
+Screenshots: `docs/screenshots/v1/` (V1) · V2 pass: see `V2_PRESENTATION_REPORT.md` · Visual language (written before any code): `docs/VISUAL_LANGUAGE.md`
 
 ---
 

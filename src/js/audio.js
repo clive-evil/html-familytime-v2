@@ -9,9 +9,11 @@ const AUDIO = {
     try {
       const C = window.AudioContext || window.webkitAudioContext; if (!C) return;
       const ctx = this.ctx = new C();
-      this.master = ctx.createGain(); this.master.gain.value = 0.8;
+      this.master = ctx.createGain(); this.master.gain.value = this.vol;
       const comp = ctx.createDynamicsCompressor(); comp.threshold.value = -18; comp.ratio.value = 4;
-      this.master.connect(comp); comp.connect(ctx.destination);
+      // world muffle: as the room you are looking at loses pressure, sound thins out
+      this.muffle = ctx.createBiquadFilter(); this.muffle.type = 'lowpass'; this.muffle.frequency.value = 18000; this.muffle.Q.value = 0.5;
+      this.master.connect(this.muffle); this.muffle.connect(comp); comp.connect(ctx.destination);
       // noise buffers
       const len = ctx.sampleRate * 2;
       this.white = ctx.createBuffer(1, len, ctx.sampleRate); const w = this.white.getChannelData(0); for (let i = 0; i < len; i++) w[i] = Math.random() * 2 - 1;
@@ -40,13 +42,24 @@ const AUDIO = {
       this.windG = ctx.createGain(); this.windG.gain.value = 0;
       const ws = this.loopNoise(this.white); this.windF = ctx.createBiquadFilter(); this.windF.type = 'bandpass'; this.windF.frequency.value = 900; this.windF.Q.value = 1.5;
       ws.connect(this.windF); this.windF.connect(this.windG); this.windG.connect(this.master);
+      // late-watch tension drone (phase 4+): two close low tones beating, very quiet
+      this.tensionG = ctx.createGain(); this.tensionG.gain.value = 0;
+      const t1 = ctx.createOscillator(); t1.frequency.value = 36.7; const t2 = ctx.createOscillator(); t2.frequency.value = 38.1; t2.type = 'triangle';
+      const tl = ctx.createBiquadFilter(); tl.type = 'lowpass'; tl.frequency.value = 160; t1.connect(tl); t2.connect(tl); tl.connect(this.tensionG); this.tensionG.connect(this.master); t1.start(); t2.start();
+      // local machinery bed of the room in view (stops dead when its power goes)
+      this.roomG = ctx.createGain(); this.roomG.gain.value = 0;
+      const rs = this.loopNoise(this.brown); this.roomF = ctx.createBiquadFilter(); this.roomF.type = 'bandpass'; this.roomF.frequency.value = 160; this.roomF.Q.value = 2;
+      rs.connect(this.roomF); this.roomF.connect(this.roomG); this.roomG.connect(this.master);
+      this.nextTick = 3; this.nextThunk = 25; this.stepT = 0; this.breathT = 0;
       this.on = true; this.nextGroan = 20; this.nextKnock = 8; this.alarmT = 0; this.beepT = 0;
     } catch (e) { console.warn('audio init failed', e); }
   },
   loopNoise(buf) { const s = this.ctx.createBufferSource(); s.buffer = buf; s.loop = true; s.start(); return s; },
   now() { return this.ctx.currentTime; },
   ok() { return this.on && !this.muted && this.ctx && this.ctx.state === 'running'; },
-  toggleMute() { this.muted = !this.muted; if (this.master) this.master.gain.setTargetAtTime(this.muted ? 0 : 0.8, this.now(), 0.05); return this.muted; },
+  vol: 0.8,
+  setVolume(v) { this.vol = v; if (this.master && !this.muted) this.master.gain.setTargetAtTime(v, this.now(), 0.05); },
+  toggleMute() { this.muted = !this.muted; if (this.master) this.master.gain.setTargetAtTime(this.muted ? 0 : this.vol, this.now(), 0.05); return this.muted; },
   pan(x) { if (!this.ctx || !this.ctx.createStereoPanner) return null; const p = this.ctx.createStereoPanner(); p.pan.value = clamp(((x - R.cam.x) * R.cam.z) / (R.W / 2), -1, 1) * 0.8; return p; },
   dist(x, y) { // attenuation from camera framing
     const [sx, sy] = w2s(x, y); const off = Math.max(0, Math.abs(sx - R.W / 2) - R.W / 2, Math.abs(sy - R.H / 2) - R.H / 2);
@@ -107,6 +120,13 @@ const AUDIO = {
   airlockCycle() { this.noise(4, { vol: 0.12, freq: 500, q: 0.8, f2: 150, attack: 0.3, x: 100, y: 100 }); },
   klaxon() { this.tone(330, 0.55, { type: 'square', vol: 0.025, filter: 900, f2: 250 }); },
   chime() { this.tone(660, 0.6, { vol: 0.03 }); setTimeout(() => this.tone(495, 0.9, { vol: 0.03 }), 220); },
+  tick(x) { this.noise(0.03, { vol: 0.05, freq: rnd(2500, 4500), q: 8, x: x ?? rnd(0, SHIP_W), y: 200 }); },
+  thunk() { this.noise(0.5, { vol: 0.08, type: 'lowpass', freq: 220, f2: 80, buf: 'brown' }); this.tone(rnd(45, 60), 0.6, { vol: 0.05, f2: 35 }); },
+  step(c) { this.noise(0.035, { vol: 0.03, type: 'lowpass', freq: 900, x: c.x, y: c.y }); },
+  breath(m) { this.noise(rnd(0.9, 1.4), { vol: 0.06, freq: rnd(260, 420), q: 1.5, f2: rnd(150, 220), x: m.x, y: m.y, buf: 'brown', attack: 0.4 }); },
+  rattle(r) { for (let i = 0; i < 3; i++) setTimeout(() => this.noise(0.04, { vol: 0.06, freq: rnd(1200, 2500), q: 5, x: r.breachX, y: r.breachY }), i * rnd(40, 90)); },
+  podAlarm() { for (let i = 0; i < 4; i++) setTimeout(() => this.tone(1180, 0.08, { type: 'square', vol: 0.012, filter: 2500, x: 1400, y: 450 }), i * 260); },
+  watchChange() { this.chime(); },
   beep() { this.tone(1400, 0.06, { type: 'square', vol: 0.012, filter: 3000 }); },
 
   // ---- ambient driver ------------------------------------------------------
@@ -114,7 +134,7 @@ const AUDIO = {
     if (!this.on || !this.ctx) return;
     const t = this.now();
     const out = G.reactor.output / 132;
-    this.droneG.gain.setTargetAtTime(this.muted ? 0 : 0.03 + out * 0.07, t, 0.4);
+    this.droneG.gain.setTargetAtTime(this.muted ? 0 : (out < 0.05 ? 0.004 : 0.03 + out * 0.07), t, out < 0.05 ? 1.2 : 0.4);
     const inst = G.reactor.instability;
     this.d1.frequency.setTargetAtTime(30 + out * 11 + (inst > 0.3 ? Math.sin(G.t * 3) * inst * 3 : 0), t, 0.3);
     this.d2.frequency.setTargetAtTime(30.6 + out * 11.1, t, 0.3);
@@ -129,20 +149,38 @@ const AUDIO = {
     let wind = 0; for (const r of G.rooms) if ((r.breach > 0 || r.venting) && r.p > 2) wind = Math.max(wind, (r.p / 101) * (r.venting ? 1 : r.breach) * this.dist(r.cx, r.cy));
     this.windG.gain.setTargetAtTime(wind * 0.18, t, 0.2);
     this.windF.frequency.setTargetAtTime(500 + wind * 900, t, 0.3);
+    // what the camera is looking at drives local sound and muffling
+    const fr = R.cam.z > 0.8 ? roomAt(R.cam.x, R.cam.y) : null;
+    const pr = fr ? fr.p : 101;
+    this.muffle.frequency.setTargetAtTime(pr > 70 ? 18000 : 300 + (pr / 70) * 6000, t, 0.25);
+    this.roomG.gain.setTargetAtTime(fr && fr.powered ? 0.035 * Math.min(1.4, R.cam.z) : 0, t, fr && fr.powered ? 0.6 : 0.15);
+    if (fr) this.roomF.frequency.setTargetAtTime({ reactor: 90, o2: 220, hydro: 300, cryo: 140, workshop: 180 }[fr.id] || 160, t, 0.5);
+    const dark = G.blackout || (fr && !fr.powered);
+    // silence is the horror: when machinery stops, the hull ticks and settles
+    this.nextTick -= dt;
+    if (this.nextTick <= 0) { this.nextTick = dark ? rnd(1.5, 5) : rnd(8, 20); if (dark || chance(0.3)) this.tick(fr ? rnd(fr.x0, fr.x1) : undefined); }
+    this.nextThunk -= dt;
+    if (this.nextThunk <= 0) { this.nextThunk = rnd(35, 90); if (!dark && G.phase < 4) this.thunk(); }
+    this.tensionG.gain.setTargetAtTime(G.phase >= 4 ? 0.012 + (Math.sin(G.t * 0.05) > 0.6 ? 0.012 : 0) : 0, t, 3);
+    // footsteps up close; organism breath only when it is close to what you are looking at
+    if (R.cam.z > 1.3) { this.stepT -= dt; if (this.stepT <= 0) { const mv = G.crew.filter((c) => c.alive && c.moving && !c.climb && Math.abs(c.x - R.cam.x) < 400 && Math.abs(c.y - R.cam.y) < 200); if (mv.length) { const c = pick(mv); this.step(c); this.stepT = speedOf(c) > 70 ? 0.18 : 0.3; } else this.stepT = 0.3; } }
+    this.breathT -= dt;
+    if (this.breathT <= 0) { this.breathT = rnd(2.5, 5); const m = G.creatures.find((m) => m.alive && m.state === 'room' && Math.abs(m.x - R.cam.x) < 260 && Math.abs(m.y - R.cam.y) < 160); if (m && R.cam.z > 1) this.breath(m); }
+    for (const r of G.rooms) if (r.breach > 0 && r.p > 10 && chance(dt * 0.6)) this.rattle(r);
     // ship noises
     this.nextGroan -= dt; this.nextKnock -= dt;
     if (this.nextGroan <= 0) { this.nextGroan = rnd(30, 80) * (G.res.hull < 70 ? 0.6 : 1) * (G.phase >= 3 ? 0.8 : 1); this.groan(0.5 + (100 - G.res.hull) / 100); }
     if (this.nextKnock <= 0) { this.nextKnock = rnd(12, 30); if (life || chance(0.4)) this.knock(); }
     // alarms
     this.alarmT -= dt;
-    if (G.alertLevel === 2 && this.alarmT <= 0) { this.alarmT = 2.6; this.klaxon(); }
+    if (G.blackout || (G.supply < 1 && G.battery <= 0)) { if (this.alarmT <= 0) { this.alarmT = 7; this.tone(2600, 0.05, { type: 'square', vol: 0.006, filter: 4000 }); } } // alarms need power too: only a battery chirp
+    else if (G.alertLevel === 2 && this.alarmT <= 0) { this.alarmT = 2.6; this.klaxon(); }
     else if (G.alertLevel === 1 && this.alarmT <= 0) { this.alarmT = 9; this.chime(); }
     this.beepT -= dt;
     if (this.beepT <= 0 && G.rooms.some((r) => r.p < 60 && r.p > 2)) { this.beepT = 0.5; this.beep(); }
     // creature presence
     for (const m of G.creatures) {
       if (!m.alive) continue;
-      if (m.state === 'room' && chance(dt * 0.25)) { const r = G.roomById[m.room]; this.noise(rnd(0.6, 1.2), { vol: 0.05, freq: rnd(180, 320), q: 5, x: m.x, y: r.cy, buf: 'brown', attack: 0.3 }); }
       if (m.state === 'vent' && m.vto && chance(dt * 0.5)) { const r = G.roomById[m.vto]; this.ductScrape(r); }
     }
   },

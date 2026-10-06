@@ -48,8 +48,7 @@ function render(dtReal) {
   ctx.setTransform(D, 0, 0, D, 0, 0);
   ctx.fillStyle = '#040505'; ctx.fillRect(0, 0, R.W, R.H);
   // parallax colossus
-  const pz = z * 0.55, px = R.W / 2 - (cam.x * 0.35) * pz - 1300 * pz * 0.5, py = R.H / 2 - (cam.y * 0.35) * pz - 520 * pz;
-  ctx.globalAlpha = 1; ctx.drawImage(ART.colossus, px, py, 2600 * pz, 1200 * pz);
+  drawBackground(ctx, z);
   // world
   const wx = R.W / 2 - cam.x * z + R.shx, wy = R.H / 2 - cam.y * z + R.shy;
   ctx.setTransform(z * D, 0, 0, z * D, wx * D, wy * D);
@@ -79,6 +78,32 @@ function render(dtReal) {
   drawPost(ctx);
 }
 
+// parallax layers of the rest of the ship (far → mid), with slow moving lights
+function bgXform(L, z) { const k = L.s * Math.pow(z / 0.7, L.zp); /* distant layers scale less with zoom */ return { k, ox: R.W / 2 - L.cx * k - (R.cam.x - 900) * z * L.f, oy: R.H / 2 - L.cy * k - (R.cam.y - 270) * z * L.f }; }
+function drawBackground(ctx, z) {
+  const t = G.t + performance.now() / 1000 * 0.2;
+  // the layers only change when the camera moves: cache them at half resolution
+  const key = `${Math.round(R.cam.x)}|${Math.round(R.cam.y)}|${R.cam.z.toFixed(3)}|${R.W}|${R.H}`;
+  if (!R.bgCache || R.bgCache.width !== Math.ceil(R.W / 2) || R.bgCache.height !== Math.ceil(R.H / 2)) { R.bgCache = document.createElement('canvas'); R.bgCache.width = Math.ceil(R.W / 2); R.bgCache.height = Math.ceil(R.H / 2); R.bgKey = ''; }
+  if (key !== R.bgKey) {
+    R.bgKey = key; const b = R.bgCache.getContext('2d');
+    b.setTransform(0.5, 0, 0, 0.5, 0, 0); b.fillStyle = '#040505'; b.fillRect(0, 0, R.W, R.H);
+    for (const L of BG.layers) { const X = bgXform(L, z); b.drawImage(L.c, X.ox, X.oy, L.c.width * L.half * X.k, L.c.height * L.half * X.k); }
+  }
+  ctx.drawImage(R.bgCache, 0, 0, R.W, R.H);
+  BG.layers.forEach((L, i) => {
+    const X = bgXform(L, z);
+    for (const m of BG.movers) if (m.layer === i) {
+      const p = (m.ph + t * m.sp) % 1; const x = X.ox + lerp(m.x0, m.x1, p) * X.k, y = X.oy + lerp(m.y0, m.y1, p) * X.k;
+      ctx.fillStyle = `rgba(${m.col},${m.tram ? 0.5 : 0.35})`; ctx.fillRect(x, y, Math.max(1, m.s * X.k * (m.tram ? 4 : 1)), Math.max(1, m.s * X.k));
+    }
+    for (const bc of BG.beacons) if (bc.layer === i) {
+      const on = bc.steady || ((t + bc.ph) % bc.per < 0.18 ? 0.85 : 0); if (!on) continue;
+      const x = X.ox + bc.x * X.k, y = X.oy + bc.y * X.k; ctx.fillStyle = `rgba(${bc.col},${on})`; ctx.fillRect(x - 0.8, y - 0.8, 1.6, 1.6);
+      if (!bc.steady) { ctx.fillStyle = `rgba(${bc.col},0.08)`; ctx.beginPath(); ctx.arc(x, y, 6, 0, 6.3); ctx.fill(); }
+    }
+  });
+}
 // draw only the visible part of a big pre-rendered world layer
 function blitWorld(ctx, img, wx, wy, ww, wh, scale, vx0, vy0, vx1, vy1) {
   const x0 = Math.max(wx, Math.floor(vx0) - 2), y0 = Math.max(wy, Math.floor(vy0) - 2);
@@ -107,6 +132,14 @@ function drawExteriorDynamic(ctx) {
   }
   // salvage fragment
   if (G.eva) { ctx.fillStyle = '#1c1d1b'; ctx.save(); ctx.translate(-560, -110); ctx.rotate(G.t * 0.02); ctx.fillRect(-60, -18, 120, 36); ctx.fillStyle = '#2b2620'; ctx.fillRect(-40, -12, 30, 24); ctx.restore(); }
+  // cryo lower stack: each lost colonist is one dark berth
+  if (ART.cryoStack) {
+    const S = ART.cryoStack; const lost = Math.min(S.cols * S.rows, Math.round(G.colonistsLost));
+    const warm = G.cryoHeat > 25; const blink = Math.floor(G.t * 2) % 2;
+    if (warm) { ctx.fillStyle = blink ? 'rgba(168,112,30,0.35)' : 'rgba(168,112,30,0.15)'; ctx.fillRect(S.x0, S.y0, S.cols * S.pw, S.rows * S.ph); }
+    ctx.fillStyle = '#070808';
+    for (let i = 0; i < lost; i++) { const k = (i * 7919) % (S.cols * S.rows); ctx.fillRect(S.x0 + (k % S.cols) * S.pw, S.y0 + Math.floor(k / S.cols) * S.ph, S.pw - 3, S.ph - 2); }
+  }
   // incoming debris streak
   if (G.meteor && G.meteor.t < G.meteor.dur) {
     const m = G.meteor, k = m.t / m.dur;
@@ -128,6 +161,7 @@ function drawRoomDynamic(ctx, r) {
   // screens
   for (const s of A.screens) {
     if (!pw || (flick && chance(0.3))) { ctx.fillStyle = '#060707'; ctx.fillRect(s.x, s.y, s.w, s.h); ctx.fillStyle = 'rgba(255,255,255,0.04)'; ctx.fillRect(s.x + 1, s.y + 1, s.w * 0.4, 1); continue; }
+    if (r.interference > 0.18 && chance(r.interference)) { ctx.fillStyle = '#0c0d0d'; ctx.fillRect(s.x, s.y, s.w, s.h); ctx.fillStyle = 'rgba(190,190,180,0.5)'; for (let k = 0; k < s.w * s.h / 12; k++) ctx.fillRect(s.x + rnd(s.w - 1), s.y + rnd(s.h - 1), 1, 0.7); continue; }
     const warn = r.integ < 50 || r.fire > 0 || r.breach > 0;
     ctx.fillStyle = '#0c120d'; ctx.fillRect(s.x, s.y, s.w, s.h);
     const col = warn && Math.floor(t * 2) % 2 ? '#b0702a' : '#6f8a62';
@@ -204,6 +238,20 @@ function drawRoomDynamic(ctx, r) {
     }
     if (r.contam > 0.25) { const dy = (t * 6 + r.x0) % 40; ctx.fillStyle = 'rgba(40,34,22,0.5)'; ctx.fillRect(r.vent + 3, r.y0 + 12 + dy, 1.2, 2.4); }
   }
+  // ship memory
+  drawScars(ctx, r);
+  // room ambience
+  if (r.id === 'reactor' && G.reactor.output > 20) { ctx.strokeStyle = `rgba(220,210,190,${0.04 + G.reactor.instability * 0.08})`; ctx.lineWidth = 1; for (let i = 0; i < 6; i++) { const x = 90 + i * 24; ctx.beginPath(); for (let y = r.y0 + 20; y < r.y0 + 60; y += 3) ctx.lineTo(x + Math.sin(y * 0.3 + t * 6 + i) * 1.5, y); ctx.stroke(); } }
+  if ((r.id === 'cryo' || r.id === 'hydro') && R.cam.z > 0.6) { ctx.fillStyle = r.id === 'cryo' ? 'rgba(170,190,200,0.05)' : 'rgba(170,180,150,0.04)'; for (let i = 0; i < 5; i++) { const mx = r.x0 + ((t * 8 + i * 170) % (r.w + 80)) - 40; ctx.beginPath(); ctx.ellipse(mx, r.id === 'cryo' ? r.fy - 6 : r.y0 + 28, 70, 9, 0, 0, 6.3); ctx.fill(); } }
+  if ((r.id === 'o2' || r.id === 'hydro' || r.id === 'cryo') && chance(0.03) && r.p > 40) FX.add({ k: 'drip', x: r.x0 + 20 + rnd(r.w - 40), y: r.y0 + 32, vy: 0, life: 3, t: 0, floor: r.fy });
+  // vent: flexing grille, dust and a swinging cable when something heavy moves in the duct
+  const ventAct = G.creatures.some((m) => m.alive && m.state === 'vent' && (m.ventRoom === r.id && !m.vto || (m.vto === r.id && m.vprog > 0.55) || (m.vfrom === r.id && m.vto && m.vprog < 0.35)));
+  if (ventAct) { r.cableSwing = Math.max(r.cableSwing || 0, 0.8); if (chance(0.25)) FX.add({ k: 'dust', x: r.vent + rnd(-8, 8), y: r.y0 + 11, vx: rnd(-4, 4), vy: rnd(5, 15), life: rnd(1.2, 2.2), t: 0 }); }
+  r.cableSwing = Math.max(0, (r.cableSwing || 0) - 0.006);
+  { const jx = ventAct ? Math.sin(t * 31) * 0.8 : 0, jy = ventAct ? Math.abs(Math.sin(t * 23)) * 1.2 : 0;
+    if (r.ventBent) { ctx.fillStyle = '#060707'; ctx.fillRect(r.vent - 10, r.y0 + 1, 20, 10); ctx.save(); ctx.translate(r.vent + 9, r.y0 + 2); ctx.rotate(1.1 + Math.sin(t * 2) * 0.03 * (1 + r.cableSwing * 4)); ctx.fillStyle = '#3b3d3a'; ctx.fillRect(0, 0, 18, 9); ctx.fillStyle = '#1d1e1c'; for (let k = 2; k < 16; k += 3) ctx.fillRect(k, 1, 1, 7); ctx.restore(); }
+    else if (ventAct) { ctx.fillStyle = '#060707'; ctx.fillRect(r.vent - 10, r.y0 + 1, 20, 10); ctx.fillStyle = '#3b3d3a'; ctx.fillRect(r.vent - 10 + jx, r.y0 + 1 + jy, 20, 10); ctx.fillStyle = '#1d1e1c'; for (let k = 2; k < 18; k += 3) ctx.fillRect(r.vent - 10 + jx + k, r.y0 + 2 + jy, 1, 8); } }
+  { const sw = Math.sin(t * 5.5) * (r.cableSwing || 0) * 9; ctx.strokeStyle = '#111'; ctx.lineWidth = 1.3; ctx.beginPath(); ctx.moveTo(r.vent - 34, r.y0 + 15); ctx.quadraticCurveTo(r.vent - 20 + sw, r.y0 + 32, r.vent - 4, r.y0 + 15); ctx.stroke(); }
   // blood
   for (const b of r.blood) {
     ctx.fillStyle = b.odd ? 'rgba(70,58,38,0.85)' : 'rgba(112,26,18,0.9)';
@@ -310,6 +358,7 @@ function drawEntities(ctx) {
     drawCrew(ctx, c);
   }
   for (const m of G.creatures) if (m.alive && m.state === 'room') drawCreature(ctx, m);
+  if (G.shadowPass && G.t - G.shadowPass.t < 0.45) { const sp = G.shadowPass, r = G.roomById[sp.room], k = (G.t - sp.t) / 0.45; ctx.globalAlpha = 0.55 * Math.sin(k * Math.PI); drawCreatureBody(ctx, sp.x + sp.dir * (k * 46 - 10), r.fy, G.t * 3, false, sp.dir, true, 'hunt'); ctx.globalAlpha = 1; }
   if (G.glimpse && G.t - G.glimpse.t < 0.5) { const r = G.roomById[G.glimpse.room]; ctx.globalAlpha = 0.85; drawCreatureBody(ctx, G.glimpse.x, r.fy, 0, false, 1); ctx.globalAlpha = 1; }
   // missing crew bodies discovered
   for (const c of G.crew) if (c.missing && c.bodyFound) { const r = G.roomById[c.bodyRoom]; drawBody(ctx, r.cx + (c.id % 3) * 30 - 30, r.fy, c); }
@@ -319,90 +368,35 @@ function drawBody(ctx, x, y, c) {
   ctx.fillStyle = PROF[c.prof].col; ctx.fillRect(x - 12, y - 5, 18, 5); ctx.fillStyle = SKIN[c.look.skin]; ctx.beginPath(); ctx.arc(x + 9, y - 3, 3, 0, 6.3); ctx.fill();
 }
 
-function drawCrew(ctx, c) {
-  const pc = PROF[c.prof]; const skin = SKIN[c.look.skin];
-  let x = c.x, y = c.y;
-  const sel = UI.sel && UI.sel.type === 'crew' && UI.sel.id === c.id;
-  const r = G.roomById[c.room];
-  if (!c.alive || c.down) {
-    // lying figure
-    const tw = c.down ? Math.sin(G.t * 6 + c.id) * 0.5 : 0;
-    ctx.save(); ctx.translate(x, y); ctx.scale(1.3, 1.3);
-    ctx.fillStyle = shade(pc.col, -0.3); ctx.fillRect(-13, -6 + tw, 20, 6);
-    ctx.fillStyle = '#25272a'; ctx.fillRect(-20, -4, 8, 4);
-    ctx.fillStyle = skin; ctx.beginPath(); ctx.arc(10, -3.5, 3.4, 0, 6.3); ctx.fill();
-    ctx.restore();
-    if (!c.alive) { ctx.fillStyle = 'rgba(58,14,10,0.8)'; ctx.beginPath(); ctx.ellipse(x, y + 0.5, 15, 2.2, 0, 0, 6.3); ctx.fill(); }
-    if (sel) selBracket(ctx, x, y - 8, 12);
-    return;
+function drawScars(ctx, r) {
+  if (!r.scars.length) return;
+  ctx.save(); ctx.beginPath(); ctx.rect(r.x0, r.y0, r.w, ROOM_H); ctx.clip();
+  for (const sc of r.scars) {
+    const rng = mulberry32(sc.seed | 0);
+    switch (sc.k) {
+      case 'scorch': { // blackened wall above where it burned, charred floor
+        ctx.fillStyle = 'rgba(6,5,4,0.85)'; ctx.beginPath(); ctx.ellipse(sc.x, r.fy + 0.5, 30 + sc.s * 16, 3, 0, 0, 6.3); ctx.fill();
+        { const hr = 70 + sc.s * 50, gt = ctx.createRadialGradient(sc.x, r.fy - hr * 0.5, hr * 0.3, sc.x, r.fy - hr * 0.5, hr); gt.addColorStop(0, 'rgba(110,60,25,0.0)'); gt.addColorStop(0.55, 'rgba(110,60,25,0.32)'); gt.addColorStop(1, 'rgba(110,60,25,0)'); ctx.fillStyle = gt; ctx.fillRect(sc.x - hr, r.fy - hr * 1.5, hr * 2, hr * 1.5); }
+        ctx.fillStyle = 'rgba(170,160,140,0.35)'; for (let i = 0; i < 10; i++) ctx.fillRect(sc.x - 30 + rng() * 60, r.fy - 20 - rng() * 70, 1.4, 1); // blistered paint
+        const h = 80 + sc.s * 60, g = ctx.createRadialGradient(sc.x, r.fy, 4, sc.x, r.fy - h * 0.4, h);
+        g.addColorStop(0, 'rgba(5,4,3,0.95)'); g.addColorStop(0.5, 'rgba(10,8,5,0.65)'); g.addColorStop(1, 'rgba(14,10,6,0)');
+        ctx.fillStyle = g; ctx.fillRect(sc.x - h, r.fy - h * 1.3, h * 2, h * 1.3);
+        ctx.fillStyle = 'rgba(30,22,14,0.5)'; for (let i = 0; i < 6; i++) ctx.fillRect(sc.x - 20 + rng() * 40, r.fy - 30 - rng() * 60, 1, 6 + rng() * 14);
+        break; }
+      case 'soot': { const g = ctx.createLinearGradient(0, r.y0, 0, r.y0 + 50); g.addColorStop(0, `rgba(10,9,8,${0.5 * sc.s})`); g.addColorStop(1, 'rgba(10,9,8,0)'); ctx.fillStyle = g; ctx.fillRect(r.x0, r.y0, r.w, 50); break; }
+      case 'melt': ctx.fillStyle = '#2a2620'; ctx.beginPath(); ctx.moveTo(sc.x, sc.y); ctx.quadraticCurveTo(sc.x + 10, sc.y + 8, sc.x + 18, sc.y + 2); ctx.lineTo(sc.x + 16, sc.y + 20); ctx.quadraticCurveTo(sc.x + 8, sc.y + 26, sc.x + 2, sc.y + 18); ctx.fill(); ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillRect(sc.x + 6, sc.y + 18, 1.5, 10); break;
+      case 'patch': { const w = 18 + sc.s * 10, h = 14 + sc.s * 8; // welded plate over a breach
+        ctx.fillStyle = '#5c625f'; ctx.fillRect(sc.x - w / 2, sc.y - h / 2, w, h); ctx.strokeStyle = '#6e5a3a'; ctx.lineWidth = 1.4; ctx.strokeRect(sc.x - w / 2, sc.y - h / 2, w, h);
+        ctx.fillStyle = '#2a2c2a'; for (const [bx, by] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) ctx.fillRect(sc.x + bx * (w / 2 - 3) - 0.8, sc.y + by * (h / 2 - 3) - 0.8, 1.6, 1.6);
+        ctx.fillStyle = 'rgba(200,190,160,0.25)'; ctx.fillRect(sc.x - w / 2, sc.y - h / 2, w, 1); break; }
+      case 'scratch': ctx.strokeStyle = 'rgba(170,165,150,0.45)'; ctx.lineWidth = 0.8; ctx.beginPath(); for (let i = 0; i < 3; i++) { ctx.moveTo(sc.x + i * 3, sc.y); ctx.lineTo(sc.x + i * 3 + 9, sc.y + 16); } ctx.stroke(); break;
+      case 'panel': ctx.fillStyle = '#4b5546'; ctx.fillRect(sc.x, sc.y, 18, 12); ctx.fillStyle = 'rgba(184,150,46,0.55)'; ctx.fillRect(sc.x - 2, sc.y + 2, 22, 2); ctx.fillRect(sc.x - 2, sc.y + 8, 22, 2); ctx.fillStyle = '#c9c3b2'; ctx.globalAlpha = 0.4; ctx.fillRect(sc.x + 4, sc.y + 4.5, 8, 1); ctx.globalAlpha = 1; break;
+      case 'weld': ctx.strokeStyle = 'rgba(150,120,80,0.6)'; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(sc.x, sc.y); for (let i = 1; i < 8; i++) ctx.lineTo(sc.x + i * 6, sc.y + (rng() - 0.5) * 3); ctx.stroke(); ctx.fillStyle = 'rgba(90,96,92,0.8)'; ctx.fillRect(sc.x + 4, sc.y - 10, 30, 9); ctx.strokeStyle = 'rgba(150,120,80,0.45)'; ctx.strokeRect(sc.x + 4, sc.y - 10, 30, 9); break;
+      case 'frost': ctx.fillStyle = 'rgba(190,200,205,0.12)'; for (let i = 0; i < 18; i++) ctx.fillRect(r.x0 + rng() * r.w, r.y0 + 20 + rng() * 80, 1, 10 + rng() * 30); ctx.fillStyle = 'rgba(190,200,205,0.08)'; ctx.fillRect(r.x0, r.fy - 6, r.w, 6); break;
+      case 'burnt': ctx.fillStyle = 'rgba(12,10,8,0.8)'; for (let i = 0; i < 14; i++) { ctx.beginPath(); ctx.ellipse(sc.x + (rng() - 0.5) * 50, r.y0 + 10 + rng() * 40, 1.5 + rng() * 3, 1 + rng() * 2, 0, 0, 6.3); ctx.fill(); } ctx.fillStyle = 'rgba(120,115,100,0.3)'; for (let i = 0; i < 10; i++) ctx.fillRect(sc.x + (rng() - 0.5) * 60, r.fy - rng() * 2, 2, 1); break;
+    }
   }
-  // sleeping in bunk
-  if (c.sleeping && c.atWork && c.room === 'quarters') {
-    const b = ART.rooms.quarters.bunks[c.id % ART.rooms.quarters.bunks.length];
-    ctx.fillStyle = '#5d5a52'; ctx.fillRect(b.x - 20, b.y - 4, 30, 5);
-    ctx.fillStyle = skin; ctx.beginPath(); ctx.arc(b.x - 25, b.y - 3, 3.2, 0, 6.3); ctx.fill();
-    if (sel) selBracket(ctx, b.x - 10, b.y - 8, 12);
-    return;
-  }
-  const f = c.face; const moving = c.moving; const ph = c.phase;
-  const climbing = !!c.climb;
-  const sw = moving && !climbing ? Math.sin(ph) * 0.55 : 0;
-  ctx.save(); ctx.translate(x, y); ctx.scale(1.3, 1.3);
-  if (c.hitFlash > 0) { ctx.translate(rnd(-1, 1), 0); }
-  const dark = (col) => shade(col, -0.15);
-  // legs
-  const legCol = c.prof === 'Security' ? '#2a3036' : c.prof === 'Officer' ? '#23282f' : c.prof === 'Medic' || c.prof === 'Scientist' ? '#3a3b3a' : c.prof === 'Engineer' ? '#45443a' : shade(pc.col, -0.35);
-  ctx.fillStyle = legCol;
-  if (climbing) { const k = Math.sin(c.climb.t * 8); ctx.fillRect(-4, -11 + k * 2, 3, 11); ctx.fillRect(1, -11 - k * 2, 3, 11); }
-  else {
-    ctx.save(); ctx.translate(-1.5, -11); ctx.rotate(sw); ctx.fillRect(-1.6, 0, 3.2, 11); ctx.restore();
-    ctx.save(); ctx.translate(1.5, -11); ctx.rotate(-sw); ctx.fillRect(-1.6, 0, 3.2, 11); ctx.restore();
-    ctx.fillStyle = '#151515'; ctx.fillRect(-4 + Math.sin(sw) * 5, -1.5, 4, 1.5); ctx.fillRect(Math.sin(-sw) * 5, -1.5, 4, 1.5);
-  }
-  // torso
-  const torso = c.prof === 'Medic' ? '#a9a598' : c.prof === 'Scientist' ? '#b3ae9f' : c.prof === 'Engineer' ? '#6b6a52' : pc.col;
-  ctx.fillStyle = torso; ctx.fillRect(-4.5, -22, 9, 11.5);
-  if (c.prof === 'Scientist') { ctx.fillRect(-5, -12, 10, 6); } // coat skirt
-  if (c.prof === 'Medic') { ctx.fillStyle = PAL.green; ctx.fillRect(-4.5, -18, 9, 2); }
-  if (c.prof === 'Engineer' || c.prof === 'Technician') { ctx.fillStyle = PAL.yellowD; ctx.fillRect(-4.5, -13, 9, 1.6); }
-  if (c.prof === 'Security') { ctx.fillStyle = '#1e2429'; ctx.fillRect(-5.5, -22, 11, 6); }
-  if (c.prof === 'Officer') { ctx.fillStyle = '#6b6650'; ctx.fillRect(f > 0 ? 1 : -3, -20, 2, 1.5); }
-  // back rim
-  ctx.fillStyle = 'rgba(220,214,196,0.25)'; ctx.fillRect(f > 0 ? -4.5 : 3.8, -22, 0.7, 11);
-  // arms
-  ctx.fillStyle = dark(torso);
-  const working = c.atWork && c.task && ['repair', 'power', 'seal', 'extinguish', 'treat', 'decon', 'door', 'restart', 'reactor', 'scan', 'bloodtest'].includes(c.task.type);
-  const fighting = c.task && c.task.type === 'fight' && c.armed;
-  if (climbing) { const k = Math.sin(c.climb.t * 8); ctx.fillRect(-6, -30 - k * 2, 2.4, 10); ctx.fillRect(3.6, -30 + k * 2, 2.4, 10); }
-  else if (fighting || (c.armed && c.task && c.task.type === 'security' && G.alertLevel === 2)) {
-    ctx.fillRect(f > 0 ? 0 : -9, -20, 9, 2.6);
-    ctx.fillStyle = '#121314'; ctx.fillRect(f > 0 ? 2 : -16, -21, 14, 2.4); ctx.fillRect(f > 0 ? 4 : -8, -19, 3, 3);
-  } else if (working) {
-    const k = Math.sin((c.workAnim || 0) * 9) * 1.5;
-    ctx.save(); ctx.translate(f * 2, -21); ctx.rotate(f * (-1.1 + k * 0.1)); ctx.fillRect(-1.2, 0, 2.4, 10); ctx.restore();
-    ctx.save(); ctx.translate(-f * 2, -21); ctx.rotate(f * (-0.7 - k * 0.1)); ctx.fillRect(-1.2, 0, 2.4, 9); ctx.restore();
-    if (c.task.type === 'extinguish') { ctx.fillStyle = PAL.red; ctx.fillRect(f * 6 - 2, -18, 4, 7); }
-  } else {
-    ctx.save(); ctx.translate(-2.5 * f, -21); ctx.rotate(-sw * 0.8); ctx.fillRect(-1.2, 0, 2.4, 10); ctx.restore();
-    ctx.save(); ctx.translate(2.5 * f, -21); ctx.rotate(sw * 0.8); ctx.fillRect(-1.2, 0, 2.4, 10); ctx.restore();
-    if (c.armed) { ctx.fillStyle = '#121314'; ctx.save(); ctx.translate(0, -18); ctx.rotate(f * 0.9); ctx.fillRect(-1, -8, 2.2, 14); ctx.restore(); }
-  }
-  // head & headgear
-  const hy = -26.5;
-  ctx.fillStyle = skin; ctx.beginPath(); ctx.arc(f * 0.6, hy, 3.6, 0, 6.3); ctx.fill();
-  switch (c.prof) {
-    case 'Engineer': ctx.fillStyle = PAL.yellow; ctx.beginPath(); ctx.arc(0, hy - 0.8, 4.3, Math.PI, 0); ctx.fill(); ctx.fillRect(-5, hy - 1, 10, 1.4); ctx.fillStyle = '#e8e2c8'; ctx.fillRect(f * 3, hy - 3.5, 1.5, 1.5); break;
-    case 'Technician': ctx.fillStyle = '#3c4636'; ctx.beginPath(); ctx.arc(0, hy - 1, 4, Math.PI, 0); ctx.fill(); ctx.fillStyle = '#151515'; ctx.fillRect(f > 0 ? 0 : -4, hy - 1, 4, 1.6); break;
-    case 'Security': ctx.fillStyle = '#3a454e'; ctx.beginPath(); ctx.arc(0, hy - 0.2, 5, Math.PI * 0.9, Math.PI * 2.1); ctx.fill(); ctx.fillStyle = '#0d0f10'; ctx.fillRect(f > 0 ? 0.5 : -4.5, hy - 1.5, 4, 2.6); break;
-    case 'Medic': ctx.fillStyle = '#c3bfb2'; ctx.beginPath(); ctx.arc(0, hy - 1.4, 3.9, Math.PI, 0); ctx.fill(); break;
-    case 'Officer': ctx.fillStyle = '#20262d'; ctx.fillRect(-4.5, hy - 5, 9, 2.6); ctx.fillRect(f > 0 ? 0 : -6, hy - 2.8, 6, 1.2); break;
-    case 'Scientist': ctx.fillStyle = HAIR[c.look.hairC]; ctx.beginPath(); ctx.arc(-f * 0.5, hy - 1, 3.9, Math.PI * 0.95, Math.PI * 2.05); ctx.fill(); if (c.look.hair > 2) ctx.fillRect(-f * 3.5 - 1, hy - 1, 2.5, 6); break;
-  }
-  // helmet lamp in dark
-  if (!r.powered || !r.observed) { ctx.fillStyle = '#f2ead0'; ctx.fillRect(f * 3.5 - 0.7, hy - 1.5, 1.4, 1.4); }
   ctx.restore();
-  if (c.hitFlash > 0) { ctx.fillStyle = 'rgba(160,30,20,0.35)'; ctx.fillRect(x - 8, y - 40, 16, 40); }
-  if (sel) selBracket(ctx, x, y - 20, 23);
 }
 function selBracket(ctx, x, y, s) {
   ctx.strokeStyle = 'rgba(232,226,206,0.9)'; ctx.lineWidth = 1 / R.cam.z * 1.2;
@@ -412,12 +406,27 @@ function selBracket(ctx, x, y, s) {
   ctx.stroke();
 }
 
+function creatureVisibility(m, r) {
+  // unobserved rooms: the organism exists only where a helmet lamp happens to point
+  if (r.observed && r.powered) return 1;
+  let v = r.observed ? 0.35 : 0;
+  for (const c of G.crew) {
+    if (!c.alive || c.down || c.room !== r.id) continue;
+    const d = Math.abs(c.x - m.x), ahead = Math.sign(m.x - c.x) === c.face;
+    if (ahead) v = Math.max(v, clamp((160 - d) / 70, 0, 1)); else v = Math.max(v, clamp((40 - d) / 30, 0, 1));
+  }
+  for (const f of FX.flashes) if (Math.abs(f.x - m.x) < f.r && Math.abs(f.y - m.y) < 80) v = 1;
+  return v;
+}
 function drawCreature(ctx, m) {
   const r = G.roomById[m.room];
+  const vis = creatureVisibility(m, r); if (vis <= 0.02) return;
+  ctx.globalAlpha = vis;
   let y = r.fy;
   if (m.emergeT > 0) y = lerp(r.fy, r.y0 + 20, m.emergeT / 0.9);
   const lunge = m.lunge > 0 ? (m.lunge -= 1 / 60, m.face * 10) : 0;
   drawCreatureBody(ctx, m.x + lunge, y, m.phase, false, m.face, m.moving, m.mode);
+  ctx.globalAlpha = 1;
 }
 function drawCreatureBody(ctx, x, y, ph, dead, face = 1, moving = false, mode = '') {
   ctx.save(); ctx.translate(x, y); ctx.scale(1.25, 1.25);
@@ -431,7 +440,8 @@ function drawCreatureBody(ctx, x, y, ph, dead, face = 1, moving = false, mode = 
   ctx.lineWidth = 3.2;
   for (const s of [1, -1]) { const k = st * s; ctx.beginPath(); ctx.moveTo(-2, -26 - bob); ctx.lineTo(-6 + k * 6, -13); ctx.lineTo(2 + k * 8, -6); ctx.lineTo(-1 + k * 9, 0); ctx.stroke(); }
   // torso: long, hunched forward
-  ctx.lineWidth = 7; ctx.beginPath(); ctx.moveTo(-3, -26 - bob); ctx.quadraticCurveTo(0, -46 - bob, 13, -44 - bob); ctx.stroke();
+  ctx.lineWidth = 8.5; ctx.beginPath(); ctx.moveTo(-3, -26 - bob); ctx.quadraticCurveTo(0, -46 - bob, 13, -44 - bob); ctx.stroke();
+  ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(-1, -30 - bob); ctx.quadraticCurveTo(4, -50 - bob, 11, -48 - bob); ctx.stroke(); // compressed shoulder mass
   ctx.lineWidth = 5; ctx.beginPath(); ctx.moveTo(10, -44 - bob); ctx.quadraticCurveTo(16, -46 - bob, 20, -41 - bob); ctx.stroke();
   // head: low, elongated, eyeless
   ctx.fillStyle = body; ctx.beginPath(); ctx.ellipse(22, -40 - bob, 6.5, 3.4, 0.45, 0, 6.3); ctx.fill();
@@ -458,7 +468,7 @@ function lampIntensity(r, l) {
   if (r.interference > 0.15) k *= chance(r.interference * 0.4) ? 0.05 : 1 - r.interference * 0.3;
   if (G.brownout) k *= 0.7 + Math.sin(G.t * 23 + l.ph) * 0.15;
   if (r.integ < 40) k *= chance(0.04) ? 0.2 : 0.85;
-  if (G.alertLevel === 2) k *= 0.62;
+  if (localAlarm(r)) k *= 0.62;
   if (nightFactor() && (r.group === 'HAB' || r.id === 'mess')) k *= 0.45;
   return k;
 }
@@ -469,12 +479,13 @@ function drawLighting(visible) {
   m.clearRect(0, 0, R.mask.width, R.mask.height);
   m.setTransform(z * s, 0, 0, z * s, (R.W / 2 - cam.x * z + R.shx) * s, (R.H / 2 - cam.y * z + R.shy) * s);
   // exterior ambient
-  m.fillStyle = 'rgba(0,0,0,0.25)'; m.fillRect(-1000, -400, 3800, 1400);
+  m.fillStyle = 'rgba(0,0,0,0.12)'; m.fillRect(-1000, -400, 3800, 1400);
   for (const r of visible) {
     let a;
-    if (!r.observed) a = 0.985;
-    else if (!r.powered) a = 0.93;
-    else a = 0.7 + (G.alertLevel === 2 ? 0.08 : 0) + nightFactor() * (r.group === 'HAB' ? 0.12 : 0.04);
+    if (!r.observed) a = 0.9;
+    else if (!r.powered) a = 0.86;
+    else a = 0.7 + (localAlarm(r) ? 0.08 : 0) + nightFactor() * (r.group === 'HAB' ? 0.12 : 0.04);
+    if (r.feedCollapse > 0) a = r.feedCollapse > 0.45 ? 0.3 : 0.99;
     if (r.p < 30) a = Math.min(0.99, a + 0.04);
     a = Math.min(0.99, a + r.fire * 0.12);
     m.fillStyle = `rgba(0,0,0,${a})`; m.fillRect(r.x0 - 6, r.y0, r.w + 12, ROOM_H);
@@ -490,11 +501,24 @@ function drawLighting(visible) {
         const k = lampIntensity(r, l); cut(l.x, l.y + 14, l.r, 0.9 * k); if (k > 0.2) cut(l.x, r.fy - 20, l.r * 0.8, 0.35 * k);
       }
       if (r.powered) for (const sc of A.screens) cut(sc.x + sc.w / 2, sc.y + sc.h / 2 + 6, 22, 0.28);
-      if (!r.powered || G.alertLevel === 2) for (const st of A.strips) cut(st.x, st.y, 22, 0.35);
+      if (!r.powered || localAlarm(r)) for (const st of A.strips) cut(st.x, st.y, 22, r.powered ? 0.35 : 0.5);
+      if (!r.powered) {
+        // dying ballast: a lamp stutters now and then; sparks briefly light the room
+        if (r.flick > 0 || chance(0.004)) { const l = A.lights[Math.floor(G.t * 3) % A.lights.length]; if (chance(0.4)) cut(l.x, l.y + 14, l.r * 0.7, 0.45); }
+        for (const sc of A.screens) cut(sc.x + sc.w, sc.y + sc.h, 8, 0.25); // standby LEDs
+        if (r.breach > 0) cut(r.breachX, r.breachY, 60, 0.3); // cold starlight through the hole
+      }
+      if (r.breach > 0) cut(r.breachX, r.breachY + 10, 80, 0.4);
       if (A.core) { const o = G.reactor.output / 132; cut(A.core.x, A.core.y + 10, 130, 0.75 * o); }
       for (const fx of r.fireXs) cut(fx, r.fy - 20, 70 + r.fire * 110, 0.85 * (0.85 + Math.sin(G.t * 13 + fx) * 0.15));
       if (G.alertLevel >= 1 && roomAlarm(r)) { const a = G.t * 4; cut(r.cx + Math.cos(a) * 60, r.y0 + 30, 70, 0.35); }
       if (A.windows) for (const w of A.windows) cut(w.x + w.w / 2, w.y + w.h / 2, 50, 0.12);
+    }
+    // light leaking through open doors from a lit neighbour
+    if (!r.powered || !r.observed) for (const e of G.adj[r.id]) {
+      const o = G.roomById[e.to], d = e.door; if (!o.powered || d.anim < 0.1) continue;
+      if (d.hatch) { cut(d.x, o.deck < r.deck ? r.y0 + 6 : r.fy - 4, 50, 0.4 * d.anim); }
+      else cut(d.x + (r.cx > d.x ? 8 : -8), r.fy - 26, 70, 0.45 * d.anim);
     }
     // crew torches (always — the only eyes in dead rooms)
     for (const c of G.crew) {
@@ -514,6 +538,11 @@ function drawLighting(visible) {
   for (const f of FX.flashes) cut(f.x, f.y, f.r, f.a * (1 - f.t / f.life));
   m.globalAlpha = 1; m.globalCompositeOperation = 'source-over';
 }
+function localAlarm(r) { // red emergency light only where the emergency is (and right next to it)
+  if (roomAlarm(r)) return true;
+  if (G.alertLevel < 2) return false;
+  return G.adj[r.id].some((e) => { const o = G.roomById[e.to]; return o.fire > 0.05 || o.breach > 0 || o.venting || G.t - o.lastCreatureSeen < 20; });
+}
 function roomAlarm(r) { return r.fire > 0 || r.breach > 0 || r.p < 70 || r.venting || (G.t - r.lastCreatureSeen < 20) || r.elecFault || (r.id === 'reactor' && (G.reactor.instability > 0.4 || G.reactor.needsRestart)); }
 
 function glow(ctx, key, x, y, rad, a) { if (a <= 0.01) return; ctx.globalAlpha = Math.min(1, a); ctx.drawImage(ART.lightC[key], x - rad, y - rad, rad * 2, rad * 2); }
@@ -527,12 +556,17 @@ function drawGlows(ctx, visible) {
       const k = lampIntensity(r, l); glow(ctx, 'lamp', l.x, l.y + 12, l.r * 0.7, 0.1 * k);
     }
     const local = roomAlarm(r);
-    if (G.alertLevel === 2 || !r.powered) {
-      const pulse = 0.5 + 0.5 * Math.sin(t * (local ? 4 : 2));
-      for (const st of A.strips) glow(ctx, 'red', st.x, st.y - 6, local ? 70 : 40, (local ? 0.3 : 0.1) * (0.5 + pulse * 0.5) * (r.powered ? 1 : 0.8));
-      if (local && r.powered) glow(ctx, 'red', r.cx, r.y0 + 30, r.w * 0.6, 0.12 + pulse * 0.12);
+    const red = localAlarm(r);
+    const emergency = red && (r.fire > 0.05 || r.breach > 0 || r.venting || r.p < 70 || G.t - r.lastCreatureSeen < 20 || G.reactor.needsRestart && r.id === 'reactor' || !local);
+    if (emergency || !r.powered) {
+      const pulse = 0.5 + 0.5 * Math.sin(t * (emergency ? 4 : 1.5));
+      for (const st of A.strips) glow(ctx, 'red', st.x, st.y - 6, emergency ? 70 : 34, (emergency ? 0.3 : 0.09) * (0.5 + pulse * 0.5));
+      if (emergency && r.powered && local) glow(ctx, 'red', r.cx, r.y0 + 30, r.w * 0.6, 0.1 + pulse * 0.1);
     }
-    if (local && G.alertLevel >= 1) { const a = t * 4; glow(ctx, G.alertLevel === 2 ? 'red' : 'amber', r.cx + Math.cos(a) * 60, r.y0 + 26, 80, 0.35); }
+    if (red) { const a = t * 4; glow(ctx, emergency ? 'red' : 'amber', r.cx + Math.cos(a) * 60, r.y0 + 26, 80, emergency ? 0.35 : 0.28); }
+    else if (r.integ < 50 || r.elecFault || r.leak) { const a = t * 3; glow(ctx, 'amber', r.cx + Math.cos(a) * 50, r.y0 + 26, 60, 0.18); } // yellow warning: subtle
+    if (!r.powered) for (const sc of A.screens) glow(ctx, Math.floor(t * 0.8 + sc.x) % 3 ? 'red' : 'amber', sc.x + sc.w, sc.y + sc.h, 7, 0.5); // battery-backed standby LEDs
+    if (r.breach > 0) glow(ctx, 'cold', r.breachX, r.breachY, 80 + r.breach * 60, 0.3);
     if (A.core) { const o = G.reactor.output / 132; glow(ctx, G.reactor.instability > 0.3 ? 'amber' : 'core', A.core.x, A.core.y, 90, 0.25 * o); }
     for (const fx of r.fireXs) glow(ctx, 'fire', fx + Math.sin(t * 11) * 4, r.fy - 25, 90 + r.fire * 140, 0.55 * r.fire + 0.15 + Math.sin(t * 17 + fx) * 0.06);
     if (r.p < 35) glow(ctx, 'cold', r.cx, r.cy, r.w * 0.7, 0.12);

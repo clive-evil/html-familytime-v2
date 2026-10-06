@@ -30,6 +30,8 @@ const FX = {
       p.t += dt;
       if (p.k === 'spark' || p.k === 'ichor') { p.vy += 260 * dt; p.x += p.vx * dt; p.y += p.vy * dt; }
       else if (p.k === 'foam') { p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= 0.95; p.vy += 30 * dt; }
+      else if (p.k === 'dust') { p.x += p.vx * dt; p.y += p.vy * dt; }
+      else if (p.k === 'drip') { p.vy += 200 * dt; p.y += p.vy * dt; if (p.y > p.floor) p.t = p.life; }
       else if (p.k === 'smoke') { p.x += p.vx * dt; p.y += p.vy * dt; const r = G.roomById[p.room]; if (p.y < r.y0 + 18) p.y = r.y0 + 18; p.s += dt * 6; }
       else if (p.k === 'atmos') { const dx = p.tx - p.x, dy = p.ty - p.y; const d = Math.hypot(dx, dy) + 1; const sp = 120 + 300 / Math.max(0.3, d / 60); p.x += (dx / d) * sp * dt; p.y += (dy / d) * sp * dt; if (d < 8) p.t = p.life; }
     }
@@ -43,6 +45,8 @@ const FX = {
       if (p.k === 'spark') { ctx.fillStyle = p.c; ctx.globalAlpha = a; ctx.fillRect(p.x, p.y, 1.4, 1.4); }
       else if (p.k === 'ichor') { ctx.fillStyle = '#2a2016'; ctx.globalAlpha = a; ctx.fillRect(p.x, p.y, 1.6, 1.6); }
       else if (p.k === 'foam') { ctx.fillStyle = p.fire ? '#c8b89a' : '#d9d6cc'; ctx.globalAlpha = a * 0.6; ctx.beginPath(); ctx.arc(p.x, p.y, p.s * (1 + p.t * 2), 0, 6.3); ctx.fill(); }
+      else if (p.k === 'dust') { ctx.fillStyle = '#8a877c'; ctx.globalAlpha = a * 0.6; ctx.fillRect(p.x, p.y, 1, 1); }
+      else if (p.k === 'drip') { ctx.fillStyle = '#9fb0b4'; ctx.globalAlpha = 0.5; ctx.fillRect(p.x, p.y, 0.8, 2); }
       else if (p.k === 'smoke') { ctx.globalAlpha = Math.min(1, a * 1.3, p.t * 2) * 0.55; ctx.drawImage(ART.smoke, p.x - p.s * 1.4, p.y - p.s * 1.4, p.s * 2.8, p.s * 2.8); }
       else if (p.k === 'atmos') { ctx.fillStyle = p.dbr ? '#3a3a36' : '#c8c6bc'; ctx.globalAlpha = 0.55 * a + (p.dbr ? 0.35 : 0); ctx.fillRect(p.x, p.y, p.dbr ? 3 : 1.4, p.dbr ? 2 : 1.4); }
       else if (p.k === 'tracer') { ctx.strokeStyle = '#ffe2a8'; ctx.globalAlpha = a * 0.8; ctx.lineWidth = 0.8; ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.tx, p.ty); ctx.stroke(); }

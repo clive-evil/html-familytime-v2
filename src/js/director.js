@@ -53,7 +53,7 @@ const EVENTS = {
     run() {
       const c = pick(G.crew.filter((x) => crewAvailable(x) && x.hp > 70)); if (!c) return;
       const kind = pick(['burn', 'fall', 'fever', 'fever', 'crush']);
-      if (kind === 'fever') { c.fever = 220; c.hp -= 10; logEvent('warn', `${c.name} reporting fever and chills. Probably the recycled air. Probably.`, c.room); }
+      if (kind === 'fever') { hint('infection', c.room); c.fever = 220; c.hp -= 10; logEvent('warn', `${c.name} reporting fever and chills. Probably the recycled air. Probably.`, c.room); }
       else if (kind === 'fall') { hurt(c, rint(25, 40), 'fall from ladder'); logEvent('warn', `${c.name} fell from a ladder in ${crewRoom(c).short}.`, c.room); }
       else if (kind === 'burn') { hurt(c, rint(20, 32), 'steam burn'); logEvent('warn', `${c.name} scalded by a steam line in ${crewRoom(c).short}.`, c.room); }
       else { hurt(c, rint(35, 55), 'crushed hand'); logEvent('warn', `${c.name} caught a hand in a hatch mechanism. Bad.`, c.room); }
@@ -87,6 +87,7 @@ const EVENTS = {
     phase: 3, w: () => (G.crew.some((c) => c.alive && c.infection && c.infection.stage >= 1) || (G.foodTheft || 0) > 2 ? 1.1 : 0),
     run() {
       const inf = G.crew.filter((c) => c.alive && c.infection && c.infection.stage >= 1);
+      hint('infection');
       const r = rint(0, 2);
       if (r === 0 || !inf.length) {
         const excess = Math.round(20 + inf.length * 25 + (G.foodTheft || 0) * 4);
@@ -161,13 +162,56 @@ function offerSalvage() {
   });
 }
 
+
+// ---------------------------------------------------------------------------
+// Flavour: cheap ambiguity. Most strange things are NOT the organism.
+// ---------------------------------------------------------------------------
+const SHIPWIDE = [
+  [1, 'SHIP BAND: Section 05 reports watch change complete. All nominal.'],
+  [1, 'MAINTENANCE REQUEST: Deck 42 coolant gantry, valve 9. Unacknowledged for two watches.'],
+  [1, 'SHIP BAND: Hab Ring C requests spare filter cartridges. None available.'],
+  [2, 'INCOMING: SECTION 11 CAMERA NETWORK OFFLINE. Cause unknown.'],
+  [2, 'SHIP BAND: Section 09 reports a micrometeor shower aft. No casualties.'],
+  [3, 'DISTRESS BURST: HAB RING C — 0.4 seconds. No voice. Not repeated.'],
+  [3, 'SHIP BAND: Section 11 not answering the watch-change ping.'],
+  [4, 'SHIP BAND: "...if anyone on six can hear this, seal your ducts. Seal your—" (carrier lost)'],
+  [4, 'MAINTENANCE REQUEST: Deck 42 — request withdrawn. No reason given.'],
+  [5, 'SHIP BAND: automated message. Sections 09 through 12 have entered isolation protocol.'],
+];
+const FLAVOUR = {
+  bang() { AUDIO.impact(0.22); G.shake = Math.max(G.shake, 0.8); logEvent('info', 'Distant impact registered somewhere aft. Not this section.', null, { cat: 'system' }); },
+  flicker() { const r = pick(G.rooms.filter((x) => x.powered)); if (r) { r.flick = 1.6; AUDIO.roomPowerDown(r); } },
+  galley() { const r = G.roomById.mess; damageRoom(r, 4); const c = G.crew.find((x) => crewAvailable(x) && x.room === 'mess'); logEvent('info', c ? `${c.name} kicks the ration dispenser. It hums, then gives up.` : 'MESS: ration dispenser fault.', 'mess', { cat: 'crew' }); },
+  smell() {
+    const real = G.nestRoom && chance(0.5); const r = real ? G.roomById[G.nestRoom] : pick(G.rooms);
+    const c = G.crew.find((x) => crewAvailable(x) && x.room === r.id) || G.crew.find(crewAvailable);
+    if (c) logEvent('story', `${c.name}: "Something smells off around ${r.short}. Like a bad filter. Or meat."`, r.id, { cat: 'crew' });
+  },
+  panel() { const r = pick(G.rooms); r.cableSwing = 1; AUDIO.knock(r.vent); setTimeout(() => AUDIO.knock(r.vent), 900); crewReact(r.id, r.vent, 0.5); logEvent('info', `Loose duct panel rattling above ${r.short}. Logged for maintenance.`, r.id, { cat: 'system' }); },
+  falseMotion() {
+    if (!G.sensors) return; const r = pick(G.rooms.filter((x) => !G.crew.some((c) => c.alive && c.room === x.id))); if (!r) return;
+    r.ghost = G.t + 7; logEvent('warn', `MOTION — ${r.short}. Brief.`, r.id, { cat: 'security' });
+    G.delayedLogs.push({ t: G.t + 22, fn: () => logEvent('info', `Sensor diagnostic: ${r.short} motion trigger traced to a thermal expansion pop. Probably.`, r.id, { cat: 'security' }) });
+  },
+  radio() { AUDIO.staticBurst(0.6); const opts = SHIPWIDE.filter(([p]) => p <= G.phase); const m = pick(opts.slice(-4)); logEvent(m[0] >= 3 ? 'warn' : 'info', m[1], null, { cat: 'system', story: m[0] >= 3 }); },
+  drip() { logEvent('info', 'REACTOR: condensate dripping from coolant manifold B. Within tolerance.', 'reactor', { cat: 'system' }); },
+  podAlarm() { AUDIO.podAlarm(); logEvent('info', `CRYO BAY: berth 6-C-${rint(1000, 3400)} momentary thermal alarm. Self-cleared.`, 'cryo', { cat: 'system' }); },
+};
+function runFlavour() {
+  const k = weighted([
+    { w: 1, v: 'bang' }, { w: 1, v: 'flicker' }, { w: 0.6, v: 'galley' }, { w: G.phase >= 2 ? 0.8 : 0, v: 'smell' },
+    { w: G.phase >= 2 ? 1 : 0.3, v: 'panel' }, { w: G.phase >= 3 ? 0.8 : 0, v: 'falseMotion' }, { w: 1.4, v: 'radio' }, { w: 0.5, v: 'drip' }, { w: 0.7, v: 'podAlarm' },
+  ]);
+  if (k) FLAVOUR[k]();
+}
+
 function makeDirector() {
   const D = {
     next: 30, beats: {}, flags: {},
     flag(k) { this.flags[k] = (this.flags[k] || 0) + 1; if (k === 'emerge' || k === 'creature') this.flags.lastCreatureT = G.t; },
     beat(id, cond, fn) { if (!this.beats[id] && cond()) { this.beats[id] = G.t; fn(); } },
     update(dt) {
-      const t = G.t;
+      const t = G.dirT;
       // phase
       let ph = 1; for (const p of PHASES) if (t >= p.t) ph = p.id;
       if (G.firstSighting && ph < 4) ph = 4;
@@ -179,10 +223,10 @@ function makeDirector() {
       if (G.pendingMissing) for (const p of G.pendingMissing) if (!p.done && t >= p.t) { p.done = true; const c = G.crew[p.id]; if (c.alive) { c.alive = false; c.deadAt = t; c.deathCause = 'taken'; c.unconfirmed = true; G.deaths++; if (!G.sensors) logEvent('warn', `${c.name} has not checked in since ${fmtClock(c.missingAt || p.t).str}. Last known: ${G.roomById[c.lastSeenRoom || c.room].short}.`, null, { story: true }); } }
 
       // ---- beats (tutorial calm → first fright) ----
-      this.beat('o2filter', () => t > 18, () => { const r = G.roomById.o2; r.integ = 68; logEvent('warn', 'O2 PROCESSING: electrolysis stack 2 efficiency falling. Filter fouling.', 'o2'); logEvent('hint', 'Select a crew member (left list or click them), then RIGHT-CLICK a room for orders. Engineers and technicians repair fastest.'); });
-      this.beat('cut', () => t > 58, () => { const c = G.crew.find((x) => x.first === 'Kit') || pick(G.crew); hurt(c, 34, 'laceration'); logEvent('warn', `${c.name} gashed a hand on a hydroponics tray bracket. Bleeding.`, c.room); logEvent('hint', 'Medics treat the injured automatically when idle. Select a crew member to see vitals, skills and relationships.'); });
-      this.beat('door', () => t > 96, () => { const d = G.doorById.d_mes_hyd; d.jammed = true; d.anim = 1; logEvent('warn', `DOOR FAULT: ${doorLabel(d)} jammed OPEN.`, 'mess'); logEvent('hint', 'Click a door to open / close / lock / seal it remotely. Doors need power. Jammed doors free up when an adjacent room is repaired.'); });
-      this.beat('powerhint', () => t > 125, () => logEvent('hint', 'POWER panel (right): reactor output vs demand. If generation falls short, batteries drain, then breakers trip. You choose what goes dark. Keep an operator in the REACTOR.'));
+      this.beat('o2filter', () => t > 18, () => { const r = G.roomById.o2; r.integ = 68; logEvent('warn', 'O2 PROCESSING: electrolysis stack 2 efficiency falling. Filter fouling.', 'o2');  });
+      this.beat('cut', () => t > (G.tut && G.tut.finished && G.tutDone ? 150 : 58), () => { const c = G.crew.find((x) => x.first === 'Kit') || pick(G.crew); hurt(c, 34, 'laceration'); logEvent('warn', `${c.name} gashed a hand on a hydroponics tray bracket. Bleeding.`, c.room);  });
+      this.beat('door', () => t > 96, () => { const d = G.doorById.d_mes_hyd; d.jammed = true; d.anim = 1; logEvent('warn', `DOOR FAULT: ${doorLabel(d)} jammed OPEN.`, 'mess');  });
+      
       this.beat('coolant', () => t > 168, () => EVENTS.coolant_leak.run());
       this.beat('meteor1', () => t > 240, () => EVENTS.meteor.run({ room: chance(0.6) ? 'workshop' : 'reactor', seed: true, size: 0.38 }));
       this.beat('salvage', () => t > 440 && (activeCrises() < 2 || t > 560), () => offerSalvage());
@@ -201,15 +245,18 @@ function makeDirector() {
         G.reactor.instability = Math.min(0.9, G.reactor.instability + 0.5); EVENTS.meteor.run({ size: 0.3 });
         for (const m of G.creatures) if (m.alive) { m.stalk = false; m.hunger = 90; }
       });
-      if (G.firstFright && G.firstFright.step === 1 && t > G.firstFright.t + 8) {
+      if (G.firstFright && G.firstFright.step === 1 && G.t > G.firstFright.t + 8) {
         G.firstFright.step = 2; const r = G.roomById[G.firstFright.room];
-        r.ghost = t + 14;
+        r.ghost = G.t + 14; hint('motion', r.id);
         if (G.sensors) logEvent('crit', `UNIDENTIFIED MOTION — ${DECK_NAME[r.deck]} / ${r.short}. Life signs: ${r.lifeSigns + 1}.`, r.id, { story: true });
         else logEvent('warn', `Something knocked twice inside ${r.short}. Then nothing.`, r.id, { story: true });
         AUDIO.knock(r.vent);
         if (UI.autoPause) UI.autoPause('UNIDENTIFIED MOTION');
       }
 
+      // ---- flavour (not part of the crisis budget) ----
+      this.flavT = (this.flavT ?? 40) - dt;
+      if (this.flavT <= 0 && t > 30) { this.flavT = rnd(35, 75); runFlavour(); }
       // ---- random systemic events ----
       this.next -= dt;
       if (this.next <= 0 && t > 140) {
@@ -251,7 +298,7 @@ function resolveMeteor(m) {
   if (chance(0.5)) r.cameraOK = false;
   if (G.eva) for (const id of G.eva.ids) if (G.crew[id].eva && chance(0.3)) { hurt(G.crew[id], 25, 'debris strike during EVA'); logEvent('crit', `${G.crew[id].name} hit by debris on EVA.`, 'airlock'); }
   logEvent('crit', `IMPACT — ${DECK_NAME[r.deck]} / ${r.short}. Hull breached. Pressure falling.`, r.id, { story: true });
-  if (!G._breachHint) { G._breachHint = true; logEvent('hint', 'Air is escaping through every OPEN door connected to the breach. Close or seal doors around it, then send someone with a rebreather (engineer / technician / security) to SEAL BREACH.'); }
+  hint('breach', r.id);
   if (UI.autoPause && size > 0.25) UI.autoPause('HULL BREACH');
   if (m.seed && !G.nestRoom) {
     seedContamination(r, 'meteor');

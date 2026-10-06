@@ -3,8 +3,17 @@
 // SIM — rooms, doors, atmosphere, power, fire, resources, pathfinding
 // ============================================================================
 
+function logCategory(sev, text, opts) {
+  if (opts.cat) return opts.cat;
+  if (sev === 'hint') return 'hint';
+  if (/BIOMONITOR|BLOOD TEST|SCAN |treat|medic|fever|wound|DOWN in|puncture|rash|quarantine|QUARANTINE/i.test(text)) return 'medical';
+  if (/ORGANISM|MOTION|CAMERA|camera|lock|duct|DUCT|noise|knock|shape|stain|organism|security/i.test(text)) return 'security';
+  if (/DOOR|HATCH|door|hatch|bulkhead|SEALED|seal released/.test(text)) return 'door';
+  if (G.crew && G.crew.some((c) => text.includes(c.first + ' ' + c.last))) return 'crew';
+  return 'system';
+}
 function logEvent(sev, text, roomId, opts = {}) {
-  const e = { t: G.t, clock: fmtClock(G.t).str, sev, text, room: roomId || null, id: (G.logId = (G.logId || 0) + 1) };
+  const e = { t: G.t, clock: fmtClock(G.t).str, sev, text, room: roomId || null, id: (G.logId = (G.logId || 0) + 1), cat: logCategory(sev, text, opts) };
   G.log.push(e); if (G.fullLog) G.fullLog.push(e);
   if (G.log.length > 300) G.log.shift();
   if (opts.story !== false && (sev === 'crit' || sev === 'story' || opts.story)) G.story.push(`${fmtClock(G.t).str} — ${text}`);
@@ -23,7 +32,7 @@ function initShip() {
       elecFault: false, cameraOK: true, cameraT: 0, contam: 0, contamKnown: false, venting: false, sealed: false,
       powered: true, observed: true, lifeSigns: 0, motion: 0, ductMotion: 0, leak: false, blood: [],
       flick: 0, dangerSeen: 0, lastCreatureSeen: -999, interference: 0, vent: VENT_X[d.id], noise: 0,
-      sparkT: 0, lightLevel: 1, staffBonus: 0, investigatedT: -999,
+      sparkT: 0, lightLevel: 1, staffBonus: 0, investigatedT: -999, scars: [],
     });
     G.rooms.push(r); G.roomById[r.id] = r;
   }
@@ -184,13 +193,14 @@ function roomAt(x, y) {
 function reactorOutput() {
   const rr = G.roomById.reactor, R = G.reactor;
   if (R.scramT > 0 || R.needsRestart) return 0;
+  const cap = G.tutCap || 999;
   const manned = G.crew.some((c) => c.alive && c.room === 'reactor' && c.atWork && (c.task?.type === 'reactor' || (c.duty === 'reactor' && c.task?.type === 'duty')));
   R.manned = manned;
   const integ = Math.max(0, rr.integ) / 100;
   let out = 132 * Math.pow(integ, 0.7) * (0.45 + 0.55 * R.coolant / 100) * (manned ? 1 : 0.86);
   if (R.instability > 0.25) out *= 1 - R.instability * 0.35 * (0.5 + 0.5 * Math.sin(G.t * 3.1) * Math.sin(G.t * 1.7));
   if (rr.elecFault) out *= 0.6;
-  return Math.max(0, out);
+  return Math.max(0, Math.min(cap, out));
 }
 
 function updatePower(dt) {
@@ -222,6 +232,7 @@ function updatePower(dt) {
   // battery: 100% = 1100 unit-seconds
   G.battery = clamp(G.battery + (net * dt / 1100) * 100, 0, 100);
   G.brownout = net < 0 && G.battery < 15;
+  if (net < -2 && G.battery < 60 && !(G.tut && G.tut.active)) hint('deficit');
   if (G.battery <= 0 && net < 0) {
     // trip breakers in shed order
     const g = SHED_ORDER.map((id) => G.groups[id]).find((g) => g.on);
@@ -230,7 +241,7 @@ function updatePower(dt) {
       logEvent('crit', `BREAKER TRIP — ${g.name} shed. Reactor ${Math.round(supply)} MW vs demand ${Math.round(demand)} MW.`);
       AUDIO.powerDown(); G.shake = Math.max(G.shake, 1.5);
       G.flashPower = 2;
-      if (!G._tripHint) { G._tripHint = true; logEvent('hint', 'A tripped bus stays dark until you re-energise it in POWER DISTRIBUTION — and it will trip again unless generation covers demand. Choose what to keep.'); }
+      hint('trip');
       if (UI.autoPause && G.t - (G._tripPause || -999) > 60) { G._tripPause = G.t; UI.autoPause('BREAKER TRIP'); }
     }
   }
@@ -316,6 +327,7 @@ function updateAtmosphere(dt) {
     if (r === al && outer.anim > 0.05) leak += 1.4 * outer.anim;
     if (leak > 0) { const k = Math.min(1, leak * dt); r.p -= r.p * k; }
     if (r.p < 0.2) r.p = 0;
+    if (r.p < 25 && !r._vacScar) { r._vacScar = true; addScar(r, 'frost', { x: r.cx }); } else if (r.p > 90) r._vacScar = false;
     // life support
     const sealedOff = r.sealed || r.venting;
     if (life && !sealedOff && G.res.o2 > 0) {
@@ -360,10 +372,16 @@ function igniteRoom(r, amt = 0.15, cause = '') {
   if (r.fireXs.length === 0 || chance(0.4)) r.fireXs.push(rnd(r.x0 + 30, r.x1 - 30));
   if (r.fireXs.length > 3) r.fireXs.shift();
   if (was < 0.05) {
+    hint('fire', r.id); crewReact(r.id, r.cx, 1.2, true);
     logEvent('crit', `FIRE in ${r.short}${cause === 'spread' ? ' (spread through open door)' : cause === 'electrical' ? ' — junction box arcing' : ''}.`, r.id);
     AUDIO.fireStart(r);
     if (G.director) G.director.flag('fire');
   }
+}
+// persistent damage: rooms remember what happened to them
+function addScar(r, k, o = {}) {
+  r.scars.push(Object.assign({ k, x: r.cx, y: r.cy, s: 1, t: G.t, seed: Math.random() * 1000 }, o));
+  if (r.scars.length > 16) r.scars.splice(r.scars.findIndex((x) => x.k !== 'patch'), 1);
 }
 function damageRoom(r, amt, cause) {
   r.integ = Math.max(0, r.integ - amt);
@@ -374,21 +392,28 @@ function breachRoom(r, size, x) {
   r.breach = Math.min(1, r.breach + size);
   r.breachX = x ?? rnd(r.x0 + 40, r.x1 - 40);
   r.breachY = r.y0 + rnd(25, 70);
-  r.sealProg = 0;
+  r.sealProg = 0; crewReact(r.id, r.breachX, 1.5, true);
   G.res.hull = Math.max(0, G.res.hull - size * 14);
 }
 
+function recordBurn(r) {
+  for (const bx of r.burnXs || []) addScar(r, 'scorch', { x: bx, s: 0.5 + (r.maxFire || 0.5) });
+  addScar(r, 'soot', { s: Math.max(0.4, r.maxFire || 0.5) });
+  if ((r.maxFire || 0) > 0.5) addScar(r, 'melt', { x: (r.burnXs || [r.cx])[0] + rnd(-20, 20), y: r.y0 + rnd(50, 90) });
+  r.burnXs = []; r.maxFire = 0;
+}
 function updateFire(dt) {
   for (const r of G.rooms) {
-    if (r.fire <= 0) { r.fireXs.length = 0; continue; }
+    if (r.fire <= 0) { if (r.burnXs && r.burnXs.length) recordBurn(r); r.fireXs.length = 0; continue; }
     const e = effO2(r);
     if (e < 10 || r.p < 25) r.fire -= 0.22 * dt;
     else r.fire += 0.022 * dt * (e / 21);
     r.fire = clamp(r.fire, 0, 1);
     r.integ = Math.max(0, r.integ - r.fire * 0.45 * dt);
+    r.maxFire = Math.max(r.maxFire || 0, r.fire); for (const fx of r.fireXs) if (!(r.burnXs || (r.burnXs = [])).some((b) => Math.abs(b - fx) < 30)) r.burnXs.push(fx);
     if (r.fire > 0.5 && r.cameraOK && chance(0.02 * dt)) { r.cameraOK = false; logEvent('warn', `Camera in ${r.short} burned out.`, r.id); }
     if (r.fire > 0.4 && !r.elecFault && chance(0.015 * dt)) { r.elecFault = true; logEvent('warn', `${r.short}: wiring loom burning — local power lost.`, r.id); }
-    if (r.fire <= 0) { r.fire = 0; logEvent('info', `Fire in ${r.short} is out.`, r.id); }
+    if (r.fire <= 0) { r.fire = 0; logEvent('info', `Fire in ${r.short} is out.`, r.id); recordBurn(r); }
   }
 }
 
@@ -442,7 +467,7 @@ function updateObservation(dt) {
   G.secManned = secManned;
   const lost = [];
   for (const r of G.rooms) {
-    if (!r.cameraOK && secManned && camNet && r.powered && r.integ > 30) {
+    if (!r.cameraOK && secManned && camNet && r.powered && r.integ > 30 && !r.tutCam) {
       r.cameraT += dt;
       if (r.cameraT > 25 && !r.cameraJammed) { r.cameraOK = true; r.cameraT = 0; logEvent('info', `Security rebooted camera feed: ${r.short}.`, r.id); }
     } else if (r.cameraOK) r.cameraT = 0;
@@ -455,9 +480,11 @@ function updateObservation(dt) {
     for (const m of G.creatures) if (m.alive && m.room === r.id && m.state !== 'vent') { ls++; if (m.moving) mo += 2; }
     r.lifeSigns = ls; r.motion = approach(r.motion, mo > 0 ? 1 : 0, dt * (mo > 0 ? 3 : 0.4));
     r.ductMotion = Math.max(0, r.ductMotion - dt * 0.5);
+    if (r.feedCollapse > 0) r.feedCollapse -= dt;
   }
   if (lost.length) {
-    AUDIO.staticBurst(0.5);
+    AUDIO.staticBurst(0.5); for (const r of lost) r.feedCollapse = 0.6;
+    if (!(G.tut && G.tut.active)) hint('camera', lost[0].id);
     if (!camNet && G._camNet) logEvent('crit', `SECURITY BUS DOWN — ALL CAMERA FEEDS LOST. You are blind outside rooms with crew in them.`, null, { story: true });
     else if (lost.length === 1) { const r = lost[0]; logEvent('warn', `CAMERA FEED LOST — ${DECK_NAME[r.deck]} / ${r.short}.`, r.id, { story: !r.cameraJammed ? false : true }); }
     else logEvent('warn', `CAMERA FEEDS LOST — ${lost.map((r) => r.short).join(', ')}.`, lost[0].id);
