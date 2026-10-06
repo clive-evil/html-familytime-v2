@@ -14,6 +14,8 @@ await page.waitForFunction(() => window.SF.game);
 const summary = await page.evaluate(async () => {
   const SF = window.SF, UI = SF.ui, G = SF.game;
   const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+  const settle = async () => { for (let i = 0; i < 40 && UI.busy; i++) await sleep(50); };
+  SF.stations.current = 'tactical'; SF.stations.trans = null; SF.stations.applyDOM();
   let guard = 0;
   while (!G.over && guard++ < 400) {
     const sys = SF.curSys(G);
@@ -22,7 +24,7 @@ const summary = await page.evaluate(async () => {
       if (SF.upgradeState(G, u) === 'available' && G.res.metals - (SF.UPGRADES[u].cost.metals||0) > 20) SF.buyUpgrade(G, u);
     // fire a few shots this cycle via the UI path
     let shots = 0;
-    for (const fl of sys.fleets.slice()) { if (SF.canFire(G,'railgun','kinetic','fleet:'+fl.id).ok){ UI.selectedFleet=fl.id; UI.selected=null; UI.weapon='railgun'; UI.fireAuto(); await sleep(120); } }
+    for (const fl of sys.fleets.slice()) { if (SF.canFire(G,'railgun','kinetic','fleet:'+fl.id).ok){ UI.selectedFleet=fl.id; UI.selected=null; UI.weapon='railgun'; UI.fireAuto(); await settle(); } }
     for (let n=0;n<6;n++){
       const enemies = SF.enemyWorlds(G).filter(p=>!SF.troopsOnSurface(G,p.id) && SF.invasionForecast(G,p.id,G.troops).chance<0.9);
       let best=null;
@@ -34,10 +36,10 @@ const summary = await page.evaluate(async () => {
       }
       if(!best||best.s<0.2)break;
       UI.selected=best.pid; UI.selectedInst=best.iid; UI.selectedFleet=null; UI.weapon=best.w; UI.ammo[best.w]=best.a;
-      UI.fireAuto(); shots++; await sleep(140);
+      UI.fireAuto(); shots++; await settle();
     }
     for (const p of SF.enemyWorlds(G).filter(p=>!SF.troopsOnSurface(G,p.id))) { const t=SF.suggestTroops(G,p.id,0.85); if(SF.invasionForecast(G,p.id,t).chance>=0.8 && t<=G.troops) SF.deploy(G,p.id,t); }
-    if (SF.canJump(G)) { SF.jump(G); await sleep(60); continue; }
+    if (SF.canJump(G)) { SF.jump(G); SF.stations.current='tactical'; SF.stations.trans=null; await sleep(60); continue; }
     SF.endCycle(G); await sleep(60);
     if (UI.modal==='report'){ UI.closeModal(); }
   }

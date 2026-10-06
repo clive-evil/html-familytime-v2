@@ -424,7 +424,11 @@
     const R = SF.render;
     const to = t.iid ? () => R.instPos(G, t.pid, t.iid) : () => { const f = R.fleetScreen[t.pid.slice(6)]; return f ? [f.x, f.y] : [R.W / 2, R.H / 2]; };
     const from = (k) => () => R.fortPts[k] || [R.W * 0.2, R.H * 0.8];
-    const done = () => UI.impact(res, t);
+    // Resolve exactly once. A watchdog guarantees UI.busy always clears even if the FX
+    // never gets a chance to draw its onHit (e.g. the player walked off to the Command Deck).
+    let fired = false;
+    const done = () => { if (fired) return; fired = true; clearTimeout(wd); UI.impact(res, t); };
+    const wd = setTimeout(done, 2600);
     if (w === 'railgun') {
       SF.audio.loop('rg', 'whine'); let lv = 0;
       const iv = setInterval(() => { lv += 0.1; SF.audio.loopSet('rg', lv, 0.12); R.fortState.railCharge = lv; if (lv >= 1) { clearInterval(iv); SF.audio.loopStop('rg', 0.02); R.fortState.railCharge = 0; R.fortState.recoil = 1; SF.audio.railgun(1); SF.fx.shake(10, 0.4); SF.fx.rail(from('railgun'), to, done); } }, 45);

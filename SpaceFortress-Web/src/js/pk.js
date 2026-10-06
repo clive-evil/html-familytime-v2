@@ -81,24 +81,43 @@
   function doFire(pid) {
     const G = SF.game;
     const p = SF.planet(G, pid);
+    const name = p ? p.name : 'WORLD';
+    // Capture the planet's on-screen radius before it becomes rubble, for the breakup effect.
     const anchor = () => SF.render.planetPos(G, pid);
+    const radiusFn = () => { const ps = SF.render.planetScreen && SF.render.planetScreen[pid]; return ps ? ps.r : 70; };
     SF.firePlanetKiller(G, pid);
-    // giant beam from fortress to planet, delayed impact
-    SF.audio.pkFire();
-    SF.render.fortState.recoil = 1.5;
+    SF.render.fortState.recoil = 1.8;
     const from = () => SF.render.fortPts.pk || [SF.render.W * 0.12, SF.render.H * 0.9];
-    SF.fx.effects.push({ t: 0, dur: 2.4, hit: false, draw(cc, e) {
+    // Beat 1: a heartbeat of near-silence, then the discharge builds and leaves the station.
+    SF.audio.pkFire();
+    SF.fx.flash('#1a0426', 0.5); // lights slam down
+    SF.fx.effects.push({ t: 0, dur: 2.0, launched: false, hit: false, draw(cc, e) {
       const [x0, y0] = from(), [x1, y1] = anchor();
-      const k = e.t / e.dur;
-      const w = 6 + 60 * Math.sin(Math.min(1, k * 3) * Math.PI);
+      // charge knot at the muzzle for the first 0.45s
+      if (e.t < 0.5) {
+        const a = e.t / 0.5;
+        cc.save(); cc.globalCompositeOperation = 'lighter';
+        const g = cc.createRadialGradient(x0, y0, 0, x0, y0, R0ok(50 + a * 90));
+        g.addColorStop(0, `rgba(255,220,255,${a})`); g.addColorStop(0.5, `rgba(220,90,255,${a * 0.7})`); g.addColorStop(1, 'rgba(120,20,180,0)');
+        cc.fillStyle = g; cc.beginPath(); cc.arc(x0, y0, 50 + a * 90, 0, Math.PI * 2); cc.fill(); cc.restore();
+        if (a > 0.9 && !e.launched) { e.launched = true; SF.fx.shake(14, 0.4); }
+        return;
+      }
+      // Beat 2: the beam crosses space (travel delay before it reaches the world)
+      const bt = (e.t - 0.5) / 0.6; // 0..1 over 0.6s travel
+      const kk = Math.min(1, bt);
+      const hx = x0 + (x1 - x0) * kk, hy = y0 + (y1 - y0) * kk;
+      const w = 18 + 44 * Math.sin(Math.min(1, e.t) * Math.PI);
       cc.save(); cc.globalCompositeOperation = 'lighter';
-      cc.strokeStyle = `rgba(230,120,255,${0.7 * (1 - k * 0.3)})`; cc.lineWidth = w; cc.shadowColor = '#e070ff'; cc.shadowBlur = 40;
-      cc.beginPath(); cc.moveTo(x0, y0); cc.lineTo(x1, y1); cc.stroke();
-      cc.strokeStyle = `rgba(255,255,255,${0.9 * (1 - k * 0.3)})`; cc.lineWidth = w * 0.4; cc.beginPath(); cc.moveTo(x0, y0); cc.lineTo(x1, y1); cc.stroke();
+      cc.strokeStyle = 'rgba(210,110,255,0.8)'; cc.lineWidth = w; cc.shadowColor = '#e070ff'; cc.shadowBlur = 50;
+      cc.beginPath(); cc.moveTo(x0, y0); cc.lineTo(hx, hy); cc.stroke();
+      cc.strokeStyle = 'rgba(255,255,255,0.95)'; cc.lineWidth = w * 0.4; cc.shadowBlur = 20; cc.beginPath(); cc.moveTo(x0, y0); cc.lineTo(hx, hy); cc.stroke();
       cc.restore();
-      if (k > 0.35 && !e.hit) { e.hit = true; SF.fx.nuke(anchor); SF.fx.shake(30, 2); SF.fx.flash('#fff', 1); SF.audio.pkImpact(); }
+      // Beat 3: impact — hand off to the world-destruction spectacle
+      if (bt >= 1 && !e.hit) { e.hit = true; SF.audio.pkImpact(); SF.fx.planetKill(anchor, radiusFn); }
     } });
-    SF.ui.toast('<b>' + (p ? p.name : 'WORLD') + ' ANNIHILATED</b>', 'loss', 5000);
+    function R0ok(v) { return isFinite(v) && v > 0 ? v : 1; }
+    SF.ui.toast('<b>' + name + ' ANNIHILATED</b>', 'loss', 5000);
     setTimeout(() => SF.ui.afterAction(), 400);
   }
 
@@ -185,32 +204,104 @@
   function text(s, x, y, size, col, align, font) { c.fillStyle = col || '#e8d8f2'; c.font = (font || '600 ') + (size || 14) + 'px Bahnschrift, "Roboto Condensed", "Arial Narrow", sans-serif'; c.textAlign = align || 'left'; c.fillText(s, x, y); }
   function hl(r, round) { const a = 0.5 + 0.5 * Math.sin(S.t * 6); c.save(); c.strokeStyle = `rgba(255,75,216,${a})`; c.lineWidth = 3; c.shadowColor = '#ff4bd8'; c.shadowBlur = 20; if (round) { c.beginPath(); c.arc(r.x, r.y, r.r + 10, 0, Math.PI * 2); c.stroke(); } else c.strokeRect(r.x - 6, r.y - 6, r.w + 12, r.h + 12); c.restore(); }
 
+  const iron = () => SF.iron;
+  // How "awake" the chamber is, 0..1, driven by how far through the sequence we are.
+  function intensity() {
+    let n = S.stage;
+    if (cur() && (cur().id === 'capacitors')) n += S.caps; if (cur() && cur().id === 'route') n += S.route;
+    return clamp(n / STAGES.length, 0, 1);
+  }
+
   function draw() {
     const W = cv.clientWidth, H = cv.clientHeight;
     const d = Math.min(2, devicePixelRatio || 1);
+    const I = intensity();
     c.setTransform(d, 0, 0, d, 0, 0);
-    const dim = S.stage / STAGES.length;
-    c.fillStyle = `rgb(${8 + dim * 10},${4},${8 + dim * 8})`; c.fillRect(0, 0, W, H);
+    // Room dims as power routes into the weapon — lights go down, the core glow comes up.
+    const amb = 1 - I * 0.65;
+    c.fillStyle = `rgb(${(6 + 6 * amb) | 0},${(4 + 3 * amb) | 0},${(8 + 6 * amb) | 0})`; c.fillRect(0, 0, W, H);
     const [sx, sy] = SF.fx.offset();
-    c.setTransform(d * sc, 0, 0, d * sc, d * (ox + sx), d * (oy + sy));
-    // backdrop machinery glow
-    const gg = c.createRadialGradient(DW / 2, DH / 2, 50, DW / 2, DH / 2, 900);
-    gg.addColorStop(0, `rgba(80,20,90,${0.1 + dim * 0.3})`); gg.addColorStop(1, 'rgba(0,0,0,0)');
-    c.fillStyle = gg; c.fillRect(0, 0, DW, DH);
-    // alarm strobes
-    if (Math.sin(S.t * 6) > 0.5) { c.fillStyle = `rgba(255,30,10,${0.04 + dim * 0.06})`; c.fillRect(0, 0, DW, DH); }
-
+    const vib = I > 0.4 ? (I - 0.4) * 6 : 0;
+    c.setTransform(d * sc, 0, 0, d * sc, d * (ox + sx + (Math.random() - 0.5) * vib), d * (oy + sy + (Math.random() - 0.5) * vib));
+    drawRoom(I, amb);
+    // header plate
+    iron().plate(c, 10, 8, DW - 20, 46, { tint: [40, 20, 36], bevel: 4, bolts: false, seed: 2 });
+    iron().stencil(c, 'PLANET KILLER · ANNIHILATION SEQUENCE', 26, 40, 22, '#ff8ae0');
     const G = SF.game; const p = SF.planet(G, S.pid);
-    text('PLANET KILLER · ANNIHILATION SEQUENCE', 30, 46, 24, '#ff4bd8', 'left', '800 ');
-    text('TARGET: ' + (p ? p.name : '') + ' · ' + (p && p.pop > 0.01 ? (p.pop >= 1 ? p.pop.toFixed(1) + 'M souls' : Math.round(p.pop * 1000) + 'k souls') : 'uninhabited'), 30, 74, 16, '#e8a0c0');
-    // abort
-    c.fillStyle = '#2a1414'; c.fillRect(C.abort.x, C.abort.y, C.abort.w, C.abort.h); c.strokeStyle = '#a04040'; c.strokeRect(C.abort.x, C.abort.y, C.abort.w, C.abort.h);
-    text('ABORT · ESC', C.abort.x + 70, C.abort.y + 26, 14, '#ffb0a8', 'center');
+    text('TARGET: ' + (p ? p.name : '') + ' · ' + (p && p.pop > 0.01 ? (p.pop >= 1 ? p.pop.toFixed(1) + 'M souls' : Math.round(p.pop * 1000) + 'k souls') : 'uninhabited'), 560, 38, 16, '#e8a0c0');
+    iron().plate(c, C.abort.x, C.abort.y, C.abort.w, C.abort.h, { tint: [90, 30, 26], bevel: 3, seed: 9 });
+    iron().stencil(c, 'ABORT · ESC', C.abort.x + C.abort.w / 2, C.abort.y + 27, 15, '#ffd0c8', 'center');
+    // red alarm wash once authorization keys are in play
+    if (S.stage >= 9 && Math.sin(S.t * 7) > 0.3) { c.fillStyle = `rgba(255,20,10,${0.05 + I * 0.08})`; c.fillRect(-40, -40, DW + 80, DH + 80); }
 
     drawControls();
     drawProgress();
-    if (S.phase === 'fired') { c.fillStyle = `rgba(255,255,255,${Math.min(1, S.fireT)})`; c.fillRect(0, 0, DW, DH); }
+    if (S.phase === 'fired') { c.fillStyle = `rgba(255,255,255,${Math.min(1, S.fireT)})`; c.fillRect(-40, -40, DW + 80, DH + 80); }
     SF.fx.draw(c, DW, DH);
+  }
+
+  // The physical chamber: armoured walls, the mechanical focusing rings around the targeting
+  // aperture (with the doomed planet behind it), power conduits that light up with intensity.
+  function drawRoom(I, amb) {
+    const II = iron();
+    // armoured wall plates
+    for (let x = -20; x < DW; x += 240) for (let y = 60; y < DH; y += 220) II.plate(c, x, y, 235, 215, { tint: [26, 18, 26], bevel: 5, boltR: 4, seed: x + y * 3 });
+    // massive structural rings framing the chamber (the housing built for catastrophic energy)
+    c.save(); c.translate(800, 340);
+    for (let r = 0; r < 3; r++) { const rr = 300 + r * 70; c.strokeStyle = `rgba(${40 + r * 10},${30},${50 + r * 10},1)`; c.lineWidth = 34; c.beginPath(); c.arc(0, 0, rr, 0, Math.PI * 2); c.stroke(); c.strokeStyle = '#0a060a'; c.lineWidth = 2; c.beginPath(); c.arc(0, 0, rr + 17, 0, Math.PI * 2); c.stroke(); for (let k = 0; k < 24; k++) { const a = k * Math.PI / 12 + r; II.bolt(c, Math.cos(a) * rr, Math.sin(a) * rr, 5, true); } }
+    c.restore();
+    // power conduits from reactor cores (left) into the focusing assembly (centre)
+    const litCores = S.cores.filter(Boolean).length;
+    for (let k = 0; k < 4; k++) {
+      const y = 270 + k * 20; const on = S.cores[k];
+      II.pipe(c, 300, 300 + (k - 1.5) * 34, 640, 320, 14, '#2a2030', on ? '#ff6ae0' : null, S.t + k);
+    }
+    II.pipe(c, 520, 700, 760, 560, 20, '#3d1a3a', I > 0.3 ? '#c050ff' : null, S.t);
+    II.cables(c, [[1240, 360], [1320, 300], [1440, 260], [1560, 200]], ['#6a1030', '#8a2060', '#40105a', '#303030'], S.t);
+    // the targeting aperture: reinforced viewport with the planet behind, iris contracting with I
+    drawAperture(I);
+    // overhead vent + ceiling beams
+    c.strokeStyle = '#1a1420'; c.lineWidth = 10; c.beginPath(); c.moveTo(0, 58); c.lineTo(DW, 58); c.stroke();
+    void amb;
+  }
+
+  function drawAperture(I) {
+    const cx = 800, cy = 300, R = 150;
+    const G = SF.game, p = SF.planet(G, S.pid);
+    c.save();
+    c.beginPath(); c.arc(cx, cy, R, 0, Math.PI * 2); c.clip();
+    c.fillStyle = '#01030a'; c.fillRect(cx - R, cy - R, R * 2, R * 2);
+    for (let i = 0; i < 90; i++) { const x = cx - R + ((i * 71) % (2 * R)), y = cy - R + ((i * 97) % (2 * R)); c.fillStyle = `rgba(200,210,255,${0.2 + ((i * 13) % 80) / 100})`; c.fillRect(x, y, 1.5, 1.5); }
+    if (p && p.owner !== 'destroyed') {
+      const pr = R * 0.78;
+      const img = p.type === 'asteroid' ? SF.art.asteroidImage(p, pr * 2.2) : SF.art.planetImage(p, pr * 2, -0.5, -0.4);
+      c.drawImage(img, cx - pr, cy - pr, pr * 2, pr * 2);
+      // target reticle tightening as planetary lock acquires
+      if (S.lock > 0 || S.stage >= 9) {
+        const t = Math.max(S.lock, S.stage >= 9 ? 1 : 0);
+        c.strokeStyle = `rgba(255,80,220,${0.5 + 0.5 * Math.sin(S.t * 4)})`; c.lineWidth = 2;
+        c.beginPath(); c.arc(cx, cy, pr * (1.1 - 0.3 * t), 0, Math.PI * 2); c.stroke();
+        for (let k = 0; k < 4; k++) { c.save(); c.translate(cx, cy); c.rotate(k * Math.PI / 2 + S.t * 0.3); c.beginPath(); c.moveTo(0, -pr * 1.1); c.lineTo(0, -pr * 0.8); c.stroke(); c.restore(); }
+      }
+    }
+    // the charged beam building at the aperture as capacitors fill
+    if (S.caps > 0.02 || S.stage > 7) {
+      const ch = Math.max(S.caps, S.stage > 7 ? 1 : 0);
+      const g = c.createRadialGradient(cx, cy, 0, cx, cy, R * ch);
+      g.addColorStop(0, `rgba(255,180,255,${ch * 0.7})`); g.addColorStop(0.4, `rgba(200,80,255,${ch * 0.4})`); g.addColorStop(1, 'rgba(120,20,180,0)');
+      c.save(); c.globalCompositeOperation = 'lighter'; c.fillStyle = g; c.beginPath(); c.arc(cx, cy, R * ch, 0, Math.PI * 2); c.fill(); c.restore();
+    }
+    c.restore();
+    // reinforced bezel + iris blades contracting with intensity
+    const II = iron();
+    c.strokeStyle = '#2a1a2e'; c.lineWidth = 26; c.beginPath(); c.arc(cx, cy, R + 13, 0, Math.PI * 2); c.stroke();
+    c.strokeStyle = '#6a4a70'; c.lineWidth = 2; c.beginPath(); c.arc(cx, cy, R + 24, 0, Math.PI * 2); c.stroke();
+    for (let k = 0; k < 12; k++) { const a = k * Math.PI / 6; II.bolt(c, cx + Math.cos(a) * (R + 13), cy + Math.sin(a) * (R + 13), 6, true); }
+    // iris blades
+    const close = I * 0.5;
+    c.fillStyle = '#17101c';
+    for (let k = 0; k < 8; k++) { c.save(); c.translate(cx, cy); c.rotate(k * Math.PI / 4); c.beginPath(); c.moveTo(R, -R * 0.42); c.lineTo(R * (1 - close), 0); c.lineTo(R, R * 0.42); c.closePath(); c.fill(); c.restore(); }
+    II.stencil(c, 'TARGETING APERTURE', cx, cy + R + 44, 15, '#c89ad8', 'center');
   }
 
   function drawProgress() {
@@ -235,9 +326,18 @@
     c.fillStyle = '#c0392b'; c.fillRect(ch.x - 24, hy - 12, ch.w + 48, 24);
     if (id === 'chamber') hl(ch);
 
-    // cores
-    C.cores.forEach((p, k) => { c.fillStyle = '#0a0c0e'; c.fillRect(p[0] - 24, p[1] - 30, 48, 60); c.fillStyle = S.cores[k] ? '#6dff9c' : '#5a2a2a'; c.fillRect(p[0] - 16, S.cores[k] ? p[1] - 24 : p[1], 32, 24); text('CORE ' + (k + 1), p[0], p[1] + 48, 11, S.cores[k] ? '#8fdcaa' : '#9aa8b4', 'center'); });
-    if (id === 'cores') C.cores.forEach((p) => hl({ x: p[0] - 24, y: p[1] - 30, w: 48, h: 60 }));
+    // reactor cores — breaker housings that glow when brought online
+    C.cores.forEach((p, k) => {
+      iron().plate(c, p[0] - 28, p[1] - 36, 56, 76, { tint: [34, 28, 36], bevel: 4, boltR: 3, seed: p[0] });
+      const on = S.cores[k];
+      if (on) { c.save(); c.shadowColor = '#6dff9c'; c.shadowBlur = 16; }
+      const g = c.createLinearGradient(p[0], p[1] - 26, p[0], p[1] + 22); g.addColorStop(0, on ? '#9affc0' : '#3a2030'); g.addColorStop(1, on ? '#2a9a5a' : '#1a1016');
+      c.fillStyle = g; c.fillRect(p[0] - 16, p[1] - 26, 32, 48);
+      if (on) c.restore();
+      c.fillStyle = on ? '#dfffe9' : '#6a5a60'; c.fillRect(p[0] - 10, on ? p[1] - 22 : p[1] + 6, 20, 6);
+      iron().stencil(c, 'CORE ' + (k + 1), p[0], p[1] + 58, 12, on ? '#8fdcaa' : '#9a8aa0', 'center');
+    });
+    if (id === 'cores') C.cores.forEach((p) => hl({ x: p[0] - 28, y: p[1] - 36, w: 56, h: 76 }));
 
     // route switch
     const rt = C.route;
@@ -272,12 +372,13 @@
     text('CRYO VALVE', vl.x, vl.y + vl.r + 24, 13, S.valve >= 1 ? '#7fd0ff' : '#9aa8b4', 'center');
     if (id === 'cooling') hl(vl, true);
 
-    // capacitors
+    // capacitor bank — segmented cells behind a frame
     const cp = C.caps;
-    c.fillStyle = '#0a0c0e'; c.fillRect(cp.x, cp.y, cp.w, cp.h);
-    const cg = c.createLinearGradient(cp.x, 0, cp.x + cp.w, 0); cg.addColorStop(0, '#6a10a0'); cg.addColorStop(1, '#ff4bd8');
-    c.fillStyle = cg; c.fillRect(cp.x + 4, cp.y + 4, (cp.w - 8) * S.caps, cp.h - 8);
-    text('CAPACITORS ' + Math.round(S.caps * 100) + '%', cp.x + cp.w / 2, cp.y + cp.h / 2 + 6, 15, '#fff', 'center');
+    iron().plate(c, cp.x - 6, cp.y - 24, cp.w + 12, cp.h + 30, { tint: [34, 22, 36], bevel: 4, bolts: false, seed: 77 });
+    iron().stencil(c, 'CAPACITOR BANK', cp.x + cp.w / 2, cp.y - 8, 13, '#c89ad8', 'center');
+    iron().segMeter(c, cp.x, cp.y, cp.w, cp.h, S.caps, 12, S.caps >= 1 ? '#ff6ae0' : '#c050ff');
+    if (S.holdCaps) for (let i = 0; i < 3; i++) { if (Math.random() < 0.4) { c.strokeStyle = 'rgba(255,180,255,0.7)'; c.lineWidth = 1.5; const yy = cp.y + 6 + Math.random() * (cp.h - 12); c.beginPath(); c.moveTo(cp.x + Math.random() * cp.w, yy); c.lineTo(cp.x + Math.random() * cp.w, yy + 10); c.stroke(); } }
+    text(Math.round(S.caps * 100) + '%', cp.x + cp.w / 2, cp.y + cp.h / 2 + 6, 16, '#fff', 'center', '800 ');
     if (id === 'capacitors') hl(cp);
 
     // planetary lock
@@ -322,6 +423,11 @@
     try { update(dt); if (!S) return; draw(); } catch (e) { console.error('console frame error:', e && e.message); }
     raf = requestAnimationFrame(loop);
   }
+
+  // Test/dev hooks.
+  PK._debugStage = (n) => { if (!S) return; S.stage = clamp(n | 0, 0, STAGES.length - 1); for (let k = 0; k < S.stage; k++) { if (STAGES[k].id === 'cores') S.cores = [true, true, true, true]; if (STAGES[k].id === 'sync') S.emitters = [true, true, true, true, true, true]; } S.chamber = S.stage > 0 ? 1 : 0; S.route = S.stage > 1 ? 1 : 0; S.caps = S.stage > 7 ? 1 : 0; S.lock = S.stage > 8 ? 1 : 0; S.cover = S.stage > 9 ? 1 : 0; S.firekey = S.stage > 10 ? 1 : 0; };
+  PK._debugFire = (pid) => { close(false); doFire(pid); };
+  PK.state = () => S && { stage: S.stage, phase: S.phase };
 
   PK.bind = function () {
     const el = document.getElementById('console');

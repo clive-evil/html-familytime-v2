@@ -3,6 +3,7 @@
   const SF = globalThis.SF;
   const FX = (SF.fx = { parts: [], effects: [], shakeT: 0, shakeA: 0, flashA: 0, flashC: '#fff', time: 0 });
   const rnd = (a, b) => a + Math.random() * (b - a);
+  const clamp = SF.clamp;
   const P = (x) => { const v = (typeof x === 'function' ? x() : x); return v && isFinite(v[0]) && isFinite(v[1]) ? v : [SF.render.W / 2, SF.render.H / 2]; };
 
   FX.shake = function (a, dur) { FX.shakeA = Math.max(FX.shakeA, a); FX.shakeT = Math.max(FX.shakeT, dur || 0.4); };
@@ -50,6 +51,85 @@
       c.restore();
     } });
     for (let i = 0; i < 60; i++) FX.part({ x: x + rnd(-30, 30), y: y + rnd(-30, 30), vx: rnd(-50, 50), vy: rnd(-90, -10), life: rnd(2.5, 5), max: 5, size: rnd(14, 34), color: 'smoke', type: 'smoke', drag: 0.99 });
+  };
+
+  // The Planet Killer's world-destruction spectacle: a multi-beat sequence played at the
+  // target's screen position. radiusFn gives the planet's on-screen radius.
+  FX.planetKill = function (at, radiusFn) {
+    const R = () => Math.max(24, (typeof radiusFn === 'function' ? radiusFn() : radiusFn) || 60);
+    // Beat 1 impact flash
+    FX.flash('#fff', 1); FX.shake(34, 2.4);
+    // precompute crack network + chunk directions
+    const cracks = [];
+    for (let i = 0; i < 14; i++) { const a = rnd(0, 6.283); cracks.push({ a, len: rnd(0.5, 1), br: rnd(0.3, 0.8), ba: a + rnd(-0.6, 0.6) }); }
+    const chunks = [];
+    for (let i = 0; i < 40; i++) { const a = rnd(0, 6.283), sp = rnd(0.3, 1); chunks.push({ a, sp, sz: rnd(0.04, 0.16), spin: rnd(-6, 6) }); }
+    FX.effects.push({ t: 0, dur: 4.2, beat2: false, beat3: false, draw(c, e) {
+      const [x, y] = P(at); const r = R();
+      const k = e.t / e.dur;
+      // Solid shattering body (covers the fact the map already shows rubble): a darkening
+      // sphere veined with glowing cracks, until it bursts at 1.1s.
+      if (e.t < 1.15) {
+        const shade = clamp(1 - e.t / 1.5, 0.3, 1);
+        const bg = c.createRadialGradient(x - r * 0.3, y - r * 0.3, r * 0.1, x, y, r);
+        bg.addColorStop(0, `rgba(${120 * shade | 0},${100 * shade | 0},${130 * shade | 0},1)`); bg.addColorStop(1, `rgba(${30 * shade | 0},${18 * shade | 0},${34 * shade | 0},1)`);
+        c.fillStyle = bg; c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2); c.fill();
+        // molten glow building inside
+        const heat = clamp(e.t / 1.15, 0, 1);
+        const hg = c.createRadialGradient(x, y, 0, x, y, r);
+        hg.addColorStop(0, `rgba(255,150,255,${heat * 0.6})`); hg.addColorStop(0.6, `rgba(200,60,255,${heat * 0.25})`); hg.addColorStop(1, 'rgba(0,0,0,0)');
+        c.save(); c.globalCompositeOperation = 'lighter'; c.fillStyle = hg; c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2); c.fill(); c.restore();
+      }
+      c.save(); c.globalCompositeOperation = 'lighter';
+      // 0.0-0.5s: blinding core + atmosphere distortion rings
+      if (e.t < 1.2) {
+        const g = c.createRadialGradient(x, y, 0, x, y, R0(r * (1 + e.t * 3), 1));
+        const a = 1 - e.t / 1.2;
+        g.addColorStop(0, `rgba(255,255,255,${a})`); g.addColorStop(0.3, `rgba(255,210,255,${a * 0.8})`); g.addColorStop(0.6, `rgba(210,110,255,${a * 0.5})`); g.addColorStop(1, 'rgba(120,20,180,0)');
+        c.fillStyle = g; c.beginPath(); c.arc(x, y, r * (1 + e.t * 3), 0, Math.PI * 2); c.fill();
+        for (let w = 0; w < 3; w++) { const rr = r * (1 + (e.t * 2 + w * 0.3) * 2); c.strokeStyle = `rgba(230,160,255,${a * 0.5})`; c.lineWidth = 3; c.beginPath(); c.arc(x, y, R0(rr), 0, Math.PI * 2); c.stroke(); }
+      }
+      // 0.2s+: glowing cracks spread across the surface
+      if (e.t > 0.2) {
+        const cp = clamp((e.t - 0.2) / 0.8, 0, 1);
+        c.lineCap = 'round';
+        for (const cr of cracks) {
+          const len = r * cr.len * cp;
+          const gx = x + Math.cos(cr.a) * len, gy = y + Math.sin(cr.a) * len;
+          c.strokeStyle = `rgba(255,${120 - cp * 60},255,${0.9 * (1 - k)})`; c.lineWidth = (3 + cp * 4) * (1 - k);
+          c.beginPath(); c.moveTo(x, y); c.lineTo(gx, gy); c.stroke();
+          const bx = x + Math.cos(cr.ba) * len * cr.br, by = y + Math.sin(cr.ba) * len * cr.br;
+          c.beginPath(); c.moveTo(x + Math.cos(cr.a) * len * 0.5, y + Math.sin(cr.a) * len * 0.5); c.lineTo(bx, by); c.stroke();
+        }
+      }
+      // 1.1s: the planet shatters — chunks fly outward, shockwave ring
+      if (e.t > 1.1) {
+        if (!e.beat2) { e.beat2 = true; FX.flash('#ffd8ff', 0.7); FX.shake(26, 1.8); }
+        const bp = (e.t - 1.1) / (e.dur - 1.1);
+        for (const ch of chunks) {
+          const d = r * 0.3 + bp * r * 6 * ch.sp;
+          const cx2 = x + Math.cos(ch.a) * d, cy2 = y + Math.sin(ch.a) * d * 0.9;
+          c.save(); c.globalCompositeOperation = 'source-over'; c.translate(cx2, cy2); c.rotate(ch.a + bp * ch.spin);
+          const s = r * ch.sz * (1 - bp * 0.4);
+          const grd = c.createLinearGradient(-s, -s, s, s); grd.addColorStop(0, '#8a7a90'); grd.addColorStop(1, '#2a1a30');
+          c.fillStyle = grd; c.beginPath(); c.moveTo(-s, -s * 0.6); c.lineTo(s * 0.7, -s); c.lineTo(s, s * 0.5); c.lineTo(-s * 0.4, s); c.closePath(); c.fill();
+          if (bp < 0.5) { c.fillStyle = `rgba(255,120,255,${(0.5 - bp)})`; c.fillRect(-s * 0.4, -s * 0.4, s * 0.8, s * 0.8); }
+          c.restore();
+        }
+        // expanding shockwave
+        const sw = r + bp * r * 9;
+        c.strokeStyle = `rgba(230,150,255,${(1 - bp) * 0.8})`; c.lineWidth = 6 * (1 - bp) + 1;
+        c.beginPath(); c.arc(x, y, R0(sw), 0, Math.PI * 2); c.stroke();
+        c.strokeStyle = `rgba(255,255,255,${(1 - bp) * 0.5})`; c.lineWidth = 2; c.beginPath(); c.arc(x, y, R0(sw * 0.8), 0, Math.PI * 2); c.stroke();
+        // lingering core glow / debris field
+        const cg = c.createRadialGradient(x, y, 0, x, y, R0(r * (1 + bp)));
+        cg.addColorStop(0, `rgba(255,140,255,${(1 - bp) * 0.4})`); cg.addColorStop(1, 'rgba(120,20,160,0)');
+        c.fillStyle = cg; c.beginPath(); c.arc(x, y, r * (1 + bp), 0, Math.PI * 2); c.fill();
+      }
+      c.restore();
+    } });
+    // smoke/ember particles at shatter time
+    setTimeout(() => { const [x, y] = P(at); const r = R(); for (let i = 0; i < 50; i++) { const a = rnd(0, 6.283), sp = rnd(40, 260); FX.part({ x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp * 0.8, life: rnd(1.5, 3.5), max: 3.5, size: rnd(2, 5), color: '#e8a0ff', drag: 0.96 }); } void r; }, 1150);
   };
 
   // Projectile helpers. onHit fires once at arrival.
