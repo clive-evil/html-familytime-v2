@@ -6,6 +6,8 @@ const browser = await chromium.launch();
 async function shot(name, w, h, fn){ const p=await browser.newPage({viewport:{width:w,height:h}}); await p.goto(url+'?seed=5'); await p.waitForFunction(()=>window.SF&&window.SF.ui); await p.waitForTimeout(100); await fn(p); await p.waitForTimeout(700); await p.screenshot({path:'docs/screenshots/'+name+'.jpg'}); await p.close(); }
 // 1. Title
 await shot('01-title',1600,900, async(p)=>{ await p.waitForTimeout(500); });
+// 1b. Command Deck home
+await shot('01b-command-deck',1600,900, async(p)=>{ await p.click('#t-skip'); await p.waitForFunction(()=>window.SF.game); await p.waitForTimeout(900); });
 // 2. Command panel on a shielded world (system 2)
 await shot('02-command',1600,900, async(p)=>{
   await p.click('#t-skip'); await p.waitForFunction(()=>window.SF.game); await p.waitForTimeout(550);

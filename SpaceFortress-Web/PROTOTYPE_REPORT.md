@@ -160,3 +160,99 @@ fleets arriving faster than feels fair on the harder systems; the curve needs hu
 3. **Fortress damage made visceral** — localized module hits in the HUD (this weapon offline, that bay breached) with a small repair-prioritisation choice, so taking fire *feels* like damage to a specific machine.
 4. **Richer enemy agency** — fleets that besiege captured worlds over several cycles, counter-invasions to retake a world, and reinforcement convoys you can interdict.
 5. **Economy depth without bloat** — one or two strategic choices per captured world (garrison it against raids vs. strip it for a one-time payout; convert industry to a repair yard), to make the post-capture map matter more.
+
+---
+
+# Addendum — Physicality / Art-Direction Overhaul (2026-10-06)
+
+A second pass reframed the prototype so it reads as the **interior of a colossal orbital war
+machine** rather than a sci-fi HTML dashboard. All gameplay logic, campaign, invasion, resource,
+progression, Planet Killer and save systems were preserved unchanged (the 25 rules tests and the
+full-campaign playthrough still pass); this was a front-end / game-feel / visual-architecture pass.
+
+**1. Repo / branch:** `clive-evil/html-familytime-v2` · `claude/busy-lamport-ee55xk`.
+**2. File to run:** `SpaceFortress-Web/dist/SpaceFortress.html`.
+**3. What existed before this pass:** a working strategy prototype whose presentation was flat
+rectangles, thin-bordered panels, tiny uppercase text, evenly-spaced boxes and abstract CSS dials —
+structurally sound but close to an AI-generated dashboard.
+**4. What changed:** a reusable industrial material toolkit; a Command Deck home view; a fixed-camera
+station-navigation model; the railgun and Planet Killer consoles rebuilt as heavy machinery; the
+weapon selector rebuilt as a physical module rail; diegetic metal reskin of the HUD; a multi-beat
+world-destruction spectacle; and tactical-table framing with firing/landing vectors.
+
+**5. Command Deck:** new default home (`deck.js`). A giant angled observation window shows the
+current planet, the system star and the fortress's own railgun barrel through a structural opening;
+foreground consoles carry live analogue HULL/SHIELD gauges, a reactor segment meter, 7-segment
+resource readouts and per-weapon readiness lamps; a holographic tactical plot rises from a bolted
+drum and is the clickable way into the Tactical Table. Ceiling trusses, pipes, wall columns, cables
+and warning placards frame the scene.
+
+**6. Tactical Table:** the existing strategy map, reframed as a projected war-table — corner-bracket
+bezel, faint scanlines, a dashed firing-solution vector from the gun to the selected target with a
+reticle, troop landing-route vectors, planetary shield hex-grid, and persistent surface damage
+(craters, scorch, contamination, destroyed-installation embers). Panels are now metal console
+housings (steel gradient, inset highlight, holo accent edge) instead of thin-bordered boxes.
+
+**7. Railgun station:** rebuilt as a physical gunnery bay (`manual.js` rendering) — structural
+I-beams, a breech-housing cylinder, the barrel receding behind a rugged gunnery sight, coolant/power
+pipes, cable bundles, an overhead gantry and warning placards. Controls are real machinery: a spoked
+traverse handwheel, a geared elevation lever, a cryo valve with frost and an analogue temperature
+gauge, cylindrical capacitor cells that glow and arc while charging, a safety cover and trigger.
+Panel titles use clean engraved label strips. The 10-step firing flow and all input coordinates are
+unchanged, and the hand-driven shot still verifies end-to-end.
+
+**8. Planet Killer:** rebuilt as an annihilation **chamber room** (`pk.js` rendering) — armoured
+walls, giant mechanical focusing rings around a reinforced targeting aperture with the doomed planet
+behind contracting iris blades, reactor-core breaker housings, power conduits that light with
+progress, a segmented capacitor bank, cryo valve, dual authorization keys and a caged ENGAGE trigger.
+The room intensifies through the 12-stage sequence (lights dim, conduits illuminate, iris contracts,
+vibration builds, red alarm wash). The firing payoff (`fx.planetKill`) is a multi-beat spectacle:
+charge knot at the muzzle → beam travel delay → blinding impact → a solid body veined with glowing
+cracks → shatter into tumbling chunks → expanding shockwave → lingering debris field.
+
+**9. Diegetic UI:** physical readiness lamps replace "READY" text; analogue gauges and segmented
+meters replace bare percentages; a riveted station rail, metal top strip and engraved labels replace
+flat chrome. `iron.js` provides the shared vocabulary (scratched steel plates with bolts and baked
+grime, bolts/rivets, lamps, analogue gauges, segment meters, pipes, cable bundles, CRT screens,
+hazard placards, stencil/engraved type, valves and toggles).
+
+**10. Weapon animations / feedback:** charge-reactive lighting and arcing on the railgun; iris,
+conduit and vibration escalation on the Planet Killer; mining extraction beams with resource-shuttle
+pulses on captured worlds; troop dropship streaks and landing routes; the full firing spectacle.
+
+**11. Audio:** added servo-slide, heavy door, relay and sub-vibration cues for station movement and
+machinery, on top of the existing procedural weapon signatures.
+
+**12. Fortress exterior:** the 2.5D fortress silhouette (barrel, reactor, troop bays, missile racks,
+laser turret, Planet Killer ring) remains visible in the tactical foreground and grows modules as you
+upgrade; it is also framed through the Command Deck window.
+
+**13. Transitions:** moving between stations plays a blast-door / shutter wipe (horizontal doors for
+deck↔tactical, side doors otherwise) with a servo cue, instead of an instant page swap. Entering a
+weapon station wipes into its console; closing returns you to the station you came from.
+
+**14. Performance:** all canvas 2D; the Command Deck caches its static backdrop; the industrial
+toolkit caches grime and glyph textures. No WebGL, no heavy per-frame allocation; render loops are
+try/guarded so one bad frame can never freeze the game.
+
+**15. Tests run:** `npm test` 25/25 pass; headless smoke/interaction/playthrough clean (both weapon
+consoles driven through real pointer input; full campaign won through the real UI render/FX pipeline);
+tutorial completes; checked at 1600×900 and 1366×768. No console/page errors across the suite.
+
+**16. Not completed:** the Laser and Missile/Bombardment still use Auto-Fire only (no bespoke tactile
+console — the railgun remains the one hands-on weapon besides the Planet Killer); Engineering is still
+a metal-framed modal rather than a full walk-in workshop station; station transitions are a 2D wipe
+rather than a true camera dolly.
+
+**17. Weakest remaining visual areas:** (1) the Engineering/upgrade modal is the least physical
+screen; (2) the Laser has no tactile mode to match the railgun; (3) deck gauge typography still has a
+faint 7-seg "ghost" artifact; (4) the tactical planet, while detailed, doesn't yet show large-scale
+city-grid or ocean specular that would sell its scale up close; (5) enemy fleets are still simple
+sprite clusters rather than modelled ships.
+
+**18. Next five highest-value improvements:** (1) a tactile **Laser** heat/beam console as the second
+hands-on weapon; (2) rebuild **Engineering** as a physical module-install bay with animated gantry
+arms bolting new modules onto the fortress; (3) a true **camera-dolly** transition between stations
+instead of a wipe; (4) richer **impact decals** that accumulate on a world across multiple strikes;
+(5) an onboarding revision that explicitly teaches the station layout (deck → table → railgun → fire
+→ back → capture).

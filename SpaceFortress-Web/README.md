@@ -11,7 +11,8 @@ The whole game is tension between two truths:
 
 Precision wins the war richer. Nukes and the Planet Killer win it faster, and poorer.
 
-![Command view](docs/screenshots/03-targeting.jpg)
+![Command Deck](docs/screenshots/01b-command-deck.jpg)
+![Tactical Table](docs/screenshots/03-targeting.jpg)
 
 ---
 
@@ -50,10 +51,19 @@ Target: modern desktop Chrome/Edge/Firefox/Safari, 1366×768 and up. Mouse + key
 
 ---
 
+You stand inside the fortress. The **Command Deck** is home — a big observation window onto
+the planet with live analogue gauges and a holographic plot. You move between fixed
+**stations** (Command Deck · Tactical Table · Railgun Control · Engineering · Annihilation
+Chamber) from the physical rail down the left edge, and orders are issued at the **Tactical
+Table**. Entering a weapon station (Railgun, Planet Killer) drops you into its hands-on
+machinery console.
+
 ## Controls
 
 | Input | Action |
 |---|---|
+| **Station rail** (left edge) / **C T R U K** | Travel to Deck / Tactical / Railgun / Engineering / Planet Killer |
+| **Click** the holo table on the deck | Move to the Tactical Table |
 | **Click** a world / moon / fleet | Select it and open its command panel |
 | **Click** an installation (on a scanned enemy world, zoomed in) | Target it |
 | **Drag** / **scroll** | Pan / zoom the tactical map |

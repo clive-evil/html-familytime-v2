@@ -214,7 +214,7 @@
     IRON.recess(c, x, y, w, h, '#0a0f0b');
     c.save(); c.beginPath(); c.rect(x, y, w, h); c.clip();
     c.font = `${h * 0.62}px "Consolas", "Menlo", monospace`; c.textAlign = 'right'; c.textBaseline = 'middle';
-    c.fillStyle = 'rgba(120,255,160,0.08)'; c.fillText('88888888'.slice(0, text.length + 2), x + w - 8, y + h / 2);
+    c.globalAlpha = 0.05; c.fillStyle = col || '#7dffb0'; c.fillText('8'.repeat(text.length), x + w - 8, y + h / 2); c.globalAlpha = 1;
     c.save(); c.shadowColor = col || '#7dffb0'; c.shadowBlur = 8; c.fillStyle = col || '#7dffb0'; c.fillText(text, x + w - 8, y + h / 2); c.restore();
     c.textBaseline = 'alphabetic'; c.restore();
   };

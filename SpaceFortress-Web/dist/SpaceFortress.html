@@ -2000,7 +2000,7 @@ input[type=range] { width: 100%; accent-color: var(--warn); }
     IRON.recess(c, x, y, w, h, '#0a0f0b');
     c.save(); c.beginPath(); c.rect(x, y, w, h); c.clip();
     c.font = `${h * 0.62}px "Consolas", "Menlo", monospace`; c.textAlign = 'right'; c.textBaseline = 'middle';
-    c.fillStyle = 'rgba(120,255,160,0.08)'; c.fillText('88888888'.slice(0, text.length + 2), x + w - 8, y + h / 2);
+    c.globalAlpha = 0.05; c.fillStyle = col || '#7dffb0'; c.fillText('8'.repeat(text.length), x + w - 8, y + h / 2); c.globalAlpha = 1;
     c.save(); c.shadowColor = col || '#7dffb0'; c.shadowBlur = 8; c.fillStyle = col || '#7dffb0'; c.fillText(text, x + w - 8, y + h / 2); c.restore();
     c.textBaseline = 'alphabetic'; c.restore();
   };
@@ -2969,8 +2969,24 @@ input[type=range] { width: 100%; accent-color: var(--warn); }
     }
     // contamination haze
     if (p.contamination > 0.05) { c.fillStyle = `rgba(140,220,60,${p.contamination * 0.12})`; c.beginPath(); c.arc(x, y, r * 1.04, 0, Math.PI * 2); c.fill(); }
-    // ownership ring
-    if (p.owner === 'player') { c.strokeStyle = 'rgba(109,255,156,0.55)'; c.lineWidth = 2; c.setLineDash([10, 6]); c.beginPath(); c.arc(x, y, r * 1.18 + 4, R.t * 0.2, R.t * 0.2 + Math.PI * 2); c.stroke(); c.setLineDash([]); }
+    // ownership ring + mining extraction beams (captured worlds visibly pay out)
+    if (p.owner === 'player') {
+      c.strokeStyle = 'rgba(109,255,156,0.55)'; c.lineWidth = 2; c.setLineDash([10, 6]); c.beginPath(); c.arc(x, y, r * 1.18 + 4, R.t * 0.2, R.t * 0.2 + Math.PI * 2); c.stroke(); c.setLineDash([]);
+      const collect = [x + r * 1.5, y - r * 1.5]; // orbital collection point
+      let any = false;
+      for (const i of p.insts) {
+        if (i.type !== 'mine' || i.hp <= 0) continue; any = true;
+        const mx = x + i.pos[0] * r * 0.92, my = y + i.pos[1] * r * 0.92;
+        const col = i.yields && i.yields.exotic ? '#c77dff' : i.yields && i.yields.crystals ? '#4fd8ff' : i.yields && i.yields.fissile ? '#a6ff4d' : '#ffd27a';
+        c.save(); c.globalCompositeOperation = 'lighter'; c.globalAlpha = 0.25 + 0.15 * Math.sin(R.t * 2 + mx);
+        c.strokeStyle = col; c.lineWidth = 1.5; c.beginPath(); c.moveTo(mx, my); c.lineTo(collect[0], collect[1]); c.stroke();
+        // resource shuttle pulse travelling up the beam
+        const ph = (R.t * 0.5 + (mx % 1)) % 1; c.globalAlpha = 0.9 * (1 - ph);
+        c.fillStyle = col; c.beginPath(); c.arc(mx + (collect[0] - mx) * ph, my + (collect[1] - my) * ph, 2.5, 0, Math.PI * 2); c.fill();
+        c.restore();
+      }
+      if (any && r > 24) { c.fillStyle = 'rgba(109,255,156,0.8)'; c.save(); c.globalCompositeOperation = 'lighter'; c.beginPath(); c.arc(collect[0], collect[1], 3 + Math.sin(R.t * 3) * 1, 0, Math.PI * 2); c.fill(); c.restore(); }
+    }
     // invasion in progress: dropship streaks + ground flashes
     if (SF.troopsOnSurface(g, p.id)) {
       for (let k = 0; k < 4; k++) {
