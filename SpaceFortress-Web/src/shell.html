@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Space Fortress</title>
+<style>/*__CSS__*/</style>
+</head>
+<body>
+<div id="app">
+  <canvas id="map"></canvas>
+
+  <header id="topbar" class="hud">
+    <div class="brand"><span class="brand-mark">◤</span>SPACE FORTRESS</div>
+    <div id="sysname" class="sysname"></div>
+    <div id="res-bar" class="resbar"></div>
+    <div id="fort-bars" class="fortbars"></div>
+    <div class="top-actions">
+      <button id="btn-fortress" class="btn btn-steel" title="Fortress Engineering (U)">FORTRESS</button>
+      <button id="btn-end" class="btn btn-end" title="End cycle (Enter)">END CYCLE <span id="cycle-num"></span></button>
+      <button id="btn-menu" class="btn btn-icon" title="Menu (Esc)">☰</button>
+    </div>
+  </header>
+
+  <section id="objective" class="hud panel"></section>
+  <section id="log" class="hud panel"></section>
+  <aside id="panel" class="hud panel hidden"></aside>
+  <section id="dock" class="hud"></section>
+  <div id="toasts"></div>
+  <div id="tut-ring" class="hidden"></div>
+  <div id="tut-arrow" class="hidden">▼</div>
+  <div id="tooltip" class="hidden"></div>
+
+  <div id="overlay" class="hidden"></div>
+  <canvas id="console" class="hidden"></canvas>
+</div>
+<script>/*__JS__*/</script>
+</body>
+</html>
