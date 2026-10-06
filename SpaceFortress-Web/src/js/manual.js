@@ -61,6 +61,9 @@
     M.isOpen = false;
     const st = S; S = null;
     SF.ui.mode = null;
+    // Return the operator to the station they came from (usually the tactical table).
+    SF.stations.current = SF.stations.beforeStation || 'tactical';
+    SF.stations.trans = null; SF.stations.applyDOM();
     if (withImpact && st.res) {
       SF.render.fortState.recoil = 1;
       SF.fx.rail(() => SF.render.fortPts.railgun, () => st.fleet ? (SF.render.fleetScreen[st.pid.slice(6)] ? [SF.render.fleetScreen[st.pid.slice(6)].x, SF.render.fleetScreen[st.pid.slice(6)].y] : [SF.render.W / 2, SF.render.H / 2]) : SF.render.instPos(SF.game, st.pid, st.iid), () => SF.ui.impact(st.res, { pid: st.pid, iid: st.iid }));
@@ -258,29 +261,66 @@
   }
 
   // ------------------------------------------------------------ drawing helpers
+  const iron = () => SF.iron;
+  // Steel housing panel (replaces the old flat plate). Optional engraved title bar.
   function plate(x, y, w, h, title) {
-    const gr = c.createLinearGradient(x, y, x, y + h);
-    gr.addColorStop(0, '#2a3036'); gr.addColorStop(1, '#161a1e');
-    c.fillStyle = gr; c.fillRect(x, y, w, h);
-    c.strokeStyle = '#4a545e'; c.lineWidth = 2; c.strokeRect(x + 1, y + 1, w - 2, h - 2);
-    c.fillStyle = '#0d1013'; c.fillRect(x + 4, y + 4, w - 8, 3);
-    for (const [bx, by] of [[x + 10, y + 10], [x + w - 10, y + 10], [x + 10, y + h - 10], [x + w - 10, y + h - 10]]) { c.fillStyle = '#5a646e'; c.beginPath(); c.arc(bx, by, 4, 0, Math.PI * 2); c.fill(); c.fillStyle = '#20262c'; c.fillRect(bx - 3, by - 0.5, 6, 1); }
-    if (title) { c.fillStyle = '#b8c4ce'; c.font = '600 15px Bahnschrift, "Arial Narrow", sans-serif'; c.textAlign = 'left'; c.fillText(title, x + 18, y + 26); }
+    iron().plate(c, x, y, w, h, { tint: [50, 55, 60], bevel: 7, seed: (x * 3 + y + w) | 0 });
+    if (title) {
+      // clean engraved label strip (readable), with a short hazard tab on the right
+      c.fillStyle = '#10151a'; c.fillRect(x + 7, y + 7, w - 14, 26);
+      c.strokeStyle = 'rgba(0,0,0,0.6)'; c.lineWidth = 1; c.strokeRect(x + 7.5, y + 7.5, w - 15, 25);
+      c.strokeStyle = 'rgba(255,255,255,0.05)'; c.beginPath(); c.moveTo(x + 8, y + 8); c.lineTo(x + w - 8, y + 8); c.stroke();
+      iron().hazard(c, x + w - 40, y + 9, 30, 22, 1);
+      iron().stencil(c, title, x + 16, y + 26, 16, '#9fb2bf');
+    }
   }
   function text(s, x, y, size, col, align, font) { c.fillStyle = col || '#d8e8f2'; c.font = (font || '600 ') + (size || 14) + 'px Bahnschrift, "Roboto Condensed", "Arial Narrow", sans-serif'; c.textAlign = align || 'left'; c.fillText(s, x, y); }
   function mono(s, x, y, size, col, align) { c.fillStyle = col || '#9fe8ff'; c.font = (size || 14) + 'px Consolas, Menlo, monospace'; c.textAlign = align || 'left'; c.fillText(s, x, y); }
-  function lamp(x, y, on, col, label) {
-    c.fillStyle = '#0a0c0e'; c.beginPath(); c.arc(x, y, 11, 0, Math.PI * 2); c.fill();
-    if (on) { c.shadowColor = col; c.shadowBlur = 18; }
-    c.fillStyle = on ? col : '#2a2f34'; c.beginPath(); c.arc(x, y, 8, 0, Math.PI * 2); c.fill();
-    c.shadowBlur = 0;
-    text(label, x, y + 28, 11, on ? '#d8e8f2' : '#6a7884', 'center');
-  }
+  function lamp(x, y, on, col, label) { iron().lamp(c, x, y, 9, on, col, label, on ? '#d8e8f2' : '#6a7884'); }
   function hl(r, round) {
     const a = 0.55 + 0.45 * Math.sin(S.t * 6);
-    c.save(); c.strokeStyle = `rgba(255,138,42,${a})`; c.lineWidth = 3; c.shadowColor = '#ff8a2a'; c.shadowBlur = 16;
-    if (round) { c.beginPath(); c.arc(r.x, r.y, r.r + 10, 0, Math.PI * 2); c.stroke(); } else c.strokeRect(r.x - 6, r.y - 6, r.w + 12, r.h + 12);
+    c.save(); c.strokeStyle = `rgba(255,138,42,${a})`; c.lineWidth = 4; c.shadowColor = '#ff8a2a'; c.shadowBlur = 20;
+    if (round) { c.beginPath(); c.arc(r.x, r.y, r.r + 12, 0, Math.PI * 2); c.stroke(); } else c.strokeRect(r.x - 8, r.y - 8, r.w + 16, r.h + 16);
     c.restore();
+  }
+
+  // ------------------------------------------------------------ machinery backdrop
+  function drawBackdrop() {
+    const I = iron();
+    // wall gradient, lit warmer when the capacitors are charging
+    const warm = clamp(S.charge / 125, 0, 1) * (S.charging ? 1 : 0.4);
+    const bg = c.createLinearGradient(0, 0, 0, DH);
+    bg.addColorStop(0, `rgb(${18 + warm * 22},${20 + warm * 8},${24})`); bg.addColorStop(1, '#070a0d');
+    c.fillStyle = bg; c.fillRect(-40, -40, DW + 80, DH + 80);
+    // riveted wall plates (back layer)
+    for (let x = -20; x < DW; x += 220) for (let y = -20; y < DH; y += 200) I.plate(c, x, y, 215, 195, { tint: [24, 27, 31], bevel: 5, bolts: true, boltR: 4, seed: x + y });
+    // huge structural I-beams framing the bay
+    for (const bx of [8, DW - 44]) { const g = c.createLinearGradient(bx, 0, bx + 36, 0); g.addColorStop(0, '#2b3238'); g.addColorStop(0.5, '#3e474f'); g.addColorStop(1, '#171c20'); c.fillStyle = g; c.fillRect(bx, -40, 36, DH + 80); for (let y = 10; y < DH; y += 70) I.bolt(c, bx + 18, y, 6, true); }
+    // the gun barrel receding behind the scope (upper-left structural opening)
+    c.save(); c.translate(430, 150); c.rotate(-0.18);
+    const bl = c.createLinearGradient(0, -70, 0, 70); bl.addColorStop(0, '#3c454e'); bl.addColorStop(0.5, '#1a2024'); bl.addColorStop(1, '#0c1014');
+    c.fillStyle = bl; c.fillRect(-460, -70, 520, 140);
+    for (let x = -430; x < 40; x += 46) { c.fillStyle = '#4a545e'; c.fillRect(x, -76, 14, 152); const gl = S.charging ? Math.max(0, Math.sin(S.t * 18 - x * 0.03)) * S.charge / 100 : 0; if (gl > 0.1) { c.fillStyle = `rgba(120,220,255,${gl * 0.7})`; c.fillRect(x, -76, 14, 152); } }
+    c.restore();
+    // breech housing cylinder behind the right column
+    c.save(); c.translate(1320, 335);
+    const hg = c.createRadialGradient(-40, -40, 20, 0, 0, 230); hg.addColorStop(0, '#454e57'); hg.addColorStop(1, '#141a1f');
+    c.fillStyle = hg; c.fillRect(-60, -250, 320, 520);
+    c.strokeStyle = '#0a0d10'; c.lineWidth = 3; c.strokeRect(-60, -250, 320, 520);
+    for (let y = -230; y < 260; y += 56) { I.bolt(c, -42, y, 6, true); I.bolt(c, 242, y, 6, true); }
+    c.restore();
+    // thick coolant + power pipes threading the bay
+    I.pipe(c, 60, 940, 1120, 720, 22, '#3d5a66', S.coolant ? '#5fc8ff' : null, S.coolFlow);
+    I.pipe(c, 1120, 540, 1320, 480, 20, '#5a4030', null);
+    I.cables(c, [[1480, 620], [1500, 500], [1560, 360], [1600, 200]], ['#6a1030', '#8a6020', '#20304a', '#303030'], S.t);
+    I.cables(c, [[40, 500], [120, 620], [60, 780], [200, 880]], null, S.t);
+    // overhead gantry
+    c.strokeStyle = '#2a3238'; c.lineWidth = 8; c.beginPath(); c.moveTo(0, 30); c.lineTo(DW, 30); c.stroke();
+    for (let x = 40; x < DW; x += 120) { c.beginPath(); c.moveTo(x, 30); c.lineTo(x + 30, 2); c.moveTo(x + 30, 30); c.lineTo(x, 2); c.stroke(); }
+    // asymmetric warning placards bolted to the wall
+    I.placard(c, 24, 540, 130, 70, ['DANGER', 'RAIL ENERGY'], { rot: -0.03, size: 17 });
+    I.placard(c, 820, 70, 150, 40, ['NO PERSONNEL'], { rot: 0.02, size: 15 });
+    I.plate_label(c, 1090, 900, 150, 34, 'MK-II SPINAL', { tint: [44, 40, 28] });
   }
 
   // ------------------------------------------------------------ draw
@@ -288,26 +328,20 @@
     const W = cv.clientWidth, H = cv.clientHeight;
     const d = Math.min(2, devicePixelRatio || 1);
     c.setTransform(d, 0, 0, d, 0, 0);
-    c.fillStyle = '#07090b'; c.fillRect(0, 0, W, H);
+    c.fillStyle = '#05080a'; c.fillRect(0, 0, W, H);
     const [sx, sy] = SF.fx.offset();
     const recoil = S.phase === 'fired' ? Math.max(0, 1 - S.firedT * 2) : 0;
-    c.setTransform(d * sc, 0, 0, d * sc, d * (ox + sx), d * (oy + sy + recoil * 18));
-    // background machinery
-    const bg = c.createLinearGradient(0, 0, 0, DH);
-    bg.addColorStop(0, '#14181c'); bg.addColorStop(1, '#0a0c0f');
-    c.fillStyle = bg; c.fillRect(0, 0, DW, DH);
-    c.strokeStyle = '#1e2429'; c.lineWidth = 1;
-    for (let x = 0; x < DW; x += 40) { c.beginPath(); c.moveTo(x, 0); c.lineTo(x, DH); c.stroke(); }
-    c.strokeStyle = '#5a4a2a'; c.lineWidth = 10; c.beginPath(); c.moveTo(0, 880); c.bezierCurveTo(400, 860, 900, 895, 1600, 870); c.stroke();
-    c.strokeStyle = '#2a4a56'; c.lineWidth = 7; c.beginPath(); c.moveTo(0, 60); c.bezierCurveTo(300, 75, 1000, 50, 1600, 70); c.stroke();
-    // hazard stripe header
-    for (let x = 0; x < DW; x += 30) { c.fillStyle = (x / 30) % 2 ? '#1a1a1a' : '#7a5a10'; c.beginPath(); c.moveTo(x, 0); c.lineTo(x + 30, 0); c.lineTo(x + 18, 8); c.lineTo(x - 12, 8); c.fill(); }
+    c.setTransform(d * sc, 0, 0, d * sc, d * (ox + sx), d * (oy + sy + recoil * 22));
+    drawBackdrop();
+    // title bar
+    iron().plate(c, 10, 8, DW - 20, 48, { tint: [40, 44, 48], bevel: 4, bolts: false, seed: 1 });
+    iron().hazard(c, 10, 50, DW - 20, 8, 1);
     const tname = S.fleet ? (SF.fleet(SF.game, S.pid.slice(6)) || { name: 'Fleet' }).name : S.i.name + ' · ' + S.p.name;
-    text('RAILGUN · MANUAL FIRE CONTROL', 24, 42, 22, '#ffb066', 'left', '700 ');
-    text('TARGET: ' + tname.toUpperCase(), 420, 42, 17, '#ff8a7a');
-    // abort
-    c.fillStyle = '#2a1414'; c.fillRect(CTRL.abort.x, CTRL.abort.y, CTRL.abort.w, CTRL.abort.h); c.strokeStyle = '#a04040'; c.strokeRect(CTRL.abort.x, CTRL.abort.y, CTRL.abort.w, CTRL.abort.h);
-    text('ABORT · ESC', CTRL.abort.x + 70, CTRL.abort.y + 26, 14, '#ffb0a8', 'center');
+    iron().stencil(c, 'RAILGUN · MANUAL FIRE CONTROL', 24, 42, 24, '#ffb066');
+    text('TARGET: ' + tname.toUpperCase(), 470, 40, 17, '#ff8a7a');
+    // abort as a chunky red button plate
+    iron().plate(c, CTRL.abort.x, CTRL.abort.y, CTRL.abort.w, CTRL.abort.h, { tint: [90, 30, 26], bevel: 3, seed: 9 });
+    iron().stencil(c, 'ABORT · ESC', CTRL.abort.x + CTRL.abort.w / 2, CTRL.abort.y + 27, 15, '#ffd0c8', 'center');
 
     const cur = stepIndex();
     drawProcedure(cur);
@@ -320,7 +354,7 @@
     drawCaps(cur === 6);
     drawFire(cur === 8, cur === 9);
     drawLamps();
-    if (S.msgT > 0) { c.fillStyle = 'rgba(40,8,4,0.9)'; c.fillRect(420, 70, 640, 36); text(S.msg, 740, 94, 16, '#ffb0a0', 'center'); }
+    if (S.msgT > 0) { const a = clamp(S.msgT / 0.4, 0, 1); c.globalAlpha = a; iron().plate(c, 440, 66, 640, 40, { tint: [70, 20, 14], bevel: 3, bolts: false, seed: 2 }); text(S.msg, 760, 92, 17, '#ffd0c8', 'center'); c.globalAlpha = 1; }
     SF.fx.draw(c, DW, DH);
     if (S.phase === 'fired') drawResult();
   }
@@ -439,14 +473,23 @@
     // target mark
     const ta = -Math.PI / 2 + (tgtB() - S.bear) * (Math.PI / 24);
     if (Math.abs(ta + Math.PI / 2) < Math.PI * 0.9) { c.fillStyle = '#ff8a2a'; c.save(); c.rotate(ta); c.beginPath(); c.moveTo(d.r + 22, 0); c.lineTo(d.r + 36, -8); c.lineTo(d.r + 36, 8); c.closePath(); c.fill(); c.restore(); }
-    // knob (rotates with bearing)
-    const kr = d.r - 8;
-    const kg = c.createRadialGradient(-20, -20, 5, 0, 0, kr);
-    kg.addColorStop(0, '#6a747e'); kg.addColorStop(1, '#22282e');
-    c.fillStyle = kg; c.beginPath(); c.arc(0, 0, kr, 0, Math.PI * 2); c.fill();
+    // traverse handwheel (spoked, rotates with bearing)
+    const kr = d.r - 6;
     c.rotate((S.bear * 12) * Math.PI / 180);
-    for (let k = 0; k < 24; k++) { c.save(); c.rotate(k * Math.PI / 12); c.fillStyle = '#15191d'; c.fillRect(kr - 10, -3, 10, 6); c.restore(); }
-    c.fillStyle = '#ff8a2a'; c.fillRect(-3, -kr + 8, 6, 26);
+    // outer rim
+    const rg = c.createRadialGradient(-kr * 0.3, -kr * 0.3, kr * 0.4, 0, 0, kr);
+    rg.addColorStop(0, '#5a646e'); rg.addColorStop(1, '#1a2024');
+    c.strokeStyle = rg; c.lineWidth = 20; c.beginPath(); c.arc(0, 0, kr - 10, 0, Math.PI * 2); c.stroke();
+    c.strokeStyle = 'rgba(0,0,0,0.5)'; c.lineWidth = 2; c.beginPath(); c.arc(0, 0, kr - 1, 0, Math.PI * 2); c.stroke();
+    // grip knobs around the rim
+    for (let k = 0; k < 8; k++) { c.save(); c.rotate(k * Math.PI / 4); SF.iron.bolt(c, kr - 10, 0, 7, false); c.restore(); }
+    // spokes
+    c.strokeStyle = '#3a434c'; c.lineWidth = 12; for (let k = 0; k < 4; k++) { c.save(); c.rotate(k * Math.PI / 2); c.beginPath(); c.moveTo(14, 0); c.lineTo(kr - 14, 0); c.stroke(); c.restore(); }
+    // hub
+    const hub = c.createRadialGradient(-6, -6, 3, 0, 0, 20); hub.addColorStop(0, '#6a747e'); hub.addColorStop(1, '#20262c');
+    c.fillStyle = hub; c.beginPath(); c.arc(0, 0, 20, 0, Math.PI * 2); c.fill(); SF.iron.bolt(c, 0, 0, 6, true);
+    // orange index spoke
+    c.fillStyle = '#ff8a2a'; c.fillRect(-4, -kr + 6, 8, 30);
     c.restore();
     // needle at top
     c.fillStyle = '#e8f4ff'; c.beginPath(); c.moveTo(d.x, d.y - d.r - 2); c.lineTo(d.x - 7, d.y - d.r - 22); c.lineTo(d.x + 7, d.y - d.r - 22); c.closePath(); c.fill();
@@ -537,34 +580,40 @@
     plate(1075, 465, 300, 260, 'COOLANT');
     const r = CTRL.cool;
     if (active) hl(r);
-    c.fillStyle = '#0a0c0e'; c.fillRect(r.x + 20, r.y + 20, 40, 80);
-    c.fillStyle = S.coolant ? '#3a8ac0' : '#5a646e';
-    c.fillRect(r.x + 24, S.coolant ? r.y + 24 : r.y + 62, 32, 34);
-    text(S.coolant ? 'ON' : 'OFF', r.x + 40, r.y + 125, 14, S.coolant ? '#7fd0ff' : '#9aa8b4', 'center');
-    // pipe flow
-    c.strokeStyle = '#1e3a4a'; c.lineWidth = 12; c.beginPath(); c.moveTo(1200, 650); c.lineTo(1360, 650); c.stroke();
-    if (S.coolant) { c.strokeStyle = '#5fc8ff'; c.lineWidth = 4; c.setLineDash([10, 10]); c.lineDashOffset = -S.coolFlow * 60; c.beginPath(); c.moveTo(1200, 650); c.lineTo(1360, 650); c.stroke(); c.setLineDash([]); }
-    // temperature gauge
-    const gx = 1290, gy = 590, gr = 60;
-    c.fillStyle = '#0c0f12'; c.beginPath(); c.arc(gx, gy, gr + 8, Math.PI, 0); c.fill();
-    const zones = [[0, 0.6, '#2a7a4a'], [0.6, 0.85, '#a08a20'], [0.85, 1, '#a02a20']];
-    for (const [a0, a1, col] of zones) { c.strokeStyle = col; c.lineWidth = 10; c.beginPath(); c.arc(gx, gy, gr, Math.PI + a0 * Math.PI, Math.PI + a1 * Math.PI); c.stroke(); }
-    const ta = Math.PI + clamp(S.temp / 110, 0, 1) * Math.PI;
-    c.strokeStyle = '#fff'; c.lineWidth = 3; c.beginPath(); c.moveTo(gx, gy); c.lineTo(gx + Math.cos(ta) * (gr - 6), gy + Math.sin(ta) * (gr - 6)); c.stroke();
-    mono('RAIL ' + Math.round(S.temp) + '°', gx, gy + 24, 14, S.temp > 85 ? '#ff6a4d' : '#c4ccd4', 'center');
+    // frost creeps over the panel when coolant runs
+    if (S.coolant) { c.save(); c.globalAlpha = 0.5 * clamp(S.coolFlow, 0, 1); c.fillStyle = 'rgba(200,235,255,0.5)'; for (let i = 0; i < 40; i++) { const fx = 1075 + ((i * 53) % 300), fy = 465 + ((i * 97) % 260); c.fillRect(fx, fy, 2 + (i % 3), 2 + (i % 2)); } c.globalAlpha = 1; c.restore(); }
+    // valve wheel (rotates as it opens)
+    const vx = r.x + 40, vy = r.y + 55;
+    c.save(); c.translate(vx, vy); c.rotate(S.coolant ? S.coolFlow * 6 : 0);
+    c.strokeStyle = S.coolant ? '#4a90c0' : '#6a737b'; c.lineWidth = 9; c.beginPath(); c.arc(0, 0, 32, 0, Math.PI * 2); c.stroke();
+    c.lineWidth = 7; for (let k = 0; k < 4; k++) { c.beginPath(); c.moveTo(0, 0); c.lineTo(Math.cos(k * Math.PI / 2) * 30, Math.sin(k * Math.PI / 2) * 30); c.stroke(); }
+    SF.iron.bolt(c, 0, 0, 8, true);
+    c.restore();
+    iron().stencil(c, S.coolant ? 'OPEN' : 'SHUT', vx, vy + 54, 14, S.coolant ? '#7fd0ff' : '#9aa8b4', 'center');
+    // pipe + condensation drip
+    c.strokeStyle = '#13303c'; c.lineWidth = 14; c.beginPath(); c.moveTo(1195, 650); c.lineTo(1360, 650); c.stroke();
+    if (S.coolant) { c.strokeStyle = '#5fc8ff'; c.lineWidth = 5; c.setLineDash([12, 12]); c.lineDashOffset = -S.coolFlow * 70; c.beginPath(); c.moveTo(1195, 650); c.lineTo(1360, 650); c.stroke(); c.setLineDash([]); c.save(); c.shadowColor = '#5fc8ff'; c.shadowBlur = 10; c.strokeStyle = 'rgba(180,235,255,0.3)'; c.lineWidth = 10; c.stroke(); c.restore(); }
+    // temperature gauge (iron)
+    SF.iron.gauge(c, 1290, 585, 52, clamp(S.temp / 110, 0, 1), [[0, 0.6, '#2a7a4a'], [0.6, 0.85, '#c8a020'], [0.85, 1, '#a02a20']], { label: 'RAIL °C' });
+    mono(Math.round(S.temp) + '°', 1290, 660, 15, S.temp > 85 ? '#ff6a4d' : '#9fe8ff', 'center');
   }
 
   function drawCaps(active) {
     plate(1385, 465, 195, 270, 'CAPACITORS');
+    const over = S.charge > 105;
+    const litCol = over ? '#ff5a3a' : S.charge >= 90 ? '#7dffb0' : '#5fc8ff';
     for (let k = 0; k < 4; k++) {
-      const x = 1405 + k * 42, y = 500, h = 140;
-      c.fillStyle = '#0a0c0e'; c.fillRect(x, y, 30, h);
+      const x = 1405 + k * 42, y = 500, h = 140, w = 30;
+      // cylindrical cell housing
+      c.fillStyle = '#0a0c0e'; c.fillRect(x - 2, y - 2, w + 4, h + 4);
+      const cg = c.createLinearGradient(x, 0, x + w, 0); cg.addColorStop(0, '#10131a'); cg.addColorStop(0.5, '#1a2028'); cg.addColorStop(1, '#0a0c10');
+      c.fillStyle = cg; c.fillRect(x, y, w, h);
       const f = clamp((S.charge - k * 25) / 25, 0, 1.25);
-      const over = S.charge > 105;
-      c.fillStyle = over ? '#ff5a3a' : S.charge >= 90 ? '#7dffb0' : '#5fc8ff';
-      if (S.charging) { c.shadowColor = c.fillStyle; c.shadowBlur = 12; }
-      c.fillRect(x + 3, y + h - Math.min(1, f) * (h - 6) - 3, 24, Math.min(1, f) * (h - 6));
-      c.shadowBlur = 0;
+      if (f > 0.01) { c.fillStyle = litCol; if (S.charging) { c.shadowColor = litCol; c.shadowBlur = 16; } c.fillRect(x + 3, y + h - Math.min(1, f) * (h - 6) - 3, w - 6, Math.min(1, f) * (h - 6)); c.shadowBlur = 0; c.fillStyle = 'rgba(255,255,255,0.3)'; c.fillRect(x + 3, y + h - Math.min(1, f) * (h - 6) - 3, w - 6, 3); }
+      // terminal cap
+      c.fillStyle = '#5a646e'; c.fillRect(x + 4, y - 8, w - 8, 8);
+      // arcs between cells while charging hard
+      if (S.charging && S.charge > 70 && k < 3 && Math.random() < 0.3) { c.strokeStyle = 'rgba(180,235,255,0.8)'; c.lineWidth = 1.5; c.beginPath(); c.moveTo(x + w, y + 10 + Math.random() * 20); c.lineTo(x + 42, y + 10 + Math.random() * 20); c.stroke(); }
     }
     // band indicator
     const bx = 1405, bw = 168, by = 650;
@@ -572,7 +621,7 @@
     c.fillStyle = '#2a7a4a'; c.fillRect(bx + bw * (90 / 125), by - 6, bw * (15 / 125), 10);
     c.fillStyle = '#7a2a20'; c.fillRect(bx + bw * (115 / 125), by - 6, bw * (10 / 125), 10);
     c.fillStyle = '#fff'; c.fillRect(bx + bw * Math.min(1, S.charge / 125) - 2, by - 10, 4, 18);
-    mono(Math.round(S.charge) + '%', 1480, 488, 15, S.charge >= 90 && S.charge <= 105 ? '#7dffb0' : S.charge > 105 ? '#ff6a4d' : '#9fe8ff', 'center');
+    mono(Math.round(S.charge) + '%', 1482, 672, 18, S.charge >= 90 && S.charge <= 105 ? '#7dffb0' : S.charge > 105 ? '#ff6a4d' : '#9fe8ff', 'center');
     const r = CTRL.charge;
     if (active) hl(r);
     const pr = S.charging;

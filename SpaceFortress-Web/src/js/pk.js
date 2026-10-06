@@ -64,6 +64,8 @@
     document.getElementById('app').classList.remove('pk-on');
     PK.active = false;
     const st = S; S = null;
+    SF.stations.current = SF.stations.beforeStation || 'tactical';
+    SF.stations.trans = null; SF.stations.applyDOM();
     if (fired) doFire(st.pid);
     else SF.ui.afterAction();
   }
