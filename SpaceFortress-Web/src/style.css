@@ -24,13 +24,18 @@ button { font-family: inherit; font-size: inherit; color: inherit; }
 #map, #console { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 #console { z-index: 50; cursor: default; }
 
-/* ---------- panels ---------- */
+/* ---------- panels (metal console housings framing holo displays) ---------- */
 .panel {
-  background: linear-gradient(180deg, rgba(10, 24, 36, 0.92), var(--panel));
-  border: 1px solid var(--panel-edge);
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.6), 0 8px 30px rgba(0, 0, 0, 0.55), inset 0 0 30px rgba(95, 212, 255, 0.05);
+  position: relative;
+  background:
+    linear-gradient(180deg, rgba(14, 26, 36, 0.93), rgba(7, 14, 20, 0.9)),
+    linear-gradient(180deg, #232b33, #141a20);
+  border: 1px solid #3a444e; border-top-color: #4c5862;
+  box-shadow: 0 0 0 1px #000, 0 8px 26px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.07), inset 0 0 26px rgba(95, 212, 255, 0.04);
   clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 14px 100%, 0 calc(100% - 14px));
 }
+/* holo accent line down the leading edge */
+.panel::before { content: ''; position: absolute; left: 0; top: 10px; bottom: 10px; width: 2px; background: linear-gradient(180deg, transparent, rgba(95, 212, 255, 0.4), transparent); }
 .hud { position: absolute; z-index: 10; }
 h2, h3 { margin: 0; font-weight: 600; letter-spacing: 0.12em; }
 .label { color: var(--text-dim); font-size: 0.78em; letter-spacing: 0.14em; text-transform: uppercase; }
@@ -39,9 +44,10 @@ h2, h3 { margin: 0; font-weight: 600; letter-spacing: 0.12em; }
 /* ---------- top bar ---------- */
 #topbar {
   top: 0; left: 0; right: 0; height: 3.6em; display: flex; align-items: center; gap: 1.2em; padding: 0 1em;
-  background: linear-gradient(180deg, rgba(4, 10, 16, 0.97), rgba(4, 10, 16, 0.82));
-  border-bottom: 1px solid var(--panel-edge);
+  background: linear-gradient(180deg, #252d35, #141a20 55%, #0c1116);
+  border-bottom: 2px solid #000; box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 3px 10px rgba(0,0,0,0.6);
 }
+#topbar::after { content: ''; position: absolute; left: 0; right: 0; bottom: -2px; height: 2px; background: repeating-linear-gradient(90deg, #7a5a10 0 14px, #1a1a1a 14px 28px); opacity: 0.5; }
 .brand { font-weight: 700; letter-spacing: 0.3em; color: var(--warn); white-space: nowrap; font-size: 1.05em; }
 .brand-mark { color: var(--alert); margin-right: 0.4em; }
 .sysname { white-space: nowrap; line-height: 1.1; }

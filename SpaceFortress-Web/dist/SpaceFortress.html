@@ -30,13 +30,18 @@ button { font-family: inherit; font-size: inherit; color: inherit; }
 #map, #console { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 #console { z-index: 50; cursor: default; }
 
-/* ---------- panels ---------- */
+/* ---------- panels (metal console housings framing holo displays) ---------- */
 .panel {
-  background: linear-gradient(180deg, rgba(10, 24, 36, 0.92), var(--panel));
-  border: 1px solid var(--panel-edge);
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.6), 0 8px 30px rgba(0, 0, 0, 0.55), inset 0 0 30px rgba(95, 212, 255, 0.05);
+  position: relative;
+  background:
+    linear-gradient(180deg, rgba(14, 26, 36, 0.93), rgba(7, 14, 20, 0.9)),
+    linear-gradient(180deg, #232b33, #141a20);
+  border: 1px solid #3a444e; border-top-color: #4c5862;
+  box-shadow: 0 0 0 1px #000, 0 8px 26px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.07), inset 0 0 26px rgba(95, 212, 255, 0.04);
   clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 14px 100%, 0 calc(100% - 14px));
 }
+/* holo accent line down the leading edge */
+.panel::before { content: ''; position: absolute; left: 0; top: 10px; bottom: 10px; width: 2px; background: linear-gradient(180deg, transparent, rgba(95, 212, 255, 0.4), transparent); }
 .hud { position: absolute; z-index: 10; }
 h2, h3 { margin: 0; font-weight: 600; letter-spacing: 0.12em; }
 .label { color: var(--text-dim); font-size: 0.78em; letter-spacing: 0.14em; text-transform: uppercase; }
@@ -45,9 +50,10 @@ h2, h3 { margin: 0; font-weight: 600; letter-spacing: 0.12em; }
 /* ---------- top bar ---------- */
 #topbar {
   top: 0; left: 0; right: 0; height: 3.6em; display: flex; align-items: center; gap: 1.2em; padding: 0 1em;
-  background: linear-gradient(180deg, rgba(4, 10, 16, 0.97), rgba(4, 10, 16, 0.82));
-  border-bottom: 1px solid var(--panel-edge);
+  background: linear-gradient(180deg, #252d35, #141a20 55%, #0c1116);
+  border-bottom: 2px solid #000; box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 3px 10px rgba(0,0,0,0.6);
 }
+#topbar::after { content: ''; position: absolute; left: 0; right: 0; bottom: -2px; height: 2px; background: repeating-linear-gradient(90deg, #7a5a10 0 14px, #1a1a1a 14px 28px); opacity: 0.5; }
 .brand { font-weight: 700; letter-spacing: 0.3em; color: var(--warn); white-space: nowrap; font-size: 1.05em; }
 .brand-mark { color: var(--alert); margin-right: 0.4em; }
 .sysname { white-space: nowrap; line-height: 1.1; }
@@ -2865,11 +2871,18 @@ input[type=range] { width: 100%; accent-color: var(--warn); }
     const [sx, sy] = SF.fx.offset();
     c.save(); c.translate(sx, sy);
     drawSystem(g, ui);
+    drawVectors(g, ui);
     const focus = ui.selected && R.camT.pid === ui.selected;
     R.fortPts = SF.art.drawFortress(c, R.W * 0.12, R.H * 0.93, Math.min(R.W, R.H) / 1250, -0.42, g, R.t, R.fortState);
     SF.fx.draw(c, R.W, R.H);
     c.restore();
-    // vignette + scanlines
+    // holographic war-table projection: faint scanlines + corner bezel over the plot area
+    c.save();
+    c.fillStyle = 'rgba(95,180,230,0.025)';
+    for (let yy = R.view.y0; yy < R.view.y1; yy += 3) c.fillRect(R.view.x0, yy, R.view.x1 - R.view.x0, 1.4);
+    drawPlotBezel();
+    c.restore();
+    // vignette
     const vg = c.createRadialGradient(R.W / 2, R.H / 2, Math.min(R.W, R.H) * 0.4, R.W / 2, R.H / 2, Math.max(R.W, R.H) * 0.75);
     vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,0.55)');
     c.fillStyle = vg; c.fillRect(0, 0, R.W, R.H);
@@ -3070,6 +3083,47 @@ input[type=range] { width: 100%; accent-color: var(--warn); }
     c.font = '11px Consolas, monospace'; c.fillStyle = f.eta > 0 ? '#ffd27a' : '#ff6a4d';
     c.fillText(f.eta > 0 ? 'ETA ' + f.eta + ' CYCLE' + (f.eta > 1 ? 'S' : '') : 'ENGAGING', 0, 67);
     c.restore();
+  }
+
+  // Corner brackets framing the plot region, so the map reads as a projected table display.
+  function drawPlotBezel() {
+    const v = R.view, m = 10, L = 26;
+    c.strokeStyle = 'rgba(95,200,255,0.3)'; c.lineWidth = 2;
+    const corners = [[v.x0 + m, v.y0 + m, 1, 1], [v.x1 - m, v.y0 + m, -1, 1], [v.x0 + m, v.y1 - m, 1, -1], [v.x1 - m, v.y1 - m, -1, -1]];
+    for (const [x, y, dx, dy] of corners) { c.beginPath(); c.moveTo(x + dx * L, y); c.lineTo(x, y); c.lineTo(x, y + dy * L); c.stroke(); }
+  }
+
+  // Targeting vectors: the selected weapon's firing line to its target, and troop landing routes.
+  function drawVectors(g, ui) {
+    const fp = R.fortPts;
+    const gun = fp && (fp.railgun || fp.center);
+    // firing solution line to the selected installation / fleet
+    const t = SF.ui.targetRef && SF.ui.targetRef();
+    if (t && gun) {
+      let to = null;
+      if (t.iid) to = R.instScreen[t.iid] && [R.instScreen[t.iid].x, R.instScreen[t.iid].y];
+      else if (t.pid && t.pid.startsWith('fleet:')) { const f = R.fleetScreen[t.pid.slice(6)]; if (f) to = [f.x, f.y]; }
+      if (to) {
+        const col = (SF.WEAPONS[ui.weapon] && SF.WEAPONS[ui.weapon].color) || '#ff8a2a';
+        c.save(); c.setLineDash([10, 8]); c.lineDashOffset = -R.t * 30;
+        c.strokeStyle = col; c.globalAlpha = 0.55; c.lineWidth = 1.5;
+        c.beginPath(); c.moveTo(gun[0], gun[1]); c.lineTo(to[0], to[1]); c.stroke();
+        c.setLineDash([]); c.globalAlpha = 1;
+        // reticle at the aim point
+        c.strokeStyle = col; c.lineWidth = 1.5;
+        c.beginPath(); c.arc(to[0], to[1], 14 + Math.sin(R.t * 4) * 1.5, 0, Math.PI * 2); c.stroke();
+        c.restore();
+      }
+    }
+    // troop landing routes for invasions under way
+    if (gun) for (const iv of g.invasions) {
+      if (SF.planetSys(g, iv.pid) !== g.sysIndex) continue;
+      const ps = R.planetScreen[iv.pid]; if (!ps) continue;
+      c.save(); c.setLineDash([6, 10]); c.lineDashOffset = -R.t * 40;
+      c.strokeStyle = 'rgba(109,255,156,0.5)'; c.lineWidth = 2;
+      c.beginPath(); c.moveTo(gun[0], gun[1]); c.lineTo(ps.x, ps.y); c.stroke();
+      c.setLineDash([]); c.restore();
+    }
   }
 
   // ---------------------------------------------------------------- picking

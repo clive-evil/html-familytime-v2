@@ -110,11 +110,18 @@
     const [sx, sy] = SF.fx.offset();
     c.save(); c.translate(sx, sy);
     drawSystem(g, ui);
+    drawVectors(g, ui);
     const focus = ui.selected && R.camT.pid === ui.selected;
     R.fortPts = SF.art.drawFortress(c, R.W * 0.12, R.H * 0.93, Math.min(R.W, R.H) / 1250, -0.42, g, R.t, R.fortState);
     SF.fx.draw(c, R.W, R.H);
     c.restore();
-    // vignette + scanlines
+    // holographic war-table projection: faint scanlines + corner bezel over the plot area
+    c.save();
+    c.fillStyle = 'rgba(95,180,230,0.025)';
+    for (let yy = R.view.y0; yy < R.view.y1; yy += 3) c.fillRect(R.view.x0, yy, R.view.x1 - R.view.x0, 1.4);
+    drawPlotBezel();
+    c.restore();
+    // vignette
     const vg = c.createRadialGradient(R.W / 2, R.H / 2, Math.min(R.W, R.H) * 0.4, R.W / 2, R.H / 2, Math.max(R.W, R.H) * 0.75);
     vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,0.55)');
     c.fillStyle = vg; c.fillRect(0, 0, R.W, R.H);
@@ -315,6 +322,47 @@
     c.font = '11px Consolas, monospace'; c.fillStyle = f.eta > 0 ? '#ffd27a' : '#ff6a4d';
     c.fillText(f.eta > 0 ? 'ETA ' + f.eta + ' CYCLE' + (f.eta > 1 ? 'S' : '') : 'ENGAGING', 0, 67);
     c.restore();
+  }
+
+  // Corner brackets framing the plot region, so the map reads as a projected table display.
+  function drawPlotBezel() {
+    const v = R.view, m = 10, L = 26;
+    c.strokeStyle = 'rgba(95,200,255,0.3)'; c.lineWidth = 2;
+    const corners = [[v.x0 + m, v.y0 + m, 1, 1], [v.x1 - m, v.y0 + m, -1, 1], [v.x0 + m, v.y1 - m, 1, -1], [v.x1 - m, v.y1 - m, -1, -1]];
+    for (const [x, y, dx, dy] of corners) { c.beginPath(); c.moveTo(x + dx * L, y); c.lineTo(x, y); c.lineTo(x, y + dy * L); c.stroke(); }
+  }
+
+  // Targeting vectors: the selected weapon's firing line to its target, and troop landing routes.
+  function drawVectors(g, ui) {
+    const fp = R.fortPts;
+    const gun = fp && (fp.railgun || fp.center);
+    // firing solution line to the selected installation / fleet
+    const t = SF.ui.targetRef && SF.ui.targetRef();
+    if (t && gun) {
+      let to = null;
+      if (t.iid) to = R.instScreen[t.iid] && [R.instScreen[t.iid].x, R.instScreen[t.iid].y];
+      else if (t.pid && t.pid.startsWith('fleet:')) { const f = R.fleetScreen[t.pid.slice(6)]; if (f) to = [f.x, f.y]; }
+      if (to) {
+        const col = (SF.WEAPONS[ui.weapon] && SF.WEAPONS[ui.weapon].color) || '#ff8a2a';
+        c.save(); c.setLineDash([10, 8]); c.lineDashOffset = -R.t * 30;
+        c.strokeStyle = col; c.globalAlpha = 0.55; c.lineWidth = 1.5;
+        c.beginPath(); c.moveTo(gun[0], gun[1]); c.lineTo(to[0], to[1]); c.stroke();
+        c.setLineDash([]); c.globalAlpha = 1;
+        // reticle at the aim point
+        c.strokeStyle = col; c.lineWidth = 1.5;
+        c.beginPath(); c.arc(to[0], to[1], 14 + Math.sin(R.t * 4) * 1.5, 0, Math.PI * 2); c.stroke();
+        c.restore();
+      }
+    }
+    // troop landing routes for invasions under way
+    if (gun) for (const iv of g.invasions) {
+      if (SF.planetSys(g, iv.pid) !== g.sysIndex) continue;
+      const ps = R.planetScreen[iv.pid]; if (!ps) continue;
+      c.save(); c.setLineDash([6, 10]); c.lineDashOffset = -R.t * 40;
+      c.strokeStyle = 'rgba(109,255,156,0.5)'; c.lineWidth = 2;
+      c.beginPath(); c.moveTo(gun[0], gun[1]); c.lineTo(ps.x, ps.y); c.stroke();
+      c.setLineDash([]); c.restore();
+    }
   }
 
   // ---------------------------------------------------------------- picking
