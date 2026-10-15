@@ -1,0 +1,25 @@
+{
+  "name": "drive-with-dave",
+  "version": "1.0.0",
+  "description": "Passenger-seat instruction prototype built on Normal Driving",
+  "main": "index.js",
+  "scripts": {
+    "test": "node --test tests/sim.test.js tests/route.test.js tests/dave.test.js",
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "smoke": "node tests/smoke.mjs"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "three": "^0.169.0"
+  },
+  "devDependencies": {
+    "playwright-core": "^1.63.0",
+    "vite": "^5.4.21",
+    "vite-plugin-singlefile": "^2.3.3"
+  },
+  "type": "module"
+}

@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Drive With Dave</title>
+  <link rel="stylesheet" href="./src/ui/style.css" />
+  <link rel="stylesheet" href="./src/ui/dave.css" />
+</head>
+<body>
+  <canvas id="game"></canvas>
+  <div id="hud">
+    <div id="prompt"></div>
+    <div id="hint"></div>
+    <div id="message" style="opacity:0"><div class="t"></div><div class="s"></div></div>
+    <div id="readout"></div>
+    <canvas id="gate" width="96" height="96"></canvas>
+  </div>
+
+  <!-- Dave mode HUD -->
+  <div id="daveHud" hidden>
+    <div id="davePlate"><span id="daveName">DAVE</span><span id="stressWrap" title="Dave's stress"><span id="stressBar"></span></span></div>
+    <div id="heard" class="fade"><span class="lbl">DAVE HEARD</span> <span id="heardCmd"></span><span id="heardTranscript"></span></div>
+    <div id="subtitle" class="fade"><span class="who">DAVE</span> <span id="subtitleText"></span></div>
+    <div id="intro">YOU DON'T DRIVE. TELL DAVE WHAT TO DO.</div>
+    <div id="pad">
+      <div class="row ctx" id="ctxRow"></div>
+      <div class="row">
+        <button data-cmd="LEFT" class="big">LEFT<kbd>A</kbd></button>
+        <button data-cmd="STRAIGHT" class="big">STRAIGHT<kbd>X</kbd></button>
+        <button data-cmd="RIGHT" class="big">RIGHT<kbd>D</kbd></button>
+      </div>
+      <div class="row">
+        <button data-cmd="SLOWER">SLOWER<kbd>S</kbd></button>
+        <button data-cmd="GO" class="go">GO<kbd>W</kbd></button>
+        <button data-cmd="FASTER">FASTER<kbd>E</kbd></button>
+      </div>
+      <div class="row">
+        <button data-cmd="STOP" class="stop">STOP<kbd>Q</kbd></button>
+        <button data-cmd="BRAKE" class="brake">BRAKE!<kbd>SPACE</kbd></button>
+      </div>
+    </div>
+    <div id="mic" hidden><span class="dot"></span><span id="micText">LISTENING</span></div>
+  </div>
+
+  <div id="arrived"><div class="card"><h2 id="resultTitle">YOU ARRIVED.</h2><div id="verdict"></div><table id="stats"></table><div class="again">Enter / A to drive again &middot; Esc for the menu &middot; F1 lab</div></div></div>
+
+  <div id="title">
+    <div class="titleCard">
+      <h1>DRIVE WITH DAVE</h1>
+      <p class="sub">YOU NAVIGATE. DAVE DRIVES.</p>
+      <p class="tag">You're in the passenger seat. Your nan's house is at the top of the hill. Dave has the keys.</p>
+      <p id="loading">Building the town…</p>
+      <div id="menu" style="visibility:hidden">
+        <button id="startBtn" class="primary">START DRIVE</button>
+        <div class="menuRow"><span class="lbl">CHOOSE DAVE</span><div id="daveCards"></div></div>
+        <div class="menuRow"><span class="lbl">COMMANDS</span>
+          <div class="seg" id="modeSeg"><button data-mode="buttons">BUTTONS</button><button data-mode="voice">VOICE + BUTTONS</button></div>
+          <span id="voiceNote"></span>
+        </div>
+        <div class="menuRow small"><button id="settingsBtn">SETTINGS / LAB (F1)</button><button id="resultsBtn">TEST RESULTS</button></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="results" hidden><div class="card"><h2>TEST RESULTS</h2><div id="resultsBody"></div><div class="btns"><button id="resultsClose">CLOSE</button><button id="resultsCopy">COPY JSON</button><button id="resultsClear">CLEAR</button></div></div></div>
+  <div id="lab"></div>
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>
