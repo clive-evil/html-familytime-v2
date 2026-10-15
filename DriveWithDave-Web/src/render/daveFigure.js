@@ -47,10 +47,11 @@ export class DaveFigure {
     const armG = new THREE.CylinderGeometry(0.034, 0.03, 1, 8);
     armG.translate(0, 0.5, 0);
     this.arms = [-1, 1].map((side) => {
-      const a = new THREE.Mesh(armG, this.jacket);
+      const a = new THREE.Mesh(armG, this.jacket);   // upper arm
+      const f = new THREE.Mesh(armG, this.jacket);   // forearm
       const h = new THREE.Mesh(new THREE.SphereGeometry(0.033, 8, 6), skin);
-      g.add(a, h);
-      return { side, arm: a, hand: h, shoulder: new THREE.Vector3(SX + side * 0.22, 1.0, -0.43) };
+      g.add(a, f, h);
+      return { side, arm: a, fore: f, hand: h, shoulder: new THREE.Vector3(SX + side * 0.22, 1.0, -0.43) };
     });
     view.body.add(g);
     this.talkT = 0; this.gearT = 0; this.lastGear = 0; this.lookYaw = 0;
@@ -78,11 +79,17 @@ export class DaveFigure {
         const knob = new THREE.Vector3(0, 0.27, 0).applyMatrix4(v.gearPivot.matrix);
         p = p.lerp(knob, Math.sin(Math.min(1, this.gearT / 0.55) * Math.PI));
       }
-      const dir = p.clone().sub(A.shoulder);
-      const len = dir.length();
-      A.arm.position.copy(A.shoulder);
-      A.arm.quaternion.setFromUnitVectors(UP, dir.normalize());
-      A.arm.scale.set(1, len, 1);
+      // elbow: hangs down and out between shoulder and hand
+      const elbow = A.shoulder.clone().lerp(p, 0.45);
+      elbow.y -= 0.16; elbow.x += A.side * 0.07; elbow.z -= 0.02;
+      const seg = (mesh, a, b) => {
+        const d = b.clone().sub(a);
+        mesh.position.copy(a);
+        mesh.scale.set(1, d.length(), 1);
+        mesh.quaternion.setFromUnitVectors(UP, d.normalize());
+      };
+      seg(A.arm, A.shoulder, elbow);
+      seg(A.fore, elbow, p);
       A.hand.position.copy(p);
     }
     // head: towards you when talking, over the shoulder reversing, into the turn otherwise

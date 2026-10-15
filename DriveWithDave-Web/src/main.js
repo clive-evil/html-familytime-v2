@@ -379,6 +379,7 @@ const PAD_MAP = { 14: CMD.LEFT, 15: CMD.RIGHT, 12: CMD.STRAIGHT, 13: CMD.TURN_AR
 let padPrev = [];
 function pollPadCommands() {
   const p = input.pad();
+  window.__padPolls = (window.__padPolls || 0) + 1;
   if (!p) return;
   const now = p.buttons.map((b) => b.pressed || b.value > 0.5);
   for (const [i, c] of Object.entries(PAD_MAP)) {
@@ -532,5 +533,5 @@ window.ND = {
   get car() { return car; }, get driver() { return driver; }, get route() { return route; }, get traffic() { return traffic; },
   get world() { return world; }, get settings() { return settings; }, get dave() { return dave; }, get cfg() { return cfg; },
   setSettings, setDaveCfg, chooseDave, actions, IDS, begin, lab, renderer, view, startRun, issue, endRun, get ended() { return ended; },
-  parsePhrase, CMD,
+  parsePhrase, CMD, input, pollPadCommands,
 };

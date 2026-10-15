@@ -9,7 +9,7 @@ export const TRAITS = [
 export const PROFILES = {
   learner: {
     name: 'LEARNER DAVE', blurb: 'Six lessons in. Means well. Listens. Mostly.',
-    traits: { skill: 42, reaction: 52, confidence: 50, panic: 58, attention: 55, obedience: 82, memory: 55 },
+    traits: { skill: 36, reaction: 52, confidence: 50, panic: 60, attention: 52, obedience: 82, memory: 55 },
     voice: { pitch: 1.0 }, cap: 0x2f4a6b,
   },
   nervous: {

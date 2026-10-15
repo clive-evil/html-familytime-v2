@@ -60,6 +60,9 @@ export function scriptedNavigator(g) {
     if (route.step === IDS.LIGHTS && dave.hold === false && car.speed < 0.1 && g.traffic.lights === 'green' && dave.queue.length === 0 && !g._lg) { g._lg = true; g.cmd('GO'); }
     if (!saidRight && car.z > 205) { saidRight = true; g.cmd('RIGHT'); }
     if (!saidPark && route.step === IDS.PARALLEL && car.x < 48 && car.x > 40) { saidPark = true; g.cmd('PARK'); }
+    // a bad attempt: ask him to have another go (up to twice)
+    if (saidPark && route.step === IDS.PARALLEL && dave.park?.phase === 'done' && car.speed < 0.05 && (g._retries || 0) < 2 && g.t - (g._retryT || 0) > 3) { g._retries = (g._retries || 0) + 1; g._retryT = g.t; g.cmd('PARK'); }
+    if (saidPark && route.step === IDS.PARALLEL && dave.park?.phase === 'done' && (g._retries || 0) >= 2 && g.t - g._retryT > 5 && !saidNan) { saidNan = true; g.cmd('LEFT'); g.cmd('GO'); }
     if (saidPark && !saidNan && route.step === IDS.NAN && dave.mode === 'park' && dave.park?.phase === 'done') { saidNan = true; g.cmd('LEFT'); g.cmd('GO'); }
   };
 }

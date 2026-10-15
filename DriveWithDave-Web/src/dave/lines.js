@@ -58,7 +58,7 @@ const L = {
   pullOver: { default: ['Pulling over.'] },
   stopping: { default: ['Stopping.'], nervous: ['Stopping! Stopping.'] },
   stressHigh: { default: ['Can everyone just... be quiet a sec.'], nervous: ['I need a minute.'], cocky: ['Bit much, this.'] },
-  stressDown: { default: ['Right. Better.'] },
+  stressDown: { default: ['Right. Better. Where were we?'], nervous: ['OK. OK. I\u2019m OK.'], cocky: ['Right. Where was I.'] },
   hillStart: { nervous: ['I hate hills.'], cocky: ['Hill start. Easy.'], default: ['Hill start. Great.'] },
 };
 

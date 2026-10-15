@@ -202,13 +202,14 @@ test('obedience: Cocky refuses GO on red; Learner gives in when shouted at', () 
     const keepRed = () => { g.route.flags.waitT = -100; g.traffic.lights = 'red'; };
     for (let i = 0; i < shouts; i++) { g.cmd(CMD.GO); g.run(0.35, keepRed); }
     g.run(2.5, keepRed);
-    return { moved: g.car.z - zStop > 1, refused: g.dave.tel.refused, zStop };
+    return { moved: g.car.z - zStop > 1, refused: g.dave.tel.refused, zStop, gaveIn: g.dave.redOverride && g.said.some((x) => x.key === 'complyReluctant') };
   };
   const cocky = run('cocky', 4);
   assert.equal(cocky.moved, false, 'cocky stays put on red');
+  assert.equal(cocky.gaveIn, false);
   assert.ok(cocky.refused >= 1);
   const learner = run('learner', 4);
-  assert.equal(learner.moved, true, 'learner goes when shouted at');
+  assert.equal(learner.gaveIn, true, 'learner gives in when shouted at ("Fine!") — whether he then manages the hill start is another matter');
 });
 
 // ---------------------------------------------------------------- personalities

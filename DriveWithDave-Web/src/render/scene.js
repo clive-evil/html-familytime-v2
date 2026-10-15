@@ -50,7 +50,7 @@ export function buildTown(world, renderer) {
     root.add(m);
     return m;
   };
-  const S = 0.5;
+  const S = 0.62; // Drive With Dave: coarser than Normal Driving (0.5) to save ~40% of ground triangles
   region(-34, 34, -118, -46, S);       // car park
   region(-8, 8, -50, -6, S);           // access road
   region(-94, 64, -10, 10, S);         // Mill Road

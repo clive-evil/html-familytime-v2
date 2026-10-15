@@ -1,185 +1,159 @@
-# NORMAL DRIVING
+# DRIVE WITH DAVE
 
-A mechanic-testing prototype: driving an ordinary, slightly tired manual hatchback
-up an ordinary British hill to park outside your nan's house — where operating the
-clutch, the steering wheel and the gear lever is the whole game.
+**You navigate. Dave drives.**
 
-> The car behaves consistently. The player is bad at operating it.
+A prototype built on [NORMAL DRIVING](../NormalDriving-Web) (which is untouched). You sit in the
+passenger seat. Dave has the keys. You tell him what to do; he decides how (and whether) to do
+it, then operates the *same* simulated clutch, throttle, brake, steering wheel, gear lever,
+handbrake and ignition a human uses in Normal Driving. Nothing moves the car except the
+drivetrain simulation.
 
-There is no randomness anywhere in the simulation (no random stalls, missed gears,
-steering noise, input lag or "assists" you didn't switch on). Every stall, rollback and
-grind is a deterministic result of the inputs.
+The question this prototype exists to answer: **is it fun to instruct an imperfect driver?**
 
 ---
 
-## Install / run
-
-Requires Node 18+ (tested on Node 22).
+## Play
 
 ```bash
-# Windows: put this folder at C:\AI-Prototypes\NormalDriving-Web, then in that folder:
 npm install
-npm run dev        # → http://localhost:5173
-npm run build      # → dist/index.html  (single self-contained file)
-npm run preview    # serve the built version → http://localhost:4173
-npm test           # physics + route unit tests (node, no browser)
-npm run smoke      # headless-browser smoke test of dist/ (needs Chromium, see below)
+npm run dev      # → http://localhost:5173
+npm run build    # → dist/index.html (single self-contained file; double-click it, works offline)
+npm test         # 48 node tests (29 inherited physics/route + 19 Dave)
+npm run smoke    # 37 headless-browser checks against dist/ (needs Chromium; set CHROME_PATH if not found)
 ```
 
-**Standalone build:** `npm run build` produces `dist/index.html` with all code, CSS and
-three.js inlined (~0.6 MB). Double-click it — it runs from `file://` with no server and
-makes no network requests. Sounds are synthesised at runtime; there are no asset files.
+Title screen: **CHOOSE DAVE**, pick **BUTTONS** or **VOICE + BUTTONS**, **START DRIVE**.
+Esc returns to the menu. **TEST RESULTS** shows every run recorded in this browser.
 
-Click the title screen (or press Enter / controller A) to sit in the car. Clicking the
-view captures the mouse for looking around; Esc releases it.
+### Commands
 
----
+| Command | Button / key | Controller | What it means to Dave |
+|---|---|---|---|
+| LEFT | A / ← | D-pad ← | *Take the next valid left* (remembered for a while — see Memory) |
+| RIGHT | D / → | D-pad → | *Take the next valid right* |
+| STRAIGHT | X / ↑ | D-pad ↑ | Carry on / don't turn here |
+| GO | W (when stopped) | A | Proceed when he thinks it's OK (or when you insist) |
+| FASTER | E, or W while moving | Y | Raise his target speed |
+| SLOWER | S (while moving) | X | Lower his target speed |
+| STOP | Q / ↓, or S when slow | B | Controlled stop, then wait for GO |
+| BRAKE! | Space | RB | Emergency stop (harshness depends on his panic) |
+| WAIT | Z | LB | Hold here |
+| CAREFUL | C | R3 | Biased to caution for ~20 s (and it calms him a bit) |
+| GO FOR IT | F | — | Biased to boldness for ~12 s |
+| REVERSE | R | LT | Back up a few metres |
+| PARK | P | RT | Park here: parallel parks in the gap, or takes a drive |
+| TURN AROUND | T | D-pad ↓ | Find a clear stretch and do a three-point turn |
+| PULL OVER | O | — | Pull in to the kerb and stop |
 
-## Controls
+Repeating a command quickly (*LEFT! LEFT! LEFT!*) raises **urgency**. Urgency makes Dave react
+faster, but it also raises his **stress**, and stress × his **Panic** trait degrades his driving:
+over-correcting steering, rushing the clutch, dropping the handbrake early, selecting gears
+before the clutch is down. Shouting makes it worse. If he maxes out, he stops for a minute.
 
-### Keyboard (layout A, default — layout B selectable in the lab)
+Other controls: **mouse-drag** to look around, **Tab** (hold) to look at Dave, **V** camera
+(passenger / third-person chase), **M** toggle the microphone (voice mode), **F1** lab.
 
-| Key | Action |
-|---|---|
-| **W** | Accelerator (ramps up while held, falls when released — tap to feather) |
-| **S** | Brake (ramped) |
-| **A / D** | Steering wheel (behaviour depends on steering mode) |
-| **Space** | Clutch — hold to press the pedal down, release and it rises at *clutch return speed*. Tap it to hover at the bite. |
-| **Shift** | Handbrake (toggle — a ratchet, like the real lever; "hold" mode in the lab) |
-| **I** | Ignition — **hold** to crank; press while running to switch off |
-| **1–5, R, N (or 0)** | Select gear directly (button gearbox) |
-| **Q / E** | Gear down / up (button gearbox) |
-| **Arrow keys** | Move the gear lever through the H gate (H-pattern gearbox) |
-| **Mouse** | Look (head). Drifts back to the road after a few idle seconds |
-| **Left-drag** | Grab and turn the wheel (hand-over-hand mode) — each grab has limited travel, let go and re-grab |
-| **Right-drag** | Hold the gear lever and move it (H-pattern) |
-| **Mouse wheel** | Clutch pedal position (when *Keyboard clutch = Mouse wheel*) |
-| **Z / X** | Glance left / right (hold) |
-| **H** | Horn · **C** camera · **F1** or **`** lab panel |
+### Voice (optional)
 
-Layout B: arrows drive (↑ throttle, ↓ brake, ←/→ steer), Z clutch, X handbrake,
-Enter ignition, A/S gear −/+, IJKL gear lever, Q/W glance.
-
-### Controller (standard mapping, e.g. Xbox / PlayStation in Chrome/Edge)
-
-| Input | Action |
-|---|---|
-| **RT** | Accelerator (analogue) |
-| **LT** | Clutch (analogue — the best way to feel the bite) |
-| **LB** | Brake (digital, ramped) |
-| **RB** | Handbrake (toggle) |
-| **Left stick** | Steering. In hand-over-hand mode: push to the rim and **rotate the stick in circles** to wind the wheel |
-| **Right stick** | Look (absolute: where you point it is where your head points) |
-| **A** | Ignition — hold to crank / press to switch off |
-| **Y / X** | Gear up / down (button gearbox) |
-| **R3** (click) or **hold D-pad ←** | Hand on the gear lever (H-pattern): right stick then moves the lever. R3 hands back automatically after ~1.6 s idle |
-| **B** | Horn · **Back / D-pad ↑** camera · **Start** lab panel |
+Uses the browser's own speech recognition (Web Speech API, Chrome/Edge). No cloud service is
+added by this game; note that Chrome's built-in recognition itself runs through Google's servers. If the
+browser has no recognition, the menu says **VOICE NOT AVAILABLE IN THIS BROWSER** and buttons
+carry on working. The vocabulary is deliberately small (`src/dave/commands.js`): "left", "turn
+left", "take a left", "Dave, slow down", "speed up", "straight on", "stop", "brake", "park here",
+"turn around", "hang on", "careful"… Each utterance is shown as **DAVE HEARD: LEFT "turn left"**.
+If nothing recognisable was heard, or the browser reports low confidence, Dave says **"What?"**
+— he never guesses. Mistakes after that are Dave's, not the recogniser's.
 
 ---
 
-## How to drive it (the drill)
+## The Daves
 
-1. Clutch fully down → neutral → hold ignition until it catches.
-2. Clutch down → first gear.
-3. A bit of throttle (≈1,500–2,000 rpm on the flat, more on the hill).
-4. Bring the clutch up **slowly** — you'll hear the revs dip and the engine note get lumpy as it bites.
-5. Handbrake off once it's biting (on the hill: it's holding you; let go and it rolls back).
-6. Keep slipping the clutch until the car is actually moving, then all the way up.
+| | Driving | Reaction | Confidence | Panic | Attention | Obedience | Memory |
+|---|---|---|---|---|---|---|---|
+| **Learner** (default) | 36 | 52 | 50 | 60 | 52 | 82 | 55 |
+| **Nervous** | 55 | 50 | 18 | 86 | 80 | 88 | 62 |
+| **Cocky** | 70 | 74 | 92 | 25 | 48 | 32 | 45 |
+| **Old Hand** (control) | 90 | 62 | 66 | 15 | 88 | 72 | 80 |
 
-If you stall: the car does not reset. In gear with the clutch up, a stalled engine holds the car on a hill — press
-the clutch to restart and it starts rolling backwards. That's the point.
+What each trait actually drives (no `if (random < x) crash` anywhere):
 
----
+* **Driving (skill)** — hand lag on the wheel, slight under-steer and a slow weave, how far he
+  looks ahead, how well he holds revs on a pull-away, how fast he lets the clutch through the
+  bite, when he dips the clutch while slowing (late → stalls in 2nd), how precisely he judges
+  the parallel-park swing.
+* **Reaction** — delay between hearing a command (or noticing a hazard) and acting on it.
+* **Confidence** — cruising speed, how hard he takes bends, braking point, the gap he'll accept
+  at the give-way, hesitation at junctions, whether he rolls through a junction he knows.
+* **Panic** — how much stress and shouting hurt him (steering gain ↑ → over-correction, rushed
+  clutch, handbrake dropped early, gear selected before the clutch is down → real grinds).
+  Timid Daves under-rev when panicked, confident ones over-rev.
+* **Attention** — how far ahead he notices lights, junctions and the oncoming car; also his
+  judgement when deciding whether an instruction is dangerous.
+* **Obedience** — whether he does something he thinks is dangerous because you told him to.
+  Cocky: "It's red, genius." Learner, shouted at: "Fine!" (and then maybe stalls on the hill).
+* **Memory** — how long "left" stays in his head before "Hang on, which way was it?"
 
-## The route (~2.5–3 minutes driven cleanly)
-
-Car park → **STOP AT THE LINE** → **STOP AT THE JUNCTION** → **TURN LEFT** → Mill Road
-(one parked car on your side) → bend → **the hill (16% by default)** → **WAIT AT THE LIGHTS**
-(roadworks, red until you've stopped at the line: first hill start) → S-bend →
-**GIVE WAY TO ONCOMING TRAFFIC** (parked cars in your lane; a car comes down: second hill start) →
-**STOP AT THE JUNCTION** (tight top T) → **TURN RIGHT** → **PARALLEL PARK** (6.8 m gap, a man waiting) →
-**PARK OUTSIDE NAN'S HOUSE** (yellow door, narrow drive) → handbrake on, engine off → **YOU ARRIVED.**
-
-Stats at the end: time, stalls, rollbacks, gear grinds, kerb hits, collisions, clutch overheats,
-parking attempts. Nothing resets you after a mistake; there are no checkpoints. If you get
-genuinely wedged, the lab has reset buttons.
-
----
-
-## DEBUG / LAB panel (F1, `, or controller Start)
-
-* **Presets** (one click):
-  * **A — Clutch only:** manual clutch, standard analogue steering (still finite wheel speed), button gears, normal self-centring.
-  * **B — Clutch + physical steering** *(default)*: manual clutch, slow multi-turn wheel (3 turns lock-to-lock, 400°/s at full input, no snap-back), button gears.
-  * **C — Full awkward:** manual clutch, hand-over-hand/gesture steering (3.2 turns), H-pattern gearbox, slightly narrower bite.
-  * **D — Accessible:** auto clutch, auto restart, steering return assist, faster steering (700°/s, 2.6 turns), easy clutch.
-* **Actions:** RESET CAR (stop where you are / last clear spot), RESET TO BOTTOM OF HILL (engine running, handbrake on), RESET ROUTE, TELEPORT TO PARKING TEST.
-* **Setup:** camera (first / third-person chase), steering mode, self-centring (none/weak/normal), clutch difficulty (easy/normal/brutal), gearbox (button/H-pattern), traffic pressure (off/light), look requirement, handbrake toggle/hold, keyboard layout A/B, keyboard clutch (ramp / mouse-wheel position), pedestrian, HUD readout, gate diagram.
-* **Tuning sliders:** steering speed, steering lock (turns), clutch bite point, clutch bite width, clutch return speed, clutch press speed, stall sensitivity, engine torque, hill steepness (rebuilds the town on release), handbrake strength, keyboard pedal ramp, mouse sensitivity.
-* **Assists:** auto restart, auto clutch, auto gear, steering return (all off by default except in preset D).
-* **Live diagnostics:** speed, gear, rpm, clutch pedal %, clutch engagement %, clutch torque, throttle %, brake %, handbrake, steering-wheel angle, road-wheel angle, slope %, engine state, clutch temp, wheelspin, axle loads, look yaw, input device, fps.
-
-Settings persist in `localStorage`.
-
-**Traffic pressure LIGHT:** a car follows you up the hill (keeps its distance, never pushes),
-and another queues behind you while you parallel park. If you sit still for no reason it
-beeps — once, then a longer one later, three at most. Roll back towards it and you'll get
-one short toot. Waiting at a red light or for oncoming traffic is legitimate and never beeped.
-
-**Look requirement:** at the two junctions, if you didn't turn your head right (and left)
-while stopped, you get "YOU DIDN'T LOOK." No penalty.
+Dave also has basic self-preservation: he follows his lane, slows for bends, stops for red,
+stops short of parked cars and walls, backs off if he noses into something, and stops at
+junctions to be told which way. He does **not** know where Nan lives.
 
 ---
 
-## Mechanics in brief
-
-* **Engine:** idle 850 rpm, torque curve 44 Nm @ 600 → 86 Nm @ 3,600, rev limiter 6,200. A weak idle
-  governor (≈30 Nm max on Normal) means zero-throttle clutch starts only work if you're very
-  patient on the flat, and never on the hill. Throttle is progressive (small openings matter more at low rpm).
-  Stall below ~400 rpm (stall sensitivity / clutch difficulty move this). Starter cranks at ~250 rpm and
-  needs ~0.45 s to catch; bump starts need ~700 rpm.
-* **Clutch:** continuous 0–100% pedal. Capacity follows a smooth curve centred on the bite point
-  (default 55% pedal, ±10%). Easy/Normal/Brutal = bite width 34/20/11%, idle torque 44/30/18 Nm, stall
-  rpm 320/400/520. Slip generates heat (≈1.8 kJ/°C); "CLUTCH HOT" at 220 °C, fade (up to −45% capacity) above 280 °C.
-* **Gearbox:** R, 1–5 (3.45/1.95/1.36/1.03/0.82, final 4.1). A gear goes in if the clutch is ≥ ~95%
-  disengaged, or if engine and gearbox speeds already match (rev-matched clutchless shifts work).
-  Otherwise: grind, and you stay in neutral. Reverse has no synchro: moving forwards → grind.
-  H gate: levers move freely across the neutral plane and only enter a column when lined up with it;
-  a lazy diagonal from neutral goes into 3rd/4th (that's where the lever rests), every time.
-* **Steering:** wheel angle → road-wheel angle (33° at full lock). Self-centring is caster-like
-  (proportional to speed, only when your hands are off).
-* **Chassis:** front-wheel drive, 930 kg, 58/42 weight split with dynamic load transfer (so hard
-  launches uphill spin the front wheels). Brakes 70/30, handbrake on the rears. Kerbs are 12 cm and
-  physically resist being climbed.
-
----
-
-## Project layout
+## How Dave's brain works (`src/dave/`)
 
 ```
-src/
-  main.js              boot, loop, HUD
-  sim/                 no three.js — testable in node
-    params.js          constants, presets, torque curve
-    car.js             engine/clutch/gearbox/tyres/body solver, collisions, events
-    driver.js          pedals, steering wheel modes, handbrake, button + H-pattern gearbox, assists
-    collision.js       OBB/circle contact
-    math.js
-  world/
-    layout.js          road SDF + kerbs, hill profile, colliders, parked cars, houses, AI lanes
-    route.js           objectives, dry commentary, stats
-    traffic.js         follower / queue / oncoming AI, lights, pedestrian
-  input/input.js       keyboard, mouse, gamepad → device-agnostic intents (touch can slot in here)
-  render/              three.js town, car + interior, mirrors, instrument cluster
-  audio/audio.js       WebAudio synthesis (engine, starter, stall, grind, tyres, horn…)
-  ui/                  lab panel, styles
-tests/
-  sim.test.js          27 physics/controls tests
-  route.test.js        a bot drives the full route with a manual clutch (with and without traffic)
-  smoke.mjs            headless Chromium: real keyboard events + simulated controller
+commands.js   canonical commands + phrase parser (voice)
+brain.js      Dave: intake → perception → intention → personality → decisions → low-level control
+nav.js        lanes Dave can drive, built from the existing World (junction arcs, obstacle-avoiding lanes)
+lines.js      authored dialogue, keyed by event and personality, cycled (no RNG)
+profiles.js   the four Daves + lab tuning defaults
+outcome.js    major-failure rules and Dave's verdict
+telemetry.js  local-only run records (localStorage)
+voice.js      optional Web Speech wrapper
+settings.js   the Driver configuration Dave uses (analogue wheel, pedals, normal gear lever)
 ```
 
-`window.ND` exposes the live objects in the browser console for poking at.
+1. **Intake** — every command is timestamped; repeats within 2.5 s raise urgency; urgency adds
+   stress. The command takes effect after Dave's reaction delay.
+2. **Perception** — free road ahead along his lane (swept car box vs. the same colliders the
+   physics uses), red light, oncoming car, junction line, dead end. Things are only "seen" inside
+   his notice distance and after his reaction time.
+3. **Intention** — turn intent with memory expiry, speed factor (decays back), careful/go-for-it
+   timers, holds (STOP/WAIT/BRAKE/meltdown), manoeuvre modes (reverse, three-point turn,
+   parallel park, driveway).
+4. **Decisions** — target speed (cruise × factors, limited by bends, stop lines, obstacles),
+   path (lane, junction arcs), whether to obey, when to ask, who to blame.
+5. **Low-level control** — adapted from Normal Driving's route bot: pure-pursuit steering through
+   his hands; launch / drive / coast / re-engage clutch states; gear selection; handbrake
+   management; stall recovery drill. Output is the same *intents* structure a keyboard produces,
+   fed into the unchanged `Driver` → `CarSim`. A test asserts `brain.js` never writes car state.
 
-`npm run smoke` uses `playwright-core` and a local Chromium; set `CHROME_PATH` to your Chrome/Edge
-executable if it isn't found.
+## What was reused from Normal Driving
+
+Everything physical: `sim/car.js` (engine, clutch, gearbox, tyres, collisions), `sim/driver.js`
+(the control layer Dave operates), the town and route (`world/`), traffic, audio, renderer,
+cameras, mirrors, the lab panel, and the original 29 tests (still passing). Changes to copied
+files are small: the route has passenger-seat objective text and lets Dave's own commentary
+replace the narrator's incident messages; the camera can sit in the passenger seat; the input
+layer can skip pointer-lock; Dave's ground mesh is 0.62 m instead of 0.5 m (≈ 280k → 216k
+triangles per frame).
+
+**DIRECT mode** (lab → CONTROL MODE) is the original Normal Driving control scheme, kept for
+regression and comparison. It is not the game.
+
+## Lab (F1)
+
+Everything from Normal Driving, plus a **DAVE** section: control mode, passenger-knows-best hints,
+Dave's voice (mumble / browser speech / subtitles only), presets (LEARNER, NERVOUS, COCKY,
+COMPETENT), live sliders for all seven traits, and tuning for command urgency, stress build-up,
+stress recovery, voice confidence threshold, driving aggression and safety override. Live
+readouts show his mode, intent, stress, urgency, panic effect, target speed, free road ahead,
+reaction delay, notice distance and memory.
+
+## Telemetry (local only)
+
+Each finished run stores: profile, input mode, outcome, duration, commands, commands/min,
+repeats, shouty commands, average urgency, average/max stress, wrong turns, junctions taken
+correctly, stalls, kerbs, collisions, near misses, parking attempts and quality, refusals,
+voice/button/key/pad command counts, average command→action delay, restarts.
+**TEST RESULTS** on the title screen shows them (with copy-as-JSON and clear).

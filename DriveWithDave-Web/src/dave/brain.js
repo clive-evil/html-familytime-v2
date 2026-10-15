@@ -74,6 +74,7 @@ export class Dave {
     this.revDist = 0;
     this.park = null; this.turn = null; this.shutdown = null;
     this.recentIncidents = [];
+    this.meltdown = null;
     this.parkAttempt = 0;
     this.heard = null;
     this.debug = {};
@@ -215,6 +216,7 @@ export class Dave {
         this.say(ackKey || 'stopping', { force: true, pri: 2 });
         return;
       case CMD.GO: case CMD.FASTER: case CMD.GO_FOR_IT: {
+        if (this.meltdown) { this.addStress(0.03); this.say('x', { pri: 1, text: 'I said give me a minute.' }); return; }
         const dg = this.danger();
         if (cmd === CMD.FASTER && !this.hold) {
           if (dg.d > 0 && !this.complies(dg.d * 0.8, u)) { this.tel.refused++; this.say(dg.kind === 'red' ? 'refuseRed' : 'refuse', { pri: 1 }); return; }
@@ -235,6 +237,7 @@ export class Dave {
         } else if (cmd === CMD.GO) ack('ack');
         this.hold = false; this.holdReason = null; this.brakeHard = 0;
         this.goNow = this.t;
+        if (this.meltdownWait) this.meltdownWait = false;
         if (this.flags.atJunction && !this.intent) this.say('whichWay', { force: true, pri: 1 });
         if (this.mode === 'deadEnd') { this.say('deadEnd', { force: true }); this.hold = true; }
         return;
@@ -313,6 +316,17 @@ export class Dave {
     }
     this.tel.stressSum += this.stress * dt; this.tel.stressN += dt; this.tel.maxStress = Math.max(this.tel.maxStress, this.stress);
     if (this.stress > 0.8 && !this.flags.stressSaid) { this.flags.stressSaid = true; this.say('stressHigh', { pri: 2 }); }
+    // meltdown: maxed out, he stops and won't be hurried until he's calmed down a bit
+    if (this.stress >= 0.97 && !this.meltdown && this.mode !== 'arrived' && this.mode !== 'start') {
+      this.meltdown = { t: 0 }; this.tel.meltdowns = (this.tel.meltdowns || 0) + 1;
+      this.hold = true; this.holdReason = 'meltdown';
+      this.say('x', { force: true, pri: 3, text: { nervous: 'Stop. I need a minute.', cocky: 'Right. Everyone shut up.', oldhand: 'I\u2019m pulling up until you calm down.' }[this.personality] || 'Give me a minute. Seriously.' });
+    }
+    if (this.meltdown) {
+      this.meltdown.t += dt;
+      this.stress = Math.max(0, this.stress - 0.05 * dt);
+      if (this.meltdown.t > 7 && this.stress < 0.65) { this.meltdown = null; this.say('stressDown', { force: true, pri: 2 }); }
+    }
     // commands whose reaction time has elapsed
     for (const q of this.queue.filter((q) => q.due <= this.t)) this.apply(q);
     this.queue = this.queue.filter((q) => q.due > this.t);
@@ -562,7 +576,10 @@ export class Dave {
     const car = this.game.car, w = this.game.world;
     if (this.mode === 'driveway' || this.mode === 'arrived') { this.shutdownSoon = true; return; }
     const P = w.parkSpace;
-    const onTop = this.onBase('topWest') && car.z > 246;
+    // already at it, or already done it properly: repeating PARK just gets a look
+    if (this.mode === 'park' && this.park && this.park.phase !== 'done') { this.say('ackUrgent', { pri: 0 }); return; }
+    if (this.mode === 'park' && this.park && this.park.phase === 'done' && this.game.route.parkedInSpace(car)) { this.say('x', { text: 'We\u2019re parked.', pri: 1 }); return; }
+    const onTop = (this.onBase('topWest') || this.mode === 'park') && car.z > 246;
     if (onTop && car.x > P.x0 - 3 && car.x < P.x1 + 16) {
       this.parkAttempt++;
       this.tel.parkingAttempts++;
@@ -570,7 +587,8 @@ export class Dave {
       const sgn2 = (this.seed >>> (this.parkAttempt + 7)) & 1 ? 1 : -1;
       // TRAIT → skill: judgement of where to stop and how far to swing in
       this.park = {
-        phase: car.x > P.x0 + 0.5 ? 'align' : 'exit',
+        // already in (or half in) the gap: pull out and have another go
+        phase: car.z > 251.5 ? 'exit' : car.x > P.x0 + 0.5 ? 'align' : 'exit',
         stopX: P.x0 - 1.2 + (1 - this.tr('skill')) * 1.1 * sgn,
         // TRAIT → skill (and panic): how well he judges the swing
         targetZ: P.kerbZ - CAR.halfWidth - 0.32 + (1 - this.tr('skill')) * 0.8 * sgn2 + this.panicEff * 0.3 + (this.parkBias ?? 0),
@@ -677,10 +695,12 @@ export class Dave {
     if (this.hold) { this.driveSpeed(dt, 0, {}); this.setWheel(this.hand, dt); if (car.speed < 0.1 && K.phase !== 'done') { /* waits */ } return; }
     const revV = -(0.7 + this.tr('confidence') * 0.4) * (1 + this.panicEff * 0.4);
     switch (K.phase) {
-      case 'exit': // pull back out onto the lane, then line up again
-        this.setWheel(car.z > 251.6 ? max * 0.8 : -max * 0.4, dt);
-        this.driveSpeed(dt, 1.2, {});
-        if (car.z < 251.2 && Math.abs(yaw) < 0.25 && car.x < P.x0 - 2) { K.phase = 'backup'; }
+      case 'exit': // pull back out onto the lane, past the car in front, then line up again
+        if (car.z > 251.4 && Math.abs(yaw) < 0.5) this.setWheel(max, dt);
+        else this.steerPath(dt, false);
+        this.driveSpeed(dt, this.frontBlocked() ? 0 : 1.3, {});
+        if (this.frontBlocked() && car.speed < 0.1) { K.phase = 'leaveBack'; K.x0 = car.x; K.t = 0; K.retry = true; }
+        if (car.z < 251.2 && Math.abs(yaw) < 0.2 && car.x < P.x0 - 2) { K.phase = 'backup'; }
         break;
       case 'backup':
         this.setWheel(0, dt);
@@ -755,6 +775,7 @@ export class Dave {
         if (yaw < -0.38 || car.z < 251.4) K.phase = 'leaveJoin';
         break;
       case 'leaveJoin': {
+        if (K.retry) { K.phase = 'exit'; K.retry = false; break; }
         const m = this.nav.match(car.x - 3, 250.5, -Math.PI / 2);
         if (m) this.path = this.nav.fromHere(m.e, m.pr.s + 3);
         this.mode = 'drive'; this.park = null;
@@ -923,6 +944,12 @@ export class Dave {
       C.shiftTo = gr;
       C.clutch = approach(C.clutch, 1, dt * (5 + pe * 4)); I.clutch.analog = C.clutch; I.throttle.analog = 0;
       if (speed > target + 1) I.brake.analog = 0.3;
+      // changing direction: stop first. Flustered Dave doesn't quite wait (→ a real grind).
+      const reversing = (gr === -1 && v > 0.05) || (gr > 0 && v < -0.05);
+      if (reversing) {
+        I.brake.analog = Math.max(I.brake.analog, 0.45);
+        if (Math.abs(v) > 0.15 + pe * 1.0) { C.state = 'shift'; return; }
+      }
       this.gearSel(gr);
       C.state = 'shift';
       return;
