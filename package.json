@@ -12,7 +12,8 @@
     "sim": "node scripts/simulate.js",
     "test:smoke": "node tests/browser/smoke.mjs",
     "test:stress": "node tests/browser/stress.mjs",
-    "test:all": "npm run test && npm run sim -- --check && npm run build && npm run test:smoke && npm run test:stress"
+    "test:all": "npm run test && npm run sim -- --check && npm run build && npm run test:smoke && npm run test:stress",
+    "build:single": "vite build && node scripts/build-single.mjs"
   },
   "dependencies": {
     "three": "0.170.0"
